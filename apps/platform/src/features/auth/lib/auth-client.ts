@@ -7,11 +7,15 @@ export const authClient = createAuthClient({
   plugins: [
     organizationClient({
       schema: {
+        organization: {
+          additionalFields: {
+            phoneNumber: { type: "string", required: false },
+            phoneNumberVerifiedAt: { type: "date", required: false },
+          },
+        },
         member: {
           additionalFields: {
             title: { type: "string", required: false },
-            phoneNumber: { type: "string", required: false },
-            phoneNumberVerifiedAt: { type: "date", required: false },
           },
         },
       },

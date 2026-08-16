@@ -19,6 +19,7 @@ import {
 import { useFeedback } from "@propertyos/ui/lib/use-feedback";
 import { Controller, useForm } from "react-hook-form";
 
+import { getApiErrorMessage } from "@/shared/lib/api-error";
 import {
   memberTitles,
   type ProfileStepValues,
@@ -49,7 +50,7 @@ export function StepProfile({
     } catch (error) {
       feedback.error(
         "Couldn't save your details",
-        error instanceof Error ? error.message : undefined,
+        getApiErrorMessage(error, "Something went wrong. Please try again."),
       );
     }
   });

@@ -2,6 +2,7 @@ import { useMutation } from "@tanstack/react-query";
 
 import { authClient } from "@/features/auth/lib/auth-client";
 import { honoClient } from "@/shared/lib/api-client";
+import { checkPhoneAvailable } from "./check-phone-available";
 
 function slugify(name: string) {
   return `${name
@@ -12,7 +13,13 @@ function slugify(name: string) {
 
 export function useCreateOrganization() {
   return useMutation({
-    mutationFn: async (input: { name: string; title: string }) => {
+    mutationFn: async (input: {
+      name: string;
+      title: string;
+      phoneNumber: string;
+    }) => {
+      await checkPhoneAvailable(input.phoneNumber);
+
       const { data, error } = await authClient.organization.create({
         name: input.name,
         slug: slugify(input.name),

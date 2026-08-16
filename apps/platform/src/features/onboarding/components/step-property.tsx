@@ -13,6 +13,7 @@ import { Building2, Home, Hotel, LandPlot, Warehouse } from "lucide-react";
 import { motion } from "motion/react";
 import { Controller, useForm } from "react-hook-form";
 
+import { getApiErrorMessage } from "@/shared/lib/api-error";
 import {
   type PropertyStepValues,
   propertyStepSchema,
@@ -57,7 +58,7 @@ export function StepProperty({
     } catch (error) {
       feedback.error(
         "Couldn't add property",
-        error instanceof Error ? error.message : undefined,
+        getApiErrorMessage(error, "Something went wrong. Please try again."),
       );
     }
   });

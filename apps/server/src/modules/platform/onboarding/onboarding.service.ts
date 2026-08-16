@@ -12,6 +12,23 @@ function generateOtp() {
 }
 
 export const onboardingService = {
+  async checkPhoneAvailable(input: {
+    phoneNumber: string;
+    excludeOrganizationId?: string;
+  }) {
+    const claimedBy = await onboardingRepo.findOrganizationByVerifiedPhone(
+      input.phoneNumber,
+      input.excludeOrganizationId,
+    );
+    if (claimedBy) {
+      throw AppError.conflict(
+        "This phone number is already verified on another account",
+      );
+    }
+
+    return { available: true as const };
+  },
+
   async sendPhoneOtp(input: {
     organizationId: string;
     userId: string;
@@ -23,6 +40,16 @@ export const onboardingService = {
     );
     if (!membership) {
       throw AppError.forbidden("Not a member of this organization");
+    }
+
+    const claimedBy = await onboardingRepo.findOrganizationByVerifiedPhone(
+      input.phoneNumber,
+      input.organizationId,
+    );
+    if (claimedBy) {
+      throw AppError.conflict(
+        "This phone number is already verified on another account",
+      );
     }
 
     const code = generateOtp();
@@ -76,6 +103,16 @@ export const onboardingService = {
         verification.attempts + 1,
       );
       throw AppError.validation("Invalid code");
+    }
+
+    const claimedBy = await onboardingRepo.findOrganizationByVerifiedPhone(
+      verification.phoneNumber,
+      input.organizationId,
+    );
+    if (claimedBy) {
+      throw AppError.conflict(
+        "This phone number is already verified on another account",
+      );
     }
 
     await onboardingRepo.markPhoneVerified(

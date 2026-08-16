@@ -1,7 +1,7 @@
 import { createDb } from "@propertyos/db";
 import { organizationPhoneVerification } from "@propertyos/db/schema/onboarding";
 import { member, organization } from "@propertyos/db/schema/organization";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
 
 const db = createDb();
 
@@ -37,7 +37,26 @@ export const onboardingRepo = {
       .select()
       .from(organizationPhoneVerification)
       .where(eq(organizationPhoneVerification.organizationId, organizationId))
-      .orderBy(organizationPhoneVerification.createdAt)
+      .orderBy(desc(organizationPhoneVerification.createdAt))
+      .limit(1)
+      .then((rows) => rows[0]);
+  },
+
+  findOrganizationByVerifiedPhone(
+    phoneNumber: string,
+    excludeOrganizationId?: string,
+  ) {
+    return db
+      .select({ id: organization.id })
+      .from(organization)
+      .where(
+        excludeOrganizationId
+          ? and(
+              eq(organization.phoneNumber, phoneNumber),
+              ne(organization.id, excludeOrganizationId),
+            )
+          : eq(organization.phoneNumber, phoneNumber),
+      )
       .limit(1)
       .then((rows) => rows[0]);
   },

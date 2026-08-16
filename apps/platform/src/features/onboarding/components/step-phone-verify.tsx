@@ -1,9 +1,10 @@
 import { Button } from "@propertyos/ui/components/button";
 import { Input } from "@propertyos/ui/components/input";
 import { useFeedback } from "@propertyos/ui/lib/use-feedback";
-import { RotateCw } from "lucide-react";
+import { ArrowLeft, RotateCw } from "lucide-react";
 import { useRef, useState } from "react";
 
+import { getApiErrorMessage } from "@/shared/lib/api-error";
 import { useSendPhoneOtp, useVerifyPhoneOtp } from "../api/use-phone-otp";
 
 const CODE_LENGTH = 6;
@@ -16,10 +17,12 @@ export function StepPhoneVerify({
   organizationId,
   phoneNumber,
   onVerified,
+  onChangeNumber,
 }: {
   organizationId: string;
   phoneNumber: string;
   onVerified: () => void;
+  onChangeNumber: () => void;
 }) {
   const feedback = useFeedback();
   const [digits, setDigits] = useState<string[]>(Array(CODE_LENGTH).fill(""));
@@ -39,7 +42,13 @@ export function StepPhoneVerify({
           );
         },
         onError: (error) => {
-          feedback.error("Couldn't send code", error.message);
+          feedback.error(
+            "Couldn't send code",
+            getApiErrorMessage(
+              error,
+              "Something went wrong. Please try again.",
+            ),
+          );
         },
       },
     );
@@ -87,7 +96,13 @@ export function StepPhoneVerify({
           onVerified();
         },
         onError: (error) => {
-          feedback.error("Verification failed", error.message);
+          feedback.error(
+            "Verification failed",
+            getApiErrorMessage(
+              error,
+              "Something went wrong. Please try again.",
+            ),
+          );
           setDigits(Array(CODE_LENGTH).fill(""));
           inputsRef.current[0]?.focus();
         },
@@ -127,21 +142,32 @@ export function StepPhoneVerify({
             ))}
           </div>
 
-          <Button
-            variant="ghost"
-            type="button"
-            onClick={sendCode}
-            disabled={sendOtp.isPending}
-            className="mx-auto"
-          >
-            <RotateCw className="size-3.5" />
-            Resend code
-          </Button>
+          <div className="mx-auto flex items-center gap-4">
+            <Button
+              variant="ghost"
+              type="button"
+              onClick={sendCode}
+              disabled={sendOtp.isPending}
+            >
+              <RotateCw className="size-3.5" />
+              Resend code
+            </Button>
+            <Button variant="ghost" type="button" onClick={onChangeNumber}>
+              <ArrowLeft className="size-3.5" />
+              Change number
+            </Button>
+          </div>
         </>
       ) : (
-        <Button type="button" onClick={sendCode} disabled={sendOtp.isPending}>
-          {sendOtp.isPending ? "Sending..." : "Send verification code"}
-        </Button>
+        <div className="flex flex-col items-center gap-3">
+          <Button type="button" onClick={sendCode} disabled={sendOtp.isPending}>
+            {sendOtp.isPending ? "Sending..." : "Send verification code"}
+          </Button>
+          <Button variant="ghost" type="button" onClick={onChangeNumber}>
+            <ArrowLeft className="size-3.5" />
+            Change number
+          </Button>
+        </div>
       )}
     </div>
   );

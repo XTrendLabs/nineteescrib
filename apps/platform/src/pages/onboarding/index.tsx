@@ -3,6 +3,7 @@ import { useState } from "react";
 import { authClient } from "@/features/auth/lib/auth-client";
 import { useCreateOrganization } from "@/features/onboarding/api/use-create-organization";
 import { useCreateProperty } from "@/features/onboarding/api/use-create-property";
+import { useUpdateOrganizationProfile } from "@/features/onboarding/api/use-update-organization-profile";
 import { OnboardingLayout } from "@/features/onboarding/components/onboarding-layout";
 import { StepPhoneVerify } from "@/features/onboarding/components/step-phone-verify";
 import { StepProfile } from "@/features/onboarding/components/step-profile";
@@ -17,19 +18,32 @@ export const Route = createFileRoute("/onboarding/")({
     }
 
     const { data: organizations } = await authClient.organization.list();
-    if (organizations && organizations.length > 0) {
+    const activeOrganization = organizations?.[0];
+    if (activeOrganization?.phoneNumberVerifiedAt) {
       throw redirect({ to: "/" });
     }
+
+    return { activeOrganization };
   },
 });
 
 function RouteComponent() {
+  const { activeOrganization } = Route.useRouteContext();
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
-  const [organizationId, setOrganizationId] = useState<string | null>(null);
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [step, setStep] = useState(activeOrganization ? 2 : 1);
+  const [organizationId, setOrganizationId] = useState<string | null>(
+    activeOrganization?.id ?? null,
+  );
+  const [organizationName, setOrganizationName] = useState(
+    activeOrganization?.name ?? "",
+  );
+  const [title, setTitle] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState(
+    activeOrganization?.phoneNumber ?? "",
+  );
 
   const createOrganization = useCreateOrganization();
+  const updateOrganizationProfile = useUpdateOrganizationProfile();
   const createProperty = useCreateProperty();
 
   const finishOnboarding = () => {
@@ -40,13 +54,25 @@ function RouteComponent() {
     <OnboardingLayout step={step}>
       {step === 1 && (
         <StepProfile
-          defaultValues={{ phoneNumber }}
+          defaultValues={{ organizationName, title, phoneNumber }}
           onSubmit={async (values) => {
-            const result = await createOrganization.mutateAsync({
-              name: values.organizationName,
-              title: values.title,
-            });
-            setOrganizationId(result.organizationId);
+            if (organizationId) {
+              await updateOrganizationProfile.mutateAsync({
+                organizationId,
+                name: values.organizationName,
+                title: values.title,
+                phoneNumber: values.phoneNumber,
+              });
+            } else {
+              const result = await createOrganization.mutateAsync({
+                name: values.organizationName,
+                title: values.title,
+                phoneNumber: values.phoneNumber,
+              });
+              setOrganizationId(result.organizationId);
+            }
+            setOrganizationName(values.organizationName);
+            setTitle(values.title);
             setPhoneNumber(values.phoneNumber);
             setStep(2);
           }}
@@ -58,6 +84,7 @@ function RouteComponent() {
           organizationId={organizationId}
           phoneNumber={phoneNumber}
           onVerified={() => setStep(3)}
+          onChangeNumber={() => setStep(1)}
         />
       )}
 

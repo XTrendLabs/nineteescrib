@@ -14,7 +14,8 @@ export const Route = createFileRoute("/(protected)")({
     }
 
     const { data: organizations } = await authClient.organization.list();
-    if (!organizations || organizations.length === 0) {
+    const activeOrganization = organizations?.[0];
+    if (!activeOrganization?.phoneNumberVerifiedAt) {
       throw redirect({
         to: "/onboarding",
       });
