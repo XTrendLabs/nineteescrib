@@ -27,6 +27,7 @@
     "dev:platform": "turbo -F @apps/platform dev",
     "dev:admin": "turbo -F @apps/admin dev",
     "dev:server": "turbo -F @apps/server dev",
+    "start:server": "bun --cwd apps/server run start",
     "db:push": "turbo -F @propertyos/db db:push",
     "db:studio": "turbo -F @propertyos/db db:studio",
     "db:generate": "turbo -F @propertyos/db db:generate",
