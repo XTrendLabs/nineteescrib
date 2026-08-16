@@ -45,18 +45,22 @@ export function createAuth() {
       organization({
         creatorRole: "owner",
         schema: {
-          member: {
+          organization: {
             additionalFields: {
-              title: {
-                type: "string",
-                required: false,
-              },
               phoneNumber: {
                 type: "string",
                 required: false,
               },
               phoneNumberVerifiedAt: {
                 type: "date",
+                required: false,
+              },
+            },
+          },
+          member: {
+            additionalFields: {
+              title: {
+                type: "string",
                 required: false,
               },
             },

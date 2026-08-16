@@ -12,6 +12,14 @@ export const Route = createFileRoute("/(protected)")({
         to: "/auth/login",
       });
     }
+
+    const { data: organizations } = await authClient.organization.list();
+    if (!organizations || organizations.length === 0) {
+      throw redirect({
+        to: "/onboarding",
+      });
+    }
+
     return { session };
   },
 });

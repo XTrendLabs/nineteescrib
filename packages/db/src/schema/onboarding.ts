@@ -1,15 +1,15 @@
 import { relations } from "drizzle-orm";
 import { index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
-import { member } from "./organization";
+import { organization } from "./organization";
 
-export const memberPhoneVerification = pgTable(
-  "member_phone_verification",
+export const organizationPhoneVerification = pgTable(
+  "organization_phone_verification",
   {
     id: text("id").primaryKey(),
-    memberId: text("member_id")
+    organizationId: text("organization_id")
       .notNull()
-      .references(() => member.id, { onDelete: "cascade" }),
+      .references(() => organization.id, { onDelete: "cascade" }),
     phoneNumber: text("phone_number").notNull(),
     code: text("code").notNull(),
     attempts: integer("attempts").default(0).notNull(),
@@ -17,16 +17,18 @@ export const memberPhoneVerification = pgTable(
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
-    index("member_phone_verification_memberId_idx").on(table.memberId),
+    index("organization_phone_verification_organizationId_idx").on(
+      table.organizationId,
+    ),
   ],
 );
 
-export const memberPhoneVerificationRelations = relations(
-  memberPhoneVerification,
+export const organizationPhoneVerificationRelations = relations(
+  organizationPhoneVerification,
   ({ one }) => ({
-    member: one(member, {
-      fields: [memberPhoneVerification.memberId],
-      references: [member.id],
+    organization: one(organization, {
+      fields: [organizationPhoneVerification.organizationId],
+      references: [organization.id],
     }),
   }),
 );

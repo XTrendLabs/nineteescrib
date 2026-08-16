@@ -1,4 +1,4 @@
-import { Toaster } from "@propertyos/ui/components/sonner";
+import { FeedbackPopup } from "@propertyos/ui/components/feedback-popup";
 import type { QueryClient } from "@tanstack/react-query";
 import {
   createRootRouteWithContext,
@@ -57,7 +57,7 @@ function RootComponent() {
           <div className="grid h-svh grid-rows-[auto_1fr]">
             <Outlet />
           </div>
-          <Toaster richColors />
+          <FeedbackPopup />
         </ThemeProvider>
       </AppProviders>
       <TanStackRouterDevtools position="bottom-left" />

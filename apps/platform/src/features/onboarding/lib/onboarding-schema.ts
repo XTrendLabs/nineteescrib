@@ -1,5 +1,13 @@
-import { propertyTypeValues } from "@propertyos/db/schema/property";
+import { isValidPhoneNumber } from "react-phone-number-input";
 import z from "zod";
+
+export const propertyTypeValues = [
+  "villa",
+  "apartment",
+  "hotel",
+  "homestay",
+  "other",
+] as const;
 
 export const profileStepSchema = z.object({
   organizationName: z
@@ -8,8 +16,10 @@ export const profileStepSchema = z.object({
   title: z.string().min(1, "Select your role"),
   phoneNumber: z
     .string()
-    .min(8, "Enter a valid phone number")
-    .regex(/^\+?[0-9\s-]+$/, "Enter a valid phone number"),
+    .min(1, "Phone number is required")
+    .refine(isValidPhoneNumber, {
+      message: "Enter a valid phone number",
+    }),
 });
 
 export type ProfileStepValues = z.infer<typeof profileStepSchema>;

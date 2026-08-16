@@ -18,6 +18,8 @@ export const organization = pgTable(
     logo: text("logo"),
     createdAt: timestamp("created_at").notNull(),
     metadata: text("metadata"),
+    phoneNumber: text("phone_number"),
+    phoneNumberVerifiedAt: timestamp("phone_number_verified_at"),
   },
   (table) => [uniqueIndex("organization_slug_uidx").on(table.slug)],
 );
@@ -35,8 +37,6 @@ export const member = pgTable(
     role: text("role").default("member").notNull(),
     createdAt: timestamp("created_at").notNull(),
     title: text("title"),
-    phoneNumber: text("phone_number"),
-    phoneNumberVerifiedAt: timestamp("phone_number_verified_at"),
   },
   (table) => [
     index("member_organizationId_idx").on(table.organizationId),

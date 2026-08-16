@@ -1,6 +1,6 @@
 import { createDb } from "@propertyos/db";
-import { memberPhoneVerification } from "@propertyos/db/schema/onboarding";
-import { member } from "@propertyos/db/schema/organization";
+import { organizationPhoneVerification } from "@propertyos/db/schema/onboarding";
+import { member, organization } from "@propertyos/db/schema/organization";
 import { and, eq } from "drizzle-orm";
 
 const db = createDb();
@@ -21,39 +21,39 @@ export const onboardingRepo = {
   },
 
   createVerification(input: {
-    memberId: string;
+    organizationId: string;
     phoneNumber: string;
     code: string;
     expiresAt: Date;
   }) {
-    return db.insert(memberPhoneVerification).values({
+    return db.insert(organizationPhoneVerification).values({
       id: crypto.randomUUID(),
       ...input,
     });
   },
 
-  findLatestVerification(memberId: string) {
+  findLatestVerification(organizationId: string) {
     return db
       .select()
-      .from(memberPhoneVerification)
-      .where(eq(memberPhoneVerification.memberId, memberId))
-      .orderBy(memberPhoneVerification.createdAt)
+      .from(organizationPhoneVerification)
+      .where(eq(organizationPhoneVerification.organizationId, organizationId))
+      .orderBy(organizationPhoneVerification.createdAt)
       .limit(1)
       .then((rows) => rows[0]);
   },
 
   incrementAttempts(verificationId: string, attempts: number) {
     return db
-      .update(memberPhoneVerification)
+      .update(organizationPhoneVerification)
       .set({ attempts })
-      .where(eq(memberPhoneVerification.id, verificationId));
+      .where(eq(organizationPhoneVerification.id, verificationId));
   },
 
-  markPhoneVerified(memberId: string, phoneNumber: string) {
+  markPhoneVerified(organizationId: string, phoneNumber: string) {
     return db
-      .update(member)
+      .update(organization)
       .set({ phoneNumber, phoneNumberVerifiedAt: new Date() })
-      .where(eq(member.id, memberId));
+      .where(eq(organization.id, organizationId));
   },
 
   setTitle(memberId: string, title: string) {

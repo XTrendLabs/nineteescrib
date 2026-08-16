@@ -10,9 +10,9 @@ import {
 } from "@propertyos/ui/components/field";
 import { Input } from "@propertyos/ui/components/input";
 import { PasswordInput } from "@propertyos/ui/components/password-input";
+import { useFeedback } from "@propertyos/ui/lib/use-feedback";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Controller, useForm } from "react-hook-form";
-import { toast } from "sonner";
 import z from "zod";
 
 import Loader from "@/components/loader";
@@ -31,6 +31,7 @@ export default function SignInForm() {
   const navigate = useNavigate({
     from: "/auth/login",
   });
+  const feedback = useFeedback();
   const { isPending } = authClient.useSession();
 
   const form = useForm<SignInValues>({
@@ -50,10 +51,13 @@ export default function SignInForm() {
       {
         onSuccess: () => {
           navigate({ to: "/" });
-          toast.success("Sign in successful");
+          feedback.success("Sign in successful");
         },
         onError: (error) => {
-          toast.error(error.error.message || error.error.statusText);
+          feedback.error(
+            "Sign in failed",
+            error.error.message || error.error.statusText,
+          );
         },
       },
     );

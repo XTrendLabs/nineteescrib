@@ -29,7 +29,7 @@ export const onboardingService = {
     const expiresAt = new Date(Date.now() + OTP_EXPIRY_MS);
 
     await onboardingRepo.createVerification({
-      memberId: membership.id,
+      organizationId: input.organizationId,
       phoneNumber: input.phoneNumber,
       code,
       expiresAt,
@@ -56,7 +56,7 @@ export const onboardingService = {
     }
 
     const verification = await onboardingRepo.findLatestVerification(
-      membership.id,
+      input.organizationId,
     );
     if (!verification) {
       throw AppError.validation("No verification in progress");
@@ -79,7 +79,7 @@ export const onboardingService = {
     }
 
     await onboardingRepo.markPhoneVerified(
-      membership.id,
+      input.organizationId,
       verification.phoneNumber,
     );
 

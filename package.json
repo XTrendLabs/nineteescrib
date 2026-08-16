@@ -41,6 +41,7 @@
   "dependencies": {
     "@propertyos/env": "workspace:*",
     "dotenv": "catalog:",
+    "react-phone-number-input": "^3.4.17",
     "zod": "catalog:"
   },
   "devDependencies": {

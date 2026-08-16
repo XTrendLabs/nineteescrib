@@ -5,7 +5,7 @@ import { HonoReactQuery } from "hono-tanstack-query";
 
 import { queryClient } from "./query-client";
 
-const honoClient = hc<AppType>(env.VITE_SERVER_URL, {
+export const honoClient = hc<AppType>(env.VITE_SERVER_URL, {
   init: { credentials: "include" },
 });
 
