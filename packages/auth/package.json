@@ -1,24 +1,24 @@
 {
-  "name": "@propertyos/auth",
-  "type": "module",
-  "exports": {
-    ".": {
-      "default": "./src/index.ts"
-    },
-    "./*": {
-      "default": "./src/*.ts"
-    }
-  },
-  "scripts": {},
-  "dependencies": {
-    "@propertyos/db": "workspace:*",
-    "@propertyos/env": "workspace:*",
-    "better-auth": "catalog:",
-    "dotenv": "catalog:",
-    "zod": "catalog:"
-  },
-  "devDependencies": {
-    "@propertyos/config": "workspace:*",
-    "typescript": "catalog:"
-  }
+	"name": "@propertyos/auth",
+	"type": "module",
+	"exports": {
+		".": {
+			"default": "./src/index.ts"
+		},
+		"./*": {
+			"default": "./src/*.ts"
+		}
+	},
+	"scripts": {},
+	"dependencies": {
+		"@propertyos/db": "workspace:*",
+		"@propertyos/env": "workspace:*",
+		"better-auth": "catalog:",
+		"dotenv": "catalog:",
+		"zod": "catalog:"
+	},
+	"devDependencies": {
+		"@propertyos/config": "workspace:*",
+		"typescript": "catalog:"
+	}
 }
