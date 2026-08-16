@@ -31,14 +31,13 @@ app.get("/", (c) => {
 });
 
 export type AppType = typeof routes;
-export default app;
 
 const port = process.env.PORT || 3000;
 
-Bun.serve({
-  fetch: app.fetch,
+console.log(`Server is running on http://0.0.0.0:${port}`);
+
+export default {
   port: Number(port),
   hostname: "0.0.0.0",
-});
-
-console.log(`Server is running on http://0.0.0.0:${port}`);
+  fetch: app.fetch,
+};
