@@ -2,6 +2,13 @@ import "dotenv/config";
 import { createEnv } from "@t3-oss/env-core";
 import { z } from "zod";
 
+console.log("--- DEBUG DEPLOYMENT ---");
+console.log(
+  "BETTER_AUTH_URL raw value:",
+  JSON.stringify(process.env.BETTER_AUTH_URL),
+);
+console.log("------------------------");
+
 export const env = createEnv({
   server: {
     DATABASE_URL: z.string().min(1),
