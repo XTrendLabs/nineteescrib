@@ -20,6 +20,8 @@
     "@tanstack/react-router": "^1.168.22",
     "better-auth": "catalog:",
     "dotenv": "catalog:",
+    "hono": "^4.13.2",
+    "hono-tanstack-query": "^0.0.3",
     "lucide-react": "^1.8.0",
     "next-themes": "catalog:",
     "react": "catalog:",
@@ -29,6 +31,7 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@apps/server": "workspace:*",
     "@propertyos/config": "workspace:*",
     "@tanstack/react-query-devtools": "^5.101.4",
     "@tanstack/react-router-devtools": "^1.166.13",

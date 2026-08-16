@@ -1,10 +1,13 @@
 import { auth } from "@propertyos/auth";
 import { env } from "@propertyos/env/server";
-import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 
-const app = new Hono();
+import { createApp } from "./core";
+import { adminRoutes } from "./modules/admin/admin.routes";
+import { platformRoutes } from "./modules/platform/platform.routes";
+
+const app = createApp();
 
 app.use(logger());
 app.use(
@@ -19,8 +22,13 @@ app.use(
 
 app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
 
+const routes = app
+  .route("/api/platform", platformRoutes)
+  .route("/api/admin", adminRoutes);
+
 app.get("/", (c) => {
   return c.text("OK");
 });
 
+export type AppType = typeof routes;
 export default app;

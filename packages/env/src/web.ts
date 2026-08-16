@@ -4,9 +4,17 @@ import { z } from "zod";
 export const env = createEnv({
   clientPrefix: "VITE_",
   client: {
-    VITE_SERVER_URL: z.url(),
+    VITE_SERVER_URL: z.string().url(),
   },
-  runtimeEnv: import.meta.env,
-  skipValidation: !!process.env.SKIP_ENV_VALIDATION,
+  runtimeEnv: {
+    VITE_SERVER_URL:
+      import.meta.env.VITE_SERVER_URL ||
+      (typeof process !== "undefined"
+        ? process.env.VITE_SERVER_URL
+        : undefined),
+  },
+  skipValidation: !!(typeof process !== "undefined"
+    ? process.env.SKIP_ENV_VALIDATION
+    : undefined),
   emptyStringAsUndefined: true,
 });

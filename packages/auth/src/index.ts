@@ -1,8 +1,10 @@
 import { createDb } from "@propertyos/db";
 import * as schema from "@propertyos/db/schema/auth";
+import * as organizationSchema from "@propertyos/db/schema/organization";
 import { env } from "@propertyos/env/server";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { organization } from "better-auth/plugins";
 
 export function createAuth() {
   const db = createDb();
@@ -11,7 +13,7 @@ export function createAuth() {
     database: drizzleAdapter(db, {
       provider: "pg",
 
-      schema: schema,
+      schema: { ...schema, ...organizationSchema },
     }),
     trustedOrigins: [env.CORS_ORIGIN],
     emailAndPassword: {
@@ -39,7 +41,29 @@ export function createAuth() {
         httpOnly: true,
       },
     },
-    plugins: [],
+    plugins: [
+      organization({
+        creatorRole: "owner",
+        schema: {
+          member: {
+            additionalFields: {
+              title: {
+                type: "string",
+                required: false,
+              },
+              phoneNumber: {
+                type: "string",
+                required: false,
+              },
+              phoneNumberVerifiedAt: {
+                type: "date",
+                required: false,
+              },
+            },
+          },
+        },
+      }),
+    ],
   });
 }
 
