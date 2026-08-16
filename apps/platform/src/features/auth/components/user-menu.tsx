@@ -11,7 +11,7 @@ import {
 import { Skeleton } from "@propertyos/ui/components/skeleton";
 import { Link, useNavigate } from "@tanstack/react-router";
 
-import { authClient } from "@/lib/auth-client";
+import { authClient } from "@/features/auth/lib/auth-client";
 
 export default function UserMenu() {
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ export default function UserMenu() {
 
   if (!session) {
     return (
-      <Link to="/login">
+      <Link to="/auth/login">
         <Button variant="outline">Sign In</Button>
       </Link>
     );
