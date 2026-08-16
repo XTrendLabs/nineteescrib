@@ -12,24 +12,20 @@ function PasswordInput({
   const [visible, setVisible] = React.useState(false);
 
   return (
-    <div className="relative">
+    <div className="relative w-full">
       <Input
         type={visible ? "text" : "password"}
-        className={cn("pr-8", className)}
+        className={cn("pr-10", className)}
         {...props}
       />
       <button
         type="button"
         tabIndex={-1}
         onClick={() => setVisible((v) => !v)}
-        className="absolute top-1/2 right-2.5 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+        className="absolute top-0 right-0 bottom-0 flex items-center justify-center px-3 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none"
         aria-label={visible ? "Hide password" : "Show password"}
       >
-        {visible ? (
-          <EyeOff className="size-3.5" />
-        ) : (
-          <Eye className="size-3.5" />
-        )}
+        {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
       </button>
     </div>
   );
