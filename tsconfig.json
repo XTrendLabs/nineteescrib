@@ -1,3 +1,3 @@
 {
-	"extends": "@propertyos/config/tsconfig.base.json"
+  "extends": "@propertyos/config/tsconfig.base.json"
 }
