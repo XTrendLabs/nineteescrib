@@ -20,6 +20,12 @@ type PhoneInputProps = Omit<
   defaultCountry?: RPNInput.Country;
 };
 
+const RPNPhoneInput =
+  RPNInput.default as unknown as React.ForwardRefExoticComponent<
+    React.ComponentProps<typeof RPNInput.default> &
+      React.RefAttributes<HTMLInputElement>
+  >;
+
 const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
   (
     { className, value = "", onChange, defaultCountry = "IN", ...props },
@@ -30,7 +36,7 @@ const PhoneInput = React.forwardRef<HTMLInputElement, PhoneInputProps>(
     };
 
     return (
-      <RPNInput.default
+      <RPNPhoneInput
         ref={ref}
         value={value}
         onChange={handleValueChange}
@@ -113,7 +119,9 @@ const CountrySelectComponent = ({
         }
       >
         {Flag ? (
-          <Flag className="size-4 shrink-0" title={activeCountry || ""} />
+          <span className="inline-flex size-4 shrink-0 items-center justify-center overflow-hidden">
+            <Flag title={activeCountry || ""} />
+          </span>
         ) : (
           <span className="text-muted-foreground text-xs">Globe</span>
         )}
@@ -163,10 +171,9 @@ const CountrySelectComponent = ({
                   }}
                 >
                   {ItemFlag ? (
-                    <ItemFlag
-                      className="size-4 shrink-0"
-                      title={item.code || ""}
-                    />
+                    <span className="inline-flex size-4 shrink-0 items-center justify-center overflow-hidden">
+                      <ItemFlag title={item.code || ""} />
+                    </span>
                   ) : (
                     <div className="size-4 shrink-0 rounded-full bg-muted" />
                   )}
