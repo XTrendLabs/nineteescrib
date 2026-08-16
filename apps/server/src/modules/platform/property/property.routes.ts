@@ -16,6 +16,16 @@ const createPropertySchema = z.object({
 
 export const propertyRoutes = createRouter()
   .use(requireSession)
+  .get("/", async (c) => {
+    const organizationId = c.req.query("organizationId");
+    if (!organizationId) {
+      throw AppError.validation("organizationId is required");
+    }
+
+    const result = await propertyService.list(organizationId);
+
+    return c.json(ok(result));
+  })
   .post("/", async (c) => {
     const body = createPropertySchema.safeParse(await c.req.json());
     if (!body.success) {
