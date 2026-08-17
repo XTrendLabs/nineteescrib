@@ -8,7 +8,7 @@ import {
 import type { ComponentProps } from "react";
 
 import { HqPropertySwitcher } from "./hq-property-switcher";
-import { navMainItems } from "./nav-data";
+import { navMainGroups } from "./nav-data";
 import { NavMain } from "./nav-main";
 import { NavUser } from "./nav-user";
 
@@ -35,7 +35,7 @@ export function AppSidebar({
         />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={navMainItems} />
+        <NavMain groups={navMainGroups} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser />

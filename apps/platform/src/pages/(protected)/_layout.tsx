@@ -40,22 +40,29 @@ function ProtectedLayout() {
   const title =
     activeView.type === "hq" ? "HQ" : (activePropertyName ?? "Property");
 
+  const selectHq = () => setActiveView({ type: "hq" });
+  const selectProperty = (propertyId: string, name: string) => {
+    setActiveView({ type: "property", propertyId });
+    setActivePropertyName(name);
+  };
+
   return (
     <SidebarProvider>
       <AppSidebar
         activeView={activeView}
-        onSelectHq={() => setActiveView({ type: "hq" })}
-        onSelectProperty={(propertyId, name) => {
-          setActiveView({ type: "property", propertyId });
-          setActivePropertyName(name);
-        }}
+        onSelectHq={selectHq}
+        onSelectProperty={selectProperty}
         onAddProperty={() => {
           window.location.href = "/properties/new";
         }}
       />
       <SidebarInset>
-        <SiteHeader title={title} />
-        <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+        <SiteHeader
+          title={title}
+          onSelectHq={selectHq}
+          onSelectProperty={selectProperty}
+        />
+        <div className="flex flex-1 flex-col gap-4 p-4 pt-0 dark:bg-sidebar-accent">
           <Outlet />
         </div>
       </SidebarInset>

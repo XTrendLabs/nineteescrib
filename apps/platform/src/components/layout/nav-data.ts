@@ -1,15 +1,46 @@
 import {
   BarChart3Icon,
   Building2Icon,
+  CalendarIcon,
+  ClipboardListIcon,
+  ContactIcon,
+  FileTextIcon,
   LayoutGridIcon,
+  ReceiptIcon,
+  SettingsIcon,
   UsersIcon,
 } from "lucide-react";
 
 import type { NavMainItem } from "./nav-main";
 
-export const navMainItems: NavMainItem[] = [
-  { title: "HQ", url: "/", icon: LayoutGridIcon },
-  { title: "Properties", url: "/properties", icon: Building2Icon },
-  { title: "Staff", url: "/staff", icon: UsersIcon },
-  { title: "Reports", url: "/reports", icon: BarChart3Icon },
+export type NavMainGroup = {
+  label?: string;
+  items: NavMainItem[];
+};
+
+export const navMainGroups: NavMainGroup[] = [
+  {
+    items: [
+      { title: "Overview", url: "/", icon: LayoutGridIcon },
+      { title: "Calendar", url: "/calendar", icon: CalendarIcon },
+      { title: "Bookings", url: "/bookings", icon: ClipboardListIcon },
+      { title: "Guests", url: "/guests", icon: ContactIcon },
+    ],
+  },
+  {
+    label: "Finance",
+    items: [
+      { title: "Invoices", url: "/invoices", icon: FileTextIcon },
+      { title: "Expenses", url: "/expenses", icon: ReceiptIcon },
+      { title: "Reports", url: "/reports", icon: BarChart3Icon },
+    ],
+  },
+  {
+    label: "Management",
+    items: [
+      { title: "Staff", url: "/staff", icon: UsersIcon },
+      { title: "Properties", url: "/properties", icon: Building2Icon },
+      { title: "Settings", url: "/settings", icon: SettingsIcon },
+    ],
+  },
 ];

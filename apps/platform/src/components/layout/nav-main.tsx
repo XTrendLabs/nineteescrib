@@ -1,6 +1,7 @@
 import {
   SidebarGroup,
   SidebarGroupContent,
+  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -14,28 +15,42 @@ export type NavMainItem = {
   icon: LucideIcon;
 };
 
-export function NavMain({ items }: { items: NavMainItem[] }) {
+export type NavMainGroup = {
+  label?: string;
+  items: NavMainItem[];
+};
+
+export function NavMain({ groups }: { groups: NavMainGroup[] }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
 
   return (
-    <SidebarGroup>
-      <SidebarGroupContent>
-        <SidebarMenu>
-          {items.map((item) => (
-            <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton
-                tooltip={item.title}
-                isActive={pathname === item.url}
-                className="data-active:bg-sidebar-primary data-active:text-sidebar-primary-foreground data-active:hover:bg-sidebar-primary data-active:hover:text-sidebar-primary-foreground"
-                render={<a href={item.url} />}
-              >
-                <item.icon />
-                <span>{item.title}</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
-      </SidebarGroupContent>
-    </SidebarGroup>
+    <>
+      {groups.map((group, idx) => (
+        <SidebarGroup key={group.label || idx} className="py-2 first:pt-4">
+          {group.label && (
+            <SidebarGroupLabel className="font-semibold text-[10px] text-muted-foreground/60 uppercase tracking-wider">
+              {group.label}
+            </SidebarGroupLabel>
+          )}
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {group.items.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    tooltip={item.title}
+                    isActive={pathname === item.url}
+                    className="data-active:bg-sidebar-primary data-active:text-sidebar-primary-foreground data-active:hover:bg-sidebar-primary data-active:hover:text-sidebar-primary-foreground"
+                    render={<a href={item.url} />}
+                  >
+                    <item.icon className="size-4 shrink-0" />
+                    <span>{item.title}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+      ))}
+    </>
   );
 }
