@@ -14,6 +14,9 @@ import { Route as OnboardingIndexRouteImport } from './pages/onboarding/index'
 import { Route as protectedIndexRouteImport } from './pages/(protected)/index'
 import { Route as AuthRegisterRouteImport } from './pages/auth/register'
 import { Route as AuthLoginRouteImport } from './pages/auth/login'
+import { Route as protectedGuestsRouteImport } from './pages/(protected)/guests'
+import { Route as protectedCalendarRouteImport } from './pages/(protected)/calendar'
+import { Route as protectedBookingsRouteImport } from './pages/(protected)/bookings'
 
 const protectedLayoutRoute = protectedLayoutRouteImport.update({
   id: '/(protected)',
@@ -39,14 +42,35 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
   path: '/auth/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const protectedGuestsRoute = protectedGuestsRouteImport.update({
+  id: '/guests',
+  path: '/guests',
+  getParentRoute: () => protectedLayoutRoute,
+} as any)
+const protectedCalendarRoute = protectedCalendarRouteImport.update({
+  id: '/calendar',
+  path: '/calendar',
+  getParentRoute: () => protectedLayoutRoute,
+} as any)
+const protectedBookingsRoute = protectedBookingsRouteImport.update({
+  id: '/bookings',
+  path: '/bookings',
+  getParentRoute: () => protectedLayoutRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
+  '/bookings': typeof protectedBookingsRoute
+  '/calendar': typeof protectedCalendarRoute
+  '/guests': typeof protectedGuestsRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/': typeof protectedIndexRoute
   '/onboarding/': typeof OnboardingIndexRoute
 }
 export interface FileRoutesByTo {
+  '/bookings': typeof protectedBookingsRoute
+  '/calendar': typeof protectedCalendarRoute
+  '/guests': typeof protectedGuestsRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/': typeof protectedIndexRoute
@@ -55,6 +79,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/(protected)': typeof protectedLayoutRouteWithChildren
+  '/(protected)/bookings': typeof protectedBookingsRoute
+  '/(protected)/calendar': typeof protectedCalendarRoute
+  '/(protected)/guests': typeof protectedGuestsRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/(protected)/': typeof protectedIndexRoute
@@ -62,12 +89,29 @@ export interface FileRoutesById {
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/auth/login' | '/auth/register' | '/' | '/onboarding/'
+  fullPaths:
+    | '/bookings'
+    | '/calendar'
+    | '/guests'
+    | '/auth/login'
+    | '/auth/register'
+    | '/'
+    | '/onboarding/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/auth/login' | '/auth/register' | '/' | '/onboarding'
+  to:
+    | '/bookings'
+    | '/calendar'
+    | '/guests'
+    | '/auth/login'
+    | '/auth/register'
+    | '/'
+    | '/onboarding'
   id:
     | '__root__'
     | '/(protected)'
+    | '/(protected)/bookings'
+    | '/(protected)/calendar'
+    | '/(protected)/guests'
     | '/auth/login'
     | '/auth/register'
     | '/(protected)/'
@@ -118,14 +162,41 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/(protected)/guests': {
+      id: '/(protected)/guests'
+      path: '/guests'
+      fullPath: '/guests'
+      preLoaderRoute: typeof protectedGuestsRouteImport
+      parentRoute: typeof protectedLayoutRoute
+    }
+    '/(protected)/calendar': {
+      id: '/(protected)/calendar'
+      path: '/calendar'
+      fullPath: '/calendar'
+      preLoaderRoute: typeof protectedCalendarRouteImport
+      parentRoute: typeof protectedLayoutRoute
+    }
+    '/(protected)/bookings': {
+      id: '/(protected)/bookings'
+      path: '/bookings'
+      fullPath: '/bookings'
+      preLoaderRoute: typeof protectedBookingsRouteImport
+      parentRoute: typeof protectedLayoutRoute
+    }
   }
 }
 
 interface protectedLayoutRouteChildren {
+  protectedBookingsRoute: typeof protectedBookingsRoute
+  protectedCalendarRoute: typeof protectedCalendarRoute
+  protectedGuestsRoute: typeof protectedGuestsRoute
   protectedIndexRoute: typeof protectedIndexRoute
 }
 
 const protectedLayoutRouteChildren: protectedLayoutRouteChildren = {
+  protectedBookingsRoute: protectedBookingsRoute,
+  protectedCalendarRoute: protectedCalendarRoute,
+  protectedGuestsRoute: protectedGuestsRoute,
   protectedIndexRoute: protectedIndexRoute,
 }
 
