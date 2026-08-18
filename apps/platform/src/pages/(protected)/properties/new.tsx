@@ -102,46 +102,50 @@ function RouteComponent() {
       <div className="flex flex-1 flex-col gap-8 border p-8">
         <Stepper steps={STEPS} currentStep={currentStep} />
 
-        <div className="w-full max-w-xl">
+        <div className="w-full">
           <div className="flex flex-col gap-6">
             {currentStep === 1 && (
               <div className="flex flex-col gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-muted-foreground text-xs">
-                    Property Name
-                  </span>
-                  <Input
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    placeholder="e.g. Sunrise Villa"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-muted-foreground text-xs">
-                    Property Type
-                  </span>
-                  <Select
-                    value={form.propertyType}
-                    onValueChange={(value) =>
-                      setForm({ ...form, propertyType: value as string })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Type">
-                        {(value: unknown) =>
-                          PROPERTY_TYPE_OPTIONS.find((o) => o.value === value)
-                            ?.label ?? "Type"
-                        }
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PROPERTY_TYPE_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-muted-foreground text-xs">
+                      Property Name
+                    </span>
+                    <Input
+                      value={form.name}
+                      onChange={(e) =>
+                        setForm({ ...form, name: e.target.value })
+                      }
+                      placeholder="e.g. Sunrise Villa"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-muted-foreground text-xs">
+                      Property Type
+                    </span>
+                    <Select
+                      value={form.propertyType}
+                      onValueChange={(value) =>
+                        setForm({ ...form, propertyType: value as string })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Type">
+                          {(value: unknown) =>
+                            PROPERTY_TYPE_OPTIONS.find((o) => o.value === value)
+                              ?.label ?? "Type"
+                          }
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PROPERTY_TYPE_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <span className="text-muted-foreground text-xs">
@@ -162,31 +166,33 @@ function RouteComponent() {
 
             {currentStep === 2 && (
               <div className="flex flex-col gap-3">
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-muted-foreground text-xs">
-                    Address Line 1
-                  </span>
-                  <Input
-                    value={form.addressLine1}
-                    onChange={(e) =>
-                      setForm({ ...form, addressLine1: e.target.value })
-                    }
-                    placeholder="Street address"
-                  />
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-muted-foreground text-xs">
+                      Address Line 1
+                    </span>
+                    <Input
+                      value={form.addressLine1}
+                      onChange={(e) =>
+                        setForm({ ...form, addressLine1: e.target.value })
+                      }
+                      placeholder="Street address"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-muted-foreground text-xs">
+                      Address Line 2
+                    </span>
+                    <Input
+                      value={form.addressLine2}
+                      onChange={(e) =>
+                        setForm({ ...form, addressLine2: e.target.value })
+                      }
+                      placeholder="Landmark, area (optional)"
+                    />
+                  </div>
                 </div>
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-muted-foreground text-xs">
-                    Address Line 2
-                  </span>
-                  <Input
-                    value={form.addressLine2}
-                    onChange={(e) =>
-                      setForm({ ...form, addressLine2: e.target.value })
-                    }
-                    placeholder="Landmark, area (optional)"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                   <div className="flex flex-col gap-1.5">
                     <span className="text-muted-foreground text-xs">City</span>
                     <Input
@@ -240,18 +246,18 @@ function RouteComponent() {
                   We auto-created a default room type. Rename it and set a
                   quantity — use 1 for a whole-property listing like a villa.
                 </p>
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-muted-foreground text-xs">
-                    Room Type Name
-                  </span>
-                  <Input
-                    value={form.roomTypeName}
-                    onChange={(e) =>
-                      setForm({ ...form, roomTypeName: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-muted-foreground text-xs">
+                      Room Type Name
+                    </span>
+                    <Input
+                      value={form.roomTypeName}
+                      onChange={(e) =>
+                        setForm({ ...form, roomTypeName: e.target.value })
+                      }
+                    />
+                  </div>
                   <div className="flex flex-col gap-1.5">
                     <span className="text-muted-foreground text-xs">
                       Quantity
