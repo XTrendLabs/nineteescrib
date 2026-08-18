@@ -17,6 +17,10 @@ import { Route as AuthLoginRouteImport } from './pages/auth/login'
 import { Route as protectedGuestsRouteImport } from './pages/(protected)/guests'
 import { Route as protectedCalendarRouteImport } from './pages/(protected)/calendar'
 import { Route as protectedBookingsRouteImport } from './pages/(protected)/bookings'
+import { Route as protectedStaffIndexRouteImport } from './pages/(protected)/staff/index'
+import { Route as protectedPropertiesIndexRouteImport } from './pages/(protected)/properties/index'
+import { Route as protectedStaffStaffIdRouteImport } from './pages/(protected)/staff/$staffId'
+import { Route as protectedPropertiesPropertyIdRouteImport } from './pages/(protected)/properties/$propertyId'
 
 const protectedLayoutRoute = protectedLayoutRouteImport.update({
   id: '/(protected)',
@@ -57,6 +61,28 @@ const protectedBookingsRoute = protectedBookingsRouteImport.update({
   path: '/bookings',
   getParentRoute: () => protectedLayoutRoute,
 } as any)
+const protectedStaffIndexRoute = protectedStaffIndexRouteImport.update({
+  id: '/staff/',
+  path: '/staff/',
+  getParentRoute: () => protectedLayoutRoute,
+} as any)
+const protectedPropertiesIndexRoute =
+  protectedPropertiesIndexRouteImport.update({
+    id: '/properties/',
+    path: '/properties/',
+    getParentRoute: () => protectedLayoutRoute,
+  } as any)
+const protectedStaffStaffIdRoute = protectedStaffStaffIdRouteImport.update({
+  id: '/staff/$staffId',
+  path: '/staff/$staffId',
+  getParentRoute: () => protectedLayoutRoute,
+} as any)
+const protectedPropertiesPropertyIdRoute =
+  protectedPropertiesPropertyIdRouteImport.update({
+    id: '/properties/$propertyId',
+    path: '/properties/$propertyId',
+    getParentRoute: () => protectedLayoutRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/bookings': typeof protectedBookingsRoute
@@ -66,6 +92,10 @@ export interface FileRoutesByFullPath {
   '/auth/register': typeof AuthRegisterRoute
   '/': typeof protectedIndexRoute
   '/onboarding/': typeof OnboardingIndexRoute
+  '/properties/$propertyId': typeof protectedPropertiesPropertyIdRoute
+  '/staff/$staffId': typeof protectedStaffStaffIdRoute
+  '/properties/': typeof protectedPropertiesIndexRoute
+  '/staff/': typeof protectedStaffIndexRoute
 }
 export interface FileRoutesByTo {
   '/bookings': typeof protectedBookingsRoute
@@ -75,6 +105,10 @@ export interface FileRoutesByTo {
   '/auth/register': typeof AuthRegisterRoute
   '/': typeof protectedIndexRoute
   '/onboarding': typeof OnboardingIndexRoute
+  '/properties/$propertyId': typeof protectedPropertiesPropertyIdRoute
+  '/staff/$staffId': typeof protectedStaffStaffIdRoute
+  '/properties': typeof protectedPropertiesIndexRoute
+  '/staff': typeof protectedStaffIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -86,6 +120,10 @@ export interface FileRoutesById {
   '/auth/register': typeof AuthRegisterRoute
   '/(protected)/': typeof protectedIndexRoute
   '/onboarding/': typeof OnboardingIndexRoute
+  '/(protected)/properties/$propertyId': typeof protectedPropertiesPropertyIdRoute
+  '/(protected)/staff/$staffId': typeof protectedStaffStaffIdRoute
+  '/(protected)/properties/': typeof protectedPropertiesIndexRoute
+  '/(protected)/staff/': typeof protectedStaffIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -97,6 +135,10 @@ export interface FileRouteTypes {
     | '/auth/register'
     | '/'
     | '/onboarding/'
+    | '/properties/$propertyId'
+    | '/staff/$staffId'
+    | '/properties/'
+    | '/staff/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/bookings'
@@ -106,6 +148,10 @@ export interface FileRouteTypes {
     | '/auth/register'
     | '/'
     | '/onboarding'
+    | '/properties/$propertyId'
+    | '/staff/$staffId'
+    | '/properties'
+    | '/staff'
   id:
     | '__root__'
     | '/(protected)'
@@ -116,6 +162,10 @@ export interface FileRouteTypes {
     | '/auth/register'
     | '/(protected)/'
     | '/onboarding/'
+    | '/(protected)/properties/$propertyId'
+    | '/(protected)/staff/$staffId'
+    | '/(protected)/properties/'
+    | '/(protected)/staff/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -183,6 +233,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof protectedBookingsRouteImport
       parentRoute: typeof protectedLayoutRoute
     }
+    '/(protected)/staff/': {
+      id: '/(protected)/staff/'
+      path: '/staff'
+      fullPath: '/staff/'
+      preLoaderRoute: typeof protectedStaffIndexRouteImport
+      parentRoute: typeof protectedLayoutRoute
+    }
+    '/(protected)/properties/': {
+      id: '/(protected)/properties/'
+      path: '/properties'
+      fullPath: '/properties/'
+      preLoaderRoute: typeof protectedPropertiesIndexRouteImport
+      parentRoute: typeof protectedLayoutRoute
+    }
+    '/(protected)/staff/$staffId': {
+      id: '/(protected)/staff/$staffId'
+      path: '/staff/$staffId'
+      fullPath: '/staff/$staffId'
+      preLoaderRoute: typeof protectedStaffStaffIdRouteImport
+      parentRoute: typeof protectedLayoutRoute
+    }
+    '/(protected)/properties/$propertyId': {
+      id: '/(protected)/properties/$propertyId'
+      path: '/properties/$propertyId'
+      fullPath: '/properties/$propertyId'
+      preLoaderRoute: typeof protectedPropertiesPropertyIdRouteImport
+      parentRoute: typeof protectedLayoutRoute
+    }
   }
 }
 
@@ -191,6 +269,10 @@ interface protectedLayoutRouteChildren {
   protectedCalendarRoute: typeof protectedCalendarRoute
   protectedGuestsRoute: typeof protectedGuestsRoute
   protectedIndexRoute: typeof protectedIndexRoute
+  protectedPropertiesPropertyIdRoute: typeof protectedPropertiesPropertyIdRoute
+  protectedStaffStaffIdRoute: typeof protectedStaffStaffIdRoute
+  protectedPropertiesIndexRoute: typeof protectedPropertiesIndexRoute
+  protectedStaffIndexRoute: typeof protectedStaffIndexRoute
 }
 
 const protectedLayoutRouteChildren: protectedLayoutRouteChildren = {
@@ -198,6 +280,10 @@ const protectedLayoutRouteChildren: protectedLayoutRouteChildren = {
   protectedCalendarRoute: protectedCalendarRoute,
   protectedGuestsRoute: protectedGuestsRoute,
   protectedIndexRoute: protectedIndexRoute,
+  protectedPropertiesPropertyIdRoute: protectedPropertiesPropertyIdRoute,
+  protectedStaffStaffIdRoute: protectedStaffStaffIdRoute,
+  protectedPropertiesIndexRoute: protectedPropertiesIndexRoute,
+  protectedStaffIndexRoute: protectedStaffIndexRoute,
 }
 
 const protectedLayoutRouteWithChildren = protectedLayoutRoute._addFileChildren(
