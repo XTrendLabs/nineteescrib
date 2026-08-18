@@ -18,7 +18,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 
-import { authClient } from "@/features/auth/lib/auth-client";
+import { useCachedActiveOrganization } from "@/features/auth/api/use-cached-organizations";
 import { useProperties } from "@/features/properties/api/use-properties";
 import { StatusBadge } from "@/features/properties/components/status-badge";
 import { AmenitiesTab } from "@/features/properties/components/tabs/amenities-tab";
@@ -42,7 +42,7 @@ export const Route = createFileRoute("/(protected)/properties/$propertyId")({
 
 function RouteComponent() {
   const { propertyId } = Route.useParams();
-  const { data: activeOrganization } = authClient.useActiveOrganization();
+  const { data: activeOrganization } = useCachedActiveOrganization();
   const { data: propertiesResponse, isLoading } = useProperties(
     activeOrganization?.id,
   );

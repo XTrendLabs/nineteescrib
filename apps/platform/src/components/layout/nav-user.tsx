@@ -31,12 +31,13 @@ import {
 } from "lucide-react";
 
 import { useTheme } from "@/components/theme-provider";
+import { useCachedSession } from "@/features/auth/api/use-cached-session";
 import { authClient } from "@/features/auth/lib/auth-client";
 
 export function NavUser() {
   const { isMobile } = useSidebar();
   const navigate = useNavigate();
-  const { data: session } = authClient.useSession();
+  const { data: session } = useCachedSession();
   const { theme, setTheme } = useTheme();
 
   if (!session) {

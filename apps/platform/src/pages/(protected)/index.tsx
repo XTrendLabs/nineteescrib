@@ -4,7 +4,7 @@ import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 import type { DateRange } from "react-day-picker";
 
-import { authClient } from "@/features/auth/lib/auth-client";
+import { useCachedActiveOrganization } from "@/features/auth/api/use-cached-organizations";
 import { ChannelSyncCard } from "@/features/hq-dashboard/components/channel-sync-card";
 import { CheckinCockpitCard } from "@/features/hq-dashboard/components/checkin-cockpit-card";
 import { DateRangePicker } from "@/features/hq-dashboard/components/date-range-picker";
@@ -24,7 +24,7 @@ export const Route = createFileRoute("/(protected)/")({
 
 function RouteComponent() {
   const { session } = Route.useRouteContext();
-  const { data: activeOrganization } = authClient.useActiveOrganization();
+  const { data: activeOrganization } = useCachedActiveOrganization();
   const { data: propertiesResponse } = useProperties(activeOrganization?.id);
 
   const [filter, setFilter] = useState("all");

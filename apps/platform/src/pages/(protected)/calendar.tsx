@@ -3,7 +3,7 @@ import { addDays, startOfMonth, startOfWeek } from "date-fns";
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 
-import { authClient } from "@/features/auth/lib/auth-client";
+import { useCachedActiveOrganization } from "@/features/auth/api/use-cached-organizations";
 import { CalendarHeader } from "@/features/calendar/components/calendar-header";
 import { Legend } from "@/features/calendar/components/legend";
 import type {
@@ -26,7 +26,7 @@ export const Route = createFileRoute("/(protected)/calendar")({
 });
 
 function RouteComponent() {
-  const { data: activeOrganization } = authClient.useActiveOrganization();
+  const { data: activeOrganization } = useCachedActiveOrganization();
   const { data: propertiesResponse } = useProperties(activeOrganization?.id);
 
   const [month, setMonth] = useState(new Date());

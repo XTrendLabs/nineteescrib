@@ -4,7 +4,7 @@ import { PlusIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 
-import { authClient } from "@/features/auth/lib/auth-client";
+import { useCachedActiveOrganization } from "@/features/auth/api/use-cached-organizations";
 import { useProperties } from "@/features/properties/api/use-properties";
 import { AddPropertyDialog } from "@/features/properties/components/add-property-dialog";
 import {
@@ -22,7 +22,7 @@ export const Route = createFileRoute("/(protected)/properties/")({
 });
 
 function RouteComponent() {
-  const { data: activeOrganization } = authClient.useActiveOrganization();
+  const { data: activeOrganization } = useCachedActiveOrganization();
   const { data: propertiesResponse } = useProperties(activeOrganization?.id);
 
   const properties = useMemo(

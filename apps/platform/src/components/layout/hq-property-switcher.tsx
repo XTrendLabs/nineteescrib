@@ -19,8 +19,8 @@ import {
   LayoutGridIcon,
   PlusIcon,
 } from "lucide-react";
-
-import { authClient } from "@/features/auth/lib/auth-client";
+import { useCachedActiveOrganization } from "@/features/auth/api/use-cached-organizations";
+import { useCachedSession } from "@/features/auth/api/use-cached-session";
 import { useProperties } from "@/features/properties/api/use-properties";
 
 export function HqPropertySwitcher({
@@ -35,8 +35,8 @@ export function HqPropertySwitcher({
   onAddProperty: () => void;
 }) {
   const { isMobile } = useSidebar();
-  const { data: session } = authClient.useSession();
-  const { data: activeOrganization } = authClient.useActiveOrganization();
+  const { data: session } = useCachedSession();
+  const { data: activeOrganization } = useCachedActiveOrganization();
   const { data: properties } = useProperties(activeOrganization?.id);
 
   const isOwner = activeOrganization?.members?.some(

@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { authClient } from "@/features/auth/lib/auth-client";
+import { useCachedActiveOrganization } from "@/features/auth/api/use-cached-organizations";
 import { useProperties } from "@/features/properties/api/use-properties";
 
 export function PlatformSearch({
@@ -25,7 +25,7 @@ export function PlatformSearch({
   onSelectProperty: (propertyId: string, name: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const { data: activeOrganization } = authClient.useActiveOrganization();
+  const { data: activeOrganization } = useCachedActiveOrganization();
   const { data: properties } = useProperties(activeOrganization?.id);
 
   useEffect(() => {

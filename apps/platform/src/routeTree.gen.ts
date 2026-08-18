@@ -17,9 +17,21 @@ import { Route as AuthLoginRouteImport } from './pages/auth/login'
 import { Route as protectedGuestsRouteImport } from './pages/(protected)/guests'
 import { Route as protectedCalendarRouteImport } from './pages/(protected)/calendar'
 import { Route as protectedBookingsRouteImport } from './pages/(protected)/bookings'
+import { Route as protectedSettingsLayoutRouteImport } from './pages/(protected)/settings/_layout'
 import { Route as protectedStaffIndexRouteImport } from './pages/(protected)/staff/index'
+import { Route as protectedSettingsIndexRouteImport } from './pages/(protected)/settings/index'
 import { Route as protectedPropertiesIndexRouteImport } from './pages/(protected)/properties/index'
 import { Route as protectedStaffStaffIdRouteImport } from './pages/(protected)/staff/$staffId'
+import { Route as protectedSettingsSecurityRouteImport } from './pages/(protected)/settings/security'
+import { Route as protectedSettingsPlanRouteImport } from './pages/(protected)/settings/plan'
+import { Route as protectedSettingsNotificationsRouteImport } from './pages/(protected)/settings/notifications'
+import { Route as protectedSettingsMembersRouteImport } from './pages/(protected)/settings/members'
+import { Route as protectedSettingsInvoicesRouteImport } from './pages/(protected)/settings/invoices'
+import { Route as protectedSettingsGatewaysRouteImport } from './pages/(protected)/settings/gateways'
+import { Route as protectedSettingsExportRouteImport } from './pages/(protected)/settings/export'
+import { Route as protectedSettingsDangerRouteImport } from './pages/(protected)/settings/danger'
+import { Route as protectedSettingsCompanyRouteImport } from './pages/(protected)/settings/company'
+import { Route as protectedSettingsAuditRouteImport } from './pages/(protected)/settings/audit'
 import { Route as protectedPropertiesPropertyIdRouteImport } from './pages/(protected)/properties/$propertyId'
 
 const protectedLayoutRoute = protectedLayoutRouteImport.update({
@@ -61,10 +73,20 @@ const protectedBookingsRoute = protectedBookingsRouteImport.update({
   path: '/bookings',
   getParentRoute: () => protectedLayoutRoute,
 } as any)
+const protectedSettingsLayoutRoute = protectedSettingsLayoutRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => protectedLayoutRoute,
+} as any)
 const protectedStaffIndexRoute = protectedStaffIndexRouteImport.update({
   id: '/staff/',
   path: '/staff/',
   getParentRoute: () => protectedLayoutRoute,
+} as any)
+const protectedSettingsIndexRoute = protectedSettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => protectedSettingsLayoutRoute,
 } as any)
 const protectedPropertiesIndexRoute =
   protectedPropertiesIndexRouteImport.update({
@@ -77,6 +99,62 @@ const protectedStaffStaffIdRoute = protectedStaffStaffIdRouteImport.update({
   path: '/staff/$staffId',
   getParentRoute: () => protectedLayoutRoute,
 } as any)
+const protectedSettingsSecurityRoute =
+  protectedSettingsSecurityRouteImport.update({
+    id: '/security',
+    path: '/security',
+    getParentRoute: () => protectedSettingsLayoutRoute,
+  } as any)
+const protectedSettingsPlanRoute = protectedSettingsPlanRouteImport.update({
+  id: '/plan',
+  path: '/plan',
+  getParentRoute: () => protectedSettingsLayoutRoute,
+} as any)
+const protectedSettingsNotificationsRoute =
+  protectedSettingsNotificationsRouteImport.update({
+    id: '/notifications',
+    path: '/notifications',
+    getParentRoute: () => protectedSettingsLayoutRoute,
+  } as any)
+const protectedSettingsMembersRoute =
+  protectedSettingsMembersRouteImport.update({
+    id: '/members',
+    path: '/members',
+    getParentRoute: () => protectedSettingsLayoutRoute,
+  } as any)
+const protectedSettingsInvoicesRoute =
+  protectedSettingsInvoicesRouteImport.update({
+    id: '/invoices',
+    path: '/invoices',
+    getParentRoute: () => protectedSettingsLayoutRoute,
+  } as any)
+const protectedSettingsGatewaysRoute =
+  protectedSettingsGatewaysRouteImport.update({
+    id: '/gateways',
+    path: '/gateways',
+    getParentRoute: () => protectedSettingsLayoutRoute,
+  } as any)
+const protectedSettingsExportRoute = protectedSettingsExportRouteImport.update({
+  id: '/export',
+  path: '/export',
+  getParentRoute: () => protectedSettingsLayoutRoute,
+} as any)
+const protectedSettingsDangerRoute = protectedSettingsDangerRouteImport.update({
+  id: '/danger',
+  path: '/danger',
+  getParentRoute: () => protectedSettingsLayoutRoute,
+} as any)
+const protectedSettingsCompanyRoute =
+  protectedSettingsCompanyRouteImport.update({
+    id: '/company',
+    path: '/company',
+    getParentRoute: () => protectedSettingsLayoutRoute,
+  } as any)
+const protectedSettingsAuditRoute = protectedSettingsAuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => protectedSettingsLayoutRoute,
+} as any)
 const protectedPropertiesPropertyIdRoute =
   protectedPropertiesPropertyIdRouteImport.update({
     id: '/properties/$propertyId',
@@ -85,6 +163,7 @@ const protectedPropertiesPropertyIdRoute =
   } as any)
 
 export interface FileRoutesByFullPath {
+  '/settings': typeof protectedSettingsLayoutRouteWithChildren
   '/bookings': typeof protectedBookingsRoute
   '/calendar': typeof protectedCalendarRoute
   '/guests': typeof protectedGuestsRoute
@@ -93,8 +172,19 @@ export interface FileRoutesByFullPath {
   '/': typeof protectedIndexRoute
   '/onboarding/': typeof OnboardingIndexRoute
   '/properties/$propertyId': typeof protectedPropertiesPropertyIdRoute
+  '/settings/audit': typeof protectedSettingsAuditRoute
+  '/settings/company': typeof protectedSettingsCompanyRoute
+  '/settings/danger': typeof protectedSettingsDangerRoute
+  '/settings/export': typeof protectedSettingsExportRoute
+  '/settings/gateways': typeof protectedSettingsGatewaysRoute
+  '/settings/invoices': typeof protectedSettingsInvoicesRoute
+  '/settings/members': typeof protectedSettingsMembersRoute
+  '/settings/notifications': typeof protectedSettingsNotificationsRoute
+  '/settings/plan': typeof protectedSettingsPlanRoute
+  '/settings/security': typeof protectedSettingsSecurityRoute
   '/staff/$staffId': typeof protectedStaffStaffIdRoute
   '/properties/': typeof protectedPropertiesIndexRoute
+  '/settings/': typeof protectedSettingsIndexRoute
   '/staff/': typeof protectedStaffIndexRoute
 }
 export interface FileRoutesByTo {
@@ -106,13 +196,25 @@ export interface FileRoutesByTo {
   '/': typeof protectedIndexRoute
   '/onboarding': typeof OnboardingIndexRoute
   '/properties/$propertyId': typeof protectedPropertiesPropertyIdRoute
+  '/settings/audit': typeof protectedSettingsAuditRoute
+  '/settings/company': typeof protectedSettingsCompanyRoute
+  '/settings/danger': typeof protectedSettingsDangerRoute
+  '/settings/export': typeof protectedSettingsExportRoute
+  '/settings/gateways': typeof protectedSettingsGatewaysRoute
+  '/settings/invoices': typeof protectedSettingsInvoicesRoute
+  '/settings/members': typeof protectedSettingsMembersRoute
+  '/settings/notifications': typeof protectedSettingsNotificationsRoute
+  '/settings/plan': typeof protectedSettingsPlanRoute
+  '/settings/security': typeof protectedSettingsSecurityRoute
   '/staff/$staffId': typeof protectedStaffStaffIdRoute
   '/properties': typeof protectedPropertiesIndexRoute
+  '/settings': typeof protectedSettingsIndexRoute
   '/staff': typeof protectedStaffIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/(protected)': typeof protectedLayoutRouteWithChildren
+  '/(protected)/settings': typeof protectedSettingsLayoutRouteWithChildren
   '/(protected)/bookings': typeof protectedBookingsRoute
   '/(protected)/calendar': typeof protectedCalendarRoute
   '/(protected)/guests': typeof protectedGuestsRoute
@@ -121,13 +223,25 @@ export interface FileRoutesById {
   '/(protected)/': typeof protectedIndexRoute
   '/onboarding/': typeof OnboardingIndexRoute
   '/(protected)/properties/$propertyId': typeof protectedPropertiesPropertyIdRoute
+  '/(protected)/settings/audit': typeof protectedSettingsAuditRoute
+  '/(protected)/settings/company': typeof protectedSettingsCompanyRoute
+  '/(protected)/settings/danger': typeof protectedSettingsDangerRoute
+  '/(protected)/settings/export': typeof protectedSettingsExportRoute
+  '/(protected)/settings/gateways': typeof protectedSettingsGatewaysRoute
+  '/(protected)/settings/invoices': typeof protectedSettingsInvoicesRoute
+  '/(protected)/settings/members': typeof protectedSettingsMembersRoute
+  '/(protected)/settings/notifications': typeof protectedSettingsNotificationsRoute
+  '/(protected)/settings/plan': typeof protectedSettingsPlanRoute
+  '/(protected)/settings/security': typeof protectedSettingsSecurityRoute
   '/(protected)/staff/$staffId': typeof protectedStaffStaffIdRoute
   '/(protected)/properties/': typeof protectedPropertiesIndexRoute
+  '/(protected)/settings/': typeof protectedSettingsIndexRoute
   '/(protected)/staff/': typeof protectedStaffIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
+    | '/settings'
     | '/bookings'
     | '/calendar'
     | '/guests'
@@ -136,8 +250,19 @@ export interface FileRouteTypes {
     | '/'
     | '/onboarding/'
     | '/properties/$propertyId'
+    | '/settings/audit'
+    | '/settings/company'
+    | '/settings/danger'
+    | '/settings/export'
+    | '/settings/gateways'
+    | '/settings/invoices'
+    | '/settings/members'
+    | '/settings/notifications'
+    | '/settings/plan'
+    | '/settings/security'
     | '/staff/$staffId'
     | '/properties/'
+    | '/settings/'
     | '/staff/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -149,12 +274,24 @@ export interface FileRouteTypes {
     | '/'
     | '/onboarding'
     | '/properties/$propertyId'
+    | '/settings/audit'
+    | '/settings/company'
+    | '/settings/danger'
+    | '/settings/export'
+    | '/settings/gateways'
+    | '/settings/invoices'
+    | '/settings/members'
+    | '/settings/notifications'
+    | '/settings/plan'
+    | '/settings/security'
     | '/staff/$staffId'
     | '/properties'
+    | '/settings'
     | '/staff'
   id:
     | '__root__'
     | '/(protected)'
+    | '/(protected)/settings'
     | '/(protected)/bookings'
     | '/(protected)/calendar'
     | '/(protected)/guests'
@@ -163,8 +300,19 @@ export interface FileRouteTypes {
     | '/(protected)/'
     | '/onboarding/'
     | '/(protected)/properties/$propertyId'
+    | '/(protected)/settings/audit'
+    | '/(protected)/settings/company'
+    | '/(protected)/settings/danger'
+    | '/(protected)/settings/export'
+    | '/(protected)/settings/gateways'
+    | '/(protected)/settings/invoices'
+    | '/(protected)/settings/members'
+    | '/(protected)/settings/notifications'
+    | '/(protected)/settings/plan'
+    | '/(protected)/settings/security'
     | '/(protected)/staff/$staffId'
     | '/(protected)/properties/'
+    | '/(protected)/settings/'
     | '/(protected)/staff/'
   fileRoutesById: FileRoutesById
 }
@@ -233,12 +381,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof protectedBookingsRouteImport
       parentRoute: typeof protectedLayoutRoute
     }
+    '/(protected)/settings': {
+      id: '/(protected)/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof protectedSettingsLayoutRouteImport
+      parentRoute: typeof protectedLayoutRoute
+    }
     '/(protected)/staff/': {
       id: '/(protected)/staff/'
       path: '/staff'
       fullPath: '/staff/'
       preLoaderRoute: typeof protectedStaffIndexRouteImport
       parentRoute: typeof protectedLayoutRoute
+    }
+    '/(protected)/settings/': {
+      id: '/(protected)/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof protectedSettingsIndexRouteImport
+      parentRoute: typeof protectedSettingsLayoutRoute
     }
     '/(protected)/properties/': {
       id: '/(protected)/properties/'
@@ -254,6 +416,76 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof protectedStaffStaffIdRouteImport
       parentRoute: typeof protectedLayoutRoute
     }
+    '/(protected)/settings/security': {
+      id: '/(protected)/settings/security'
+      path: '/security'
+      fullPath: '/settings/security'
+      preLoaderRoute: typeof protectedSettingsSecurityRouteImport
+      parentRoute: typeof protectedSettingsLayoutRoute
+    }
+    '/(protected)/settings/plan': {
+      id: '/(protected)/settings/plan'
+      path: '/plan'
+      fullPath: '/settings/plan'
+      preLoaderRoute: typeof protectedSettingsPlanRouteImport
+      parentRoute: typeof protectedSettingsLayoutRoute
+    }
+    '/(protected)/settings/notifications': {
+      id: '/(protected)/settings/notifications'
+      path: '/notifications'
+      fullPath: '/settings/notifications'
+      preLoaderRoute: typeof protectedSettingsNotificationsRouteImport
+      parentRoute: typeof protectedSettingsLayoutRoute
+    }
+    '/(protected)/settings/members': {
+      id: '/(protected)/settings/members'
+      path: '/members'
+      fullPath: '/settings/members'
+      preLoaderRoute: typeof protectedSettingsMembersRouteImport
+      parentRoute: typeof protectedSettingsLayoutRoute
+    }
+    '/(protected)/settings/invoices': {
+      id: '/(protected)/settings/invoices'
+      path: '/invoices'
+      fullPath: '/settings/invoices'
+      preLoaderRoute: typeof protectedSettingsInvoicesRouteImport
+      parentRoute: typeof protectedSettingsLayoutRoute
+    }
+    '/(protected)/settings/gateways': {
+      id: '/(protected)/settings/gateways'
+      path: '/gateways'
+      fullPath: '/settings/gateways'
+      preLoaderRoute: typeof protectedSettingsGatewaysRouteImport
+      parentRoute: typeof protectedSettingsLayoutRoute
+    }
+    '/(protected)/settings/export': {
+      id: '/(protected)/settings/export'
+      path: '/export'
+      fullPath: '/settings/export'
+      preLoaderRoute: typeof protectedSettingsExportRouteImport
+      parentRoute: typeof protectedSettingsLayoutRoute
+    }
+    '/(protected)/settings/danger': {
+      id: '/(protected)/settings/danger'
+      path: '/danger'
+      fullPath: '/settings/danger'
+      preLoaderRoute: typeof protectedSettingsDangerRouteImport
+      parentRoute: typeof protectedSettingsLayoutRoute
+    }
+    '/(protected)/settings/company': {
+      id: '/(protected)/settings/company'
+      path: '/company'
+      fullPath: '/settings/company'
+      preLoaderRoute: typeof protectedSettingsCompanyRouteImport
+      parentRoute: typeof protectedSettingsLayoutRoute
+    }
+    '/(protected)/settings/audit': {
+      id: '/(protected)/settings/audit'
+      path: '/audit'
+      fullPath: '/settings/audit'
+      preLoaderRoute: typeof protectedSettingsAuditRouteImport
+      parentRoute: typeof protectedSettingsLayoutRoute
+    }
     '/(protected)/properties/$propertyId': {
       id: '/(protected)/properties/$propertyId'
       path: '/properties/$propertyId'
@@ -264,7 +496,42 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface protectedSettingsLayoutRouteChildren {
+  protectedSettingsAuditRoute: typeof protectedSettingsAuditRoute
+  protectedSettingsCompanyRoute: typeof protectedSettingsCompanyRoute
+  protectedSettingsDangerRoute: typeof protectedSettingsDangerRoute
+  protectedSettingsExportRoute: typeof protectedSettingsExportRoute
+  protectedSettingsGatewaysRoute: typeof protectedSettingsGatewaysRoute
+  protectedSettingsInvoicesRoute: typeof protectedSettingsInvoicesRoute
+  protectedSettingsMembersRoute: typeof protectedSettingsMembersRoute
+  protectedSettingsNotificationsRoute: typeof protectedSettingsNotificationsRoute
+  protectedSettingsPlanRoute: typeof protectedSettingsPlanRoute
+  protectedSettingsSecurityRoute: typeof protectedSettingsSecurityRoute
+  protectedSettingsIndexRoute: typeof protectedSettingsIndexRoute
+}
+
+const protectedSettingsLayoutRouteChildren: protectedSettingsLayoutRouteChildren =
+  {
+    protectedSettingsAuditRoute: protectedSettingsAuditRoute,
+    protectedSettingsCompanyRoute: protectedSettingsCompanyRoute,
+    protectedSettingsDangerRoute: protectedSettingsDangerRoute,
+    protectedSettingsExportRoute: protectedSettingsExportRoute,
+    protectedSettingsGatewaysRoute: protectedSettingsGatewaysRoute,
+    protectedSettingsInvoicesRoute: protectedSettingsInvoicesRoute,
+    protectedSettingsMembersRoute: protectedSettingsMembersRoute,
+    protectedSettingsNotificationsRoute: protectedSettingsNotificationsRoute,
+    protectedSettingsPlanRoute: protectedSettingsPlanRoute,
+    protectedSettingsSecurityRoute: protectedSettingsSecurityRoute,
+    protectedSettingsIndexRoute: protectedSettingsIndexRoute,
+  }
+
+const protectedSettingsLayoutRouteWithChildren =
+  protectedSettingsLayoutRoute._addFileChildren(
+    protectedSettingsLayoutRouteChildren,
+  )
+
 interface protectedLayoutRouteChildren {
+  protectedSettingsLayoutRoute: typeof protectedSettingsLayoutRouteWithChildren
   protectedBookingsRoute: typeof protectedBookingsRoute
   protectedCalendarRoute: typeof protectedCalendarRoute
   protectedGuestsRoute: typeof protectedGuestsRoute
@@ -276,6 +543,7 @@ interface protectedLayoutRouteChildren {
 }
 
 const protectedLayoutRouteChildren: protectedLayoutRouteChildren = {
+  protectedSettingsLayoutRoute: protectedSettingsLayoutRouteWithChildren,
   protectedBookingsRoute: protectedBookingsRoute,
   protectedCalendarRoute: protectedCalendarRoute,
   protectedGuestsRoute: protectedGuestsRoute,
