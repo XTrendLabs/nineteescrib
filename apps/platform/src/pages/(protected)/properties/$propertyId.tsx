@@ -1,4 +1,14 @@
 import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@propertyos/ui/components/breadcrumb";
+import { Skeleton } from "@propertyos/ui/components/skeleton";
+import { SkeletonLayout } from "@propertyos/ui/components/skeleton-block";
+import {
   Tabs,
   TabsList,
   TabsPanel,
@@ -6,7 +16,7 @@ import {
 } from "@propertyos/ui/components/tabs";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { motion } from "motion/react";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { authClient } from "@/features/auth/lib/auth-client";
 import { useProperties } from "@/features/properties/api/use-properties";
@@ -24,6 +34,7 @@ import {
   buildPropertyDetails,
   resolveProperties,
 } from "@/features/properties/lib/mock-data";
+import { PROPERTY_TAB_SKELETONS } from "@/features/properties/lib/skeleton-config";
 
 export const Route = createFileRoute("/(protected)/properties/$propertyId")({
   component: RouteComponent,
@@ -32,7 +43,10 @@ export const Route = createFileRoute("/(protected)/properties/$propertyId")({
 function RouteComponent() {
   const { propertyId } = Route.useParams();
   const { data: activeOrganization } = authClient.useActiveOrganization();
-  const { data: propertiesResponse } = useProperties(activeOrganization?.id);
+  const { data: propertiesResponse, isLoading } = useProperties(
+    activeOrganization?.id,
+  );
+  const [activeTab, setActiveTab] = useState("overview");
 
   const properties = useMemo(
     () => resolveProperties(propertiesResponse?.data),
@@ -46,6 +60,35 @@ function RouteComponent() {
   );
 
   const property = propertyDetails.find((p) => p.id === propertyId);
+
+  if (isLoading) {
+    const shapes =
+      PROPERTY_TAB_SKELETONS[activeTab] ?? PROPERTY_TAB_SKELETONS.overview;
+    return (
+      <div className="flex flex-col gap-6 p-4">
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-3 w-40" />
+          <Skeleton className="h-7 w-64" />
+        </div>
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as string)}
+        >
+          <TabsList className="flex-wrap">
+            <TabsTab value="overview">Overview</TabsTab>
+            <TabsTab value="rooms">Rooms & Units</TabsTab>
+            <TabsTab value="pricing">Pricing</TabsTab>
+            <TabsTab value="gallery">Gallery</TabsTab>
+            <TabsTab value="policies">Policies</TabsTab>
+            <TabsTab value="amenities">Amenities</TabsTab>
+            <TabsTab value="booking-links">Booking Links</TabsTab>
+            <TabsTab value="taxes">Taxes & Billing</TabsTab>
+          </TabsList>
+        </Tabs>
+        <SkeletonLayout shapes={shapes} />
+      </div>
+    );
+  }
 
   if (!property) {
     return (
@@ -68,12 +111,19 @@ function RouteComponent() {
       className="flex flex-col gap-6 p-4"
     >
       <div className="flex flex-col gap-2">
-        <Link
-          to="/properties"
-          className="w-fit text-muted-foreground text-xs hover:text-foreground hover:underline"
-        >
-          ← Properties
-        </Link>
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink render={<Link to="/properties" />}>
+                Properties
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>{property.name}</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-display-md">{property.name}</h1>
           <TypeBadge type={property.propertyType} />
@@ -81,7 +131,7 @@ function RouteComponent() {
         </div>
       </div>
 
-      <Tabs defaultValue="overview">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as string)}>
         <TabsList className="flex-wrap">
           <TabsTab value="overview">Overview</TabsTab>
           <TabsTab value="rooms">Rooms & Units</TabsTab>

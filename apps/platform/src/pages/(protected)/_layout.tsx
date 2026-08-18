@@ -3,13 +3,11 @@ import {
   SidebarProvider,
 } from "@propertyos/ui/components/sidebar";
 import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { useState } from "react";
 
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { SiteHeader } from "@/components/layout/site-header";
 import { authClient } from "@/features/auth/lib/auth-client";
-
-type ActiveView = { type: "hq" } | { type: "property"; propertyId: string };
+import { useActiveView } from "@/shared/lib/use-active-view";
 
 export const Route = createFileRoute("/(protected)")({
   component: ProtectedLayout,
@@ -34,17 +32,11 @@ export const Route = createFileRoute("/(protected)")({
 });
 
 function ProtectedLayout() {
-  const [activeView, setActiveView] = useState<ActiveView>({ type: "hq" });
-  const [activePropertyName, setActivePropertyName] = useState<string>();
+  const { activeView, activePropertyName, selectHq, selectProperty } =
+    useActiveView();
 
   const title =
     activeView.type === "hq" ? "HQ" : (activePropertyName ?? "Property");
-
-  const selectHq = () => setActiveView({ type: "hq" });
-  const selectProperty = (propertyId: string, name: string) => {
-    setActiveView({ type: "property", propertyId });
-    setActivePropertyName(name);
-  };
 
   return (
     <SidebarProvider>
