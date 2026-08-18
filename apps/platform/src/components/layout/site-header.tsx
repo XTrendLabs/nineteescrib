@@ -1,12 +1,7 @@
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbList,
-  BreadcrumbPage,
-} from "@propertyos/ui/components/breadcrumb";
 import { Separator } from "@propertyos/ui/components/separator";
 import { SidebarTrigger } from "@propertyos/ui/components/sidebar";
 
+import { HeaderBreadcrumb } from "./header-breadcrumb";
 import { PlatformSearch } from "./platform-search";
 
 export function SiteHeader({
@@ -26,13 +21,7 @@ export function SiteHeader({
           orientation="vertical"
           className="mr-2 data-[orientation=vertical]:h-4"
         />
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbPage>{title}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
+        <HeaderBreadcrumb hqLabel={title} />
       </div>
       <div className="px-4">
         <PlatformSearch

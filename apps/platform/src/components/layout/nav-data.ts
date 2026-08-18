@@ -30,9 +30,9 @@ export const navMainGroups: NavMainGroup[] = [
   {
     label: "Finance",
     items: [
-      { title: "Invoices", url: "/invoices", icon: FileTextIcon },
-      { title: "Expenses", url: "/expenses", icon: ReceiptIcon },
-      { title: "Reports", url: "/reports", icon: BarChart3Icon },
+      { title: "Invoices", url: "/invoices", icon: FileTextIcon, soon: true },
+      { title: "Expenses", url: "/expenses", icon: ReceiptIcon, soon: true },
+      { title: "Reports", url: "/reports", icon: BarChart3Icon, soon: true },
     ],
   },
   {
