@@ -1,12 +1,11 @@
 import { Button } from "@propertyos/ui/components/button";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 
 import { useCachedActiveOrganization } from "@/features/auth/api/use-cached-organizations";
 import { useProperties } from "@/features/properties/api/use-properties";
-import { AddPropertyDialog } from "@/features/properties/components/add-property-dialog";
 import {
   DEFAULT_FILTERS,
   FilterToolbar,
@@ -22,6 +21,7 @@ export const Route = createFileRoute("/(protected)/properties/")({
 });
 
 function RouteComponent() {
+  const navigate = useNavigate();
   const { data: activeOrganization } = useCachedActiveOrganization();
   const { data: propertiesResponse } = useProperties(activeOrganization?.id);
 
@@ -37,7 +37,6 @@ function RouteComponent() {
   );
 
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
-  const [addOpen, setAddOpen] = useState(false);
 
   const filtered = useMemo(() => {
     const search = filters.search.trim().toLowerCase();
@@ -73,7 +72,7 @@ function RouteComponent() {
             Configure locations, room inventories, pricing, and booking links
           </p>
         </div>
-        <Button onClick={() => setAddOpen(true)}>
+        <Button onClick={() => navigate({ to: "/properties/new" })}>
           <PlusIcon />
           Add Property
         </Button>
@@ -96,7 +95,7 @@ function RouteComponent() {
 
           <motion.button
             type="button"
-            onClick={() => setAddOpen(true)}
+            onClick={() => navigate({ to: "/properties/new" })}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{
@@ -115,8 +114,6 @@ function RouteComponent() {
           </motion.button>
         </div>
       )}
-
-      <AddPropertyDialog open={addOpen} onOpenChange={setAddOpen} />
     </div>
   );
 }

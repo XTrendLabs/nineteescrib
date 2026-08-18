@@ -6,7 +6,6 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@propertyos/ui/components/sidebar";
-import { cn } from "@propertyos/ui/lib/utils";
 import { useRouterState } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 
@@ -39,19 +38,10 @@ export function NavMain({ groups }: { groups: NavMainGroup[] }) {
               {group.items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
-                    tooltip={
-                      item.soon ? `${item.title} (Coming Soon)` : item.title
-                    }
-                    isActive={!item.soon && pathname === item.url}
-                    disabled={item.soon}
-                    aria-disabled={item.soon}
-                    className={cn(
-                      "data-active:bg-sidebar-primary data-active:text-sidebar-primary-foreground data-active:hover:bg-sidebar-primary data-active:hover:text-sidebar-primary-foreground",
-                      item.soon && "pointer-events-none select-none opacity-50",
-                    )}
-                    render={
-                      item.soon ? <span /> : <a href={item.url}>{item.title}</a>
-                    }
+                    tooltip={item.title}
+                    isActive={pathname === item.url}
+                    className="data-active:bg-sidebar-primary data-active:text-sidebar-primary-foreground data-active:hover:bg-sidebar-primary data-active:hover:text-sidebar-primary-foreground"
+                    render={<a href={item.url} />}
                   >
                     <item.icon className="size-4 shrink-0" />
                     <span>{item.title}</span>

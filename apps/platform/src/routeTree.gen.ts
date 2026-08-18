@@ -32,6 +32,7 @@ import { Route as protectedSettingsExportRouteImport } from './pages/(protected)
 import { Route as protectedSettingsDangerRouteImport } from './pages/(protected)/settings/danger'
 import { Route as protectedSettingsCompanyRouteImport } from './pages/(protected)/settings/company'
 import { Route as protectedSettingsAuditRouteImport } from './pages/(protected)/settings/audit'
+import { Route as protectedPropertiesNewRouteImport } from './pages/(protected)/properties/new'
 import { Route as protectedPropertiesPropertyIdRouteImport } from './pages/(protected)/properties/$propertyId'
 
 const protectedLayoutRoute = protectedLayoutRouteImport.update({
@@ -155,6 +156,11 @@ const protectedSettingsAuditRoute = protectedSettingsAuditRouteImport.update({
   path: '/audit',
   getParentRoute: () => protectedSettingsLayoutRoute,
 } as any)
+const protectedPropertiesNewRoute = protectedPropertiesNewRouteImport.update({
+  id: '/properties/new',
+  path: '/properties/new',
+  getParentRoute: () => protectedLayoutRoute,
+} as any)
 const protectedPropertiesPropertyIdRoute =
   protectedPropertiesPropertyIdRouteImport.update({
     id: '/properties/$propertyId',
@@ -172,6 +178,7 @@ export interface FileRoutesByFullPath {
   '/': typeof protectedIndexRoute
   '/onboarding/': typeof OnboardingIndexRoute
   '/properties/$propertyId': typeof protectedPropertiesPropertyIdRoute
+  '/properties/new': typeof protectedPropertiesNewRoute
   '/settings/audit': typeof protectedSettingsAuditRoute
   '/settings/company': typeof protectedSettingsCompanyRoute
   '/settings/danger': typeof protectedSettingsDangerRoute
@@ -196,6 +203,7 @@ export interface FileRoutesByTo {
   '/': typeof protectedIndexRoute
   '/onboarding': typeof OnboardingIndexRoute
   '/properties/$propertyId': typeof protectedPropertiesPropertyIdRoute
+  '/properties/new': typeof protectedPropertiesNewRoute
   '/settings/audit': typeof protectedSettingsAuditRoute
   '/settings/company': typeof protectedSettingsCompanyRoute
   '/settings/danger': typeof protectedSettingsDangerRoute
@@ -223,6 +231,7 @@ export interface FileRoutesById {
   '/(protected)/': typeof protectedIndexRoute
   '/onboarding/': typeof OnboardingIndexRoute
   '/(protected)/properties/$propertyId': typeof protectedPropertiesPropertyIdRoute
+  '/(protected)/properties/new': typeof protectedPropertiesNewRoute
   '/(protected)/settings/audit': typeof protectedSettingsAuditRoute
   '/(protected)/settings/company': typeof protectedSettingsCompanyRoute
   '/(protected)/settings/danger': typeof protectedSettingsDangerRoute
@@ -250,6 +259,7 @@ export interface FileRouteTypes {
     | '/'
     | '/onboarding/'
     | '/properties/$propertyId'
+    | '/properties/new'
     | '/settings/audit'
     | '/settings/company'
     | '/settings/danger'
@@ -274,6 +284,7 @@ export interface FileRouteTypes {
     | '/'
     | '/onboarding'
     | '/properties/$propertyId'
+    | '/properties/new'
     | '/settings/audit'
     | '/settings/company'
     | '/settings/danger'
@@ -300,6 +311,7 @@ export interface FileRouteTypes {
     | '/(protected)/'
     | '/onboarding/'
     | '/(protected)/properties/$propertyId'
+    | '/(protected)/properties/new'
     | '/(protected)/settings/audit'
     | '/(protected)/settings/company'
     | '/(protected)/settings/danger'
@@ -486,6 +498,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof protectedSettingsAuditRouteImport
       parentRoute: typeof protectedSettingsLayoutRoute
     }
+    '/(protected)/properties/new': {
+      id: '/(protected)/properties/new'
+      path: '/properties/new'
+      fullPath: '/properties/new'
+      preLoaderRoute: typeof protectedPropertiesNewRouteImport
+      parentRoute: typeof protectedLayoutRoute
+    }
     '/(protected)/properties/$propertyId': {
       id: '/(protected)/properties/$propertyId'
       path: '/properties/$propertyId'
@@ -537,6 +556,7 @@ interface protectedLayoutRouteChildren {
   protectedGuestsRoute: typeof protectedGuestsRoute
   protectedIndexRoute: typeof protectedIndexRoute
   protectedPropertiesPropertyIdRoute: typeof protectedPropertiesPropertyIdRoute
+  protectedPropertiesNewRoute: typeof protectedPropertiesNewRoute
   protectedStaffStaffIdRoute: typeof protectedStaffStaffIdRoute
   protectedPropertiesIndexRoute: typeof protectedPropertiesIndexRoute
   protectedStaffIndexRoute: typeof protectedStaffIndexRoute
@@ -549,6 +569,7 @@ const protectedLayoutRouteChildren: protectedLayoutRouteChildren = {
   protectedGuestsRoute: protectedGuestsRoute,
   protectedIndexRoute: protectedIndexRoute,
   protectedPropertiesPropertyIdRoute: protectedPropertiesPropertyIdRoute,
+  protectedPropertiesNewRoute: protectedPropertiesNewRoute,
   protectedStaffStaffIdRoute: protectedStaffStaffIdRoute,
   protectedPropertiesIndexRoute: protectedPropertiesIndexRoute,
   protectedStaffIndexRoute: protectedStaffIndexRoute,

@@ -2,7 +2,12 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@propertyos/ui/components/sidebar";
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Outlet,
+  redirect,
+  useNavigate,
+} from "@tanstack/react-router";
 
 import { AppSidebar } from "@/components/layout/app-sidebar";
 import { SiteHeader } from "@/components/layout/site-header";
@@ -58,6 +63,7 @@ export const Route = createFileRoute("/(protected)")({
 });
 
 function ProtectedLayout() {
+  const navigate = useNavigate();
   const { activeView, activePropertyName, selectHq, selectProperty } =
     useActiveView();
 
@@ -71,7 +77,7 @@ function ProtectedLayout() {
         onSelectHq={selectHq}
         onSelectProperty={selectProperty}
         onAddProperty={() => {
-          window.location.href = "/properties/new";
+          navigate({ to: "/properties/new" });
         }}
       />
       <SidebarInset className="min-h-0">
