@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader } from "@propertyos/ui/components/card";
 import { Link } from "@tanstack/react-router";
-import { ArrowRightIcon, MapPinIcon } from "lucide-react";
+import { ArrowRightIcon, ExternalLinkIcon, MapPinIcon } from "lucide-react";
 import { motion } from "motion/react";
 
 import { formatInr, formatPercent } from "../lib/format";
@@ -20,6 +20,7 @@ export function PropertyCard({
     property.propertyGallery.find((img) => img.isCover) ??
     property.propertyGallery[0];
   const roomTypeCount = property.roomTypes.length;
+  const [tenantSlug, propertySlug] = property.bookingLink.slug.split("/");
 
   return (
     <motion.div
@@ -66,14 +67,28 @@ export function PropertyCard({
               ) / Math.max(property.roomTypes.length, 1),
             )}
           </p>
-          <Link
-            to="/properties/$propertyId"
-            params={{ propertyId: property.id }}
-            className="mt-1 inline-flex items-center gap-1 font-medium text-foreground text-xs hover:underline"
-          >
-            Manage
-            <ArrowRightIcon className="size-3.5" />
-          </Link>
+          <div className="mt-1 flex items-center justify-between gap-2">
+            <Link
+              to="/properties/$propertyId"
+              params={{ propertyId: property.id }}
+              className="inline-flex items-center gap-1 font-medium text-foreground text-xs hover:underline"
+            >
+              Manage
+              <ArrowRightIcon className="size-3.5" />
+            </Link>
+            <Link
+              to="/book/$slug/$propertySlug"
+              params={{
+                slug: tenantSlug ?? "",
+                propertySlug: propertySlug ?? "",
+              }}
+              target="_blank"
+              className="inline-flex items-center gap-1 text-muted-foreground text-xs hover:text-foreground hover:underline"
+            >
+              Booking Page
+              <ExternalLinkIcon className="size-3" />
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </motion.div>

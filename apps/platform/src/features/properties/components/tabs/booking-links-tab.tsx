@@ -10,6 +10,7 @@ import {
   DialogTitle,
 } from "@propertyos/ui/components/dialog";
 import { Input } from "@propertyos/ui/components/input";
+import { Link } from "@tanstack/react-router";
 import { CopyIcon, ExternalLinkIcon, LinkIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -17,20 +18,16 @@ import { toast } from "sonner";
 import type { BookingLinkConfig, PropertyDetail } from "../../lib/mock-data";
 
 function PrivateLinkDialog({
-  property,
   open,
   onOpenChange,
 }: {
-  property: PropertyDetail;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   const [dates, setDates] = useState("");
   const [price, setPrice] = useState("");
 
-  const generatedLink = `https://book.propertyos.in/${property.slug}?deal=${encodeURIComponent(
-    `${dates || "flexible"}-${price || "std"}`,
-  )}`;
+  const generatedLink = `${window.location.origin}/quote/sec_abc123xyz`;
 
   return (
     <Dialog
@@ -81,6 +78,7 @@ function PrivateLinkDialog({
         </div>
         <DialogFooter>
           <Button
+            variant="outline"
             onClick={() => {
               navigator.clipboard.writeText(generatedLink);
               toast.success("Link copied to clipboard");
@@ -88,6 +86,18 @@ function PrivateLinkDialog({
           >
             <CopyIcon />
             Copy Link
+          </Button>
+          <Button
+            render={
+              <Link
+                to="/quote/$token"
+                params={{ token: "sec_abc123xyz" }}
+                target="_blank"
+              />
+            }
+          >
+            <ExternalLinkIcon />
+            Open Link
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -103,6 +113,7 @@ export function BookingLinksTab({ property }: { property: PropertyDetail }) {
   const [privateLinkOpen, setPrivateLinkOpen] = useState(false);
 
   const publicUrl = `https://book.propertyos.in/${bookingLink.slug}`;
+  const [tenantSlug, propertySlug] = bookingLink.slug.split("/");
 
   return (
     <div className="flex flex-col gap-6">
@@ -126,7 +137,20 @@ export function BookingLinksTab({ property }: { property: PropertyDetail }) {
                 <CopyIcon />
                 Copy
               </Button>
-              <Button variant="outline" size="sm">
+              <Button
+                variant="outline"
+                size="sm"
+                render={
+                  <Link
+                    to="/book/$slug/$propertySlug"
+                    params={{
+                      slug: tenantSlug ?? "",
+                      propertySlug: propertySlug ?? "",
+                    }}
+                    target="_blank"
+                  />
+                }
+              >
                 <ExternalLinkIcon />
                 Preview
               </Button>
@@ -201,7 +225,6 @@ export function BookingLinksTab({ property }: { property: PropertyDetail }) {
       </div>
 
       <PrivateLinkDialog
-        property={property}
         open={privateLinkOpen}
         onOpenChange={setPrivateLinkOpen}
       />
