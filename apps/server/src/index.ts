@@ -14,13 +14,15 @@ app.use(
   "/*",
   cors({
     origin: env.CORS_ORIGIN,
-    allowMethods: ["GET", "POST", "OPTIONS"],
+    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   }),
 );
 
-app.on(["POST", "GET"], "/api/auth/*", (c) => auth.handler(c.req.raw));
+app.on(["POST", "GET", "PUT", "PATCH", "DELETE"], "/api/auth/*", (c) =>
+  auth.handler(c.req.raw),
+);
 
 const routes = app
   .route("/api/platform", platformRoutes)

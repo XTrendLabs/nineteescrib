@@ -8,6 +8,7 @@ import { organization } from "better-auth/plugins";
 
 export function createAuth() {
   const db = createDb();
+  const isProduction = env.NODE_ENV === "production";
 
   return betterAuth({
     database: drizzleAdapter(db, {
@@ -41,11 +42,13 @@ export function createAuth() {
       },
     },
     advanced: {
-      defaultCookieAttributes: {
-        sameSite: "none",
-        secure: true,
-        httpOnly: true,
-      },
+      // Cross-site cookies (SameSite=None) require Secure, which browsers only
+      // honor over HTTPS. Safari rejects them outright on http://localhost, so
+      // fall back to Lax in development.
+      crossSubDomainCookies: { enabled: false },
+      defaultCookieAttributes: isProduction
+        ? { sameSite: "none" as const, secure: true, httpOnly: true }
+        : { sameSite: "lax" as const, secure: false, httpOnly: true },
     },
     plugins: [
       organization({
