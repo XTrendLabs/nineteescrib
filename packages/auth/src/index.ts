@@ -8,7 +8,13 @@ import { organization } from "better-auth/plugins";
 
 export function createAuth() {
   const db = createDb();
-  const isProduction = env.NODE_ENV === "production";
+
+  // Derive cookie behaviour from the actual deployment URLs rather than
+  // NODE_ENV, which is easy to leave unset on a host and would silently
+  // downgrade cookies to a config that breaks the OAuth state round trip.
+  const isSecure =
+    new URL(env.BETTER_AUTH_URL).protocol === "https:" &&
+    new URL(env.CORS_ORIGIN).protocol === "https:";
 
   return betterAuth({
     database: drizzleAdapter(db, {
@@ -42,11 +48,13 @@ export function createAuth() {
       },
     },
     advanced: {
-      // Cross-site cookies (SameSite=None) require Secure, which browsers only
-      // honor over HTTPS. Safari rejects them outright on http://localhost, so
-      // fall back to Lax in development.
+      // The app and API are on separate origins, so the session and OAuth
+      // state cookies must be SameSite=None to survive the cross-site
+      // redirect back from Google. That requires Secure, which browsers only
+      // honour over HTTPS -- Safari rejects such cookies outright on
+      // http://localhost -- so fall back to Lax when not on HTTPS.
       crossSubDomainCookies: { enabled: false },
-      defaultCookieAttributes: isProduction
+      defaultCookieAttributes: isSecure
         ? { sameSite: "none" as const, secure: true, httpOnly: true }
         : { sameSite: "lax" as const, secure: false, httpOnly: true },
     },

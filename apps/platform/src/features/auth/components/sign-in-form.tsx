@@ -12,6 +12,8 @@ import { Input } from "@propertyos/ui/components/input";
 import { PasswordInput } from "@propertyos/ui/components/password-input";
 import { useFeedback } from "@propertyos/ui/lib/use-feedback";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { Loader2 } from "lucide-react";
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import z from "zod";
 
@@ -33,6 +35,7 @@ export default function SignInForm() {
   });
   const feedback = useFeedback();
   const { isPending } = authClient.useSession();
+  const [isGooglePending, setIsGooglePending] = useState(false);
 
   const form = useForm<SignInValues>({
     resolver: zodResolver(signInSchema),
@@ -64,10 +67,24 @@ export default function SignInForm() {
   });
 
   const onGoogleSignIn = async () => {
-    await authClient.signIn.social({
-      provider: "google",
-      callbackURL: window.location.origin,
-    });
+    setIsGooglePending(true);
+    await authClient.signIn.social(
+      {
+        provider: "google",
+        callbackURL: window.location.origin,
+      },
+      {
+        // On success the browser navigates away to Google, so the button is
+        // intentionally left in its pending state.
+        onError: (error) => {
+          setIsGooglePending(false);
+          feedback.error(
+            "Google sign in failed",
+            error.error.message || error.error.statusText,
+          );
+        },
+      },
+    );
   };
 
   if (isPending) {
@@ -119,7 +136,10 @@ export default function SignInForm() {
         />
 
         <Field>
-          <Button type="submit" disabled={form.formState.isSubmitting}>
+          <Button
+            type="submit"
+            disabled={form.formState.isSubmitting || isGooglePending}
+          >
             {form.formState.isSubmitting ? "Signing in..." : "Login"}
           </Button>
         </Field>
@@ -127,9 +147,18 @@ export default function SignInForm() {
         <FieldSeparator>Or continue with</FieldSeparator>
 
         <Field>
-          <Button variant="outline" type="button" onClick={onGoogleSignIn}>
-            <GoogleIcon />
-            Login with Google
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onGoogleSignIn}
+            disabled={isGooglePending || form.formState.isSubmitting}
+          >
+            {isGooglePending ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <GoogleIcon />
+            )}
+            {isGooglePending ? "Redirecting..." : "Login with Google"}
           </Button>
         </Field>
 

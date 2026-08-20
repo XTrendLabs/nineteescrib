@@ -12,6 +12,8 @@ import { Input } from "@propertyos/ui/components/input";
 import { PasswordInput } from "@propertyos/ui/components/password-input";
 import { useFeedback } from "@propertyos/ui/lib/use-feedback";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { Loader2 } from "lucide-react";
+import { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import z from "zod";
 
@@ -34,6 +36,7 @@ export default function SignUpForm() {
   });
   const feedback = useFeedback();
   const { isPending } = authClient.useSession();
+  const [isGooglePending, setIsGooglePending] = useState(false);
 
   const form = useForm<SignUpValues>({
     resolver: zodResolver(signUpSchema),
@@ -67,10 +70,24 @@ export default function SignUpForm() {
   });
 
   const onGoogleSignUp = async () => {
-    await authClient.signIn.social({
-      provider: "google",
-      callbackURL: window.location.origin,
-    });
+    setIsGooglePending(true);
+    await authClient.signIn.social(
+      {
+        provider: "google",
+        callbackURL: window.location.origin,
+      },
+      {
+        // On success the browser navigates away to Google, so the button is
+        // intentionally left in its pending state.
+        onError: (error) => {
+          setIsGooglePending(false);
+          feedback.error(
+            "Google sign in failed",
+            error.error.message || error.error.statusText,
+          );
+        },
+      },
+    );
   };
 
   if (isPending) {
@@ -139,7 +156,10 @@ export default function SignUpForm() {
         />
 
         <Field>
-          <Button type="submit" disabled={form.formState.isSubmitting}>
+          <Button
+            type="submit"
+            disabled={form.formState.isSubmitting || isGooglePending}
+          >
             {form.formState.isSubmitting ? "Creating account..." : "Sign up"}
           </Button>
         </Field>
@@ -147,9 +167,18 @@ export default function SignUpForm() {
         <FieldSeparator>Or continue with</FieldSeparator>
 
         <Field>
-          <Button variant="outline" type="button" onClick={onGoogleSignUp}>
-            <GoogleIcon />
-            Sign up with Google
+          <Button
+            variant="outline"
+            type="button"
+            onClick={onGoogleSignUp}
+            disabled={isGooglePending || form.formState.isSubmitting}
+          >
+            {isGooglePending ? (
+              <Loader2 className="animate-spin" />
+            ) : (
+              <GoogleIcon />
+            )}
+            {isGooglePending ? "Redirecting..." : "Sign up with Google"}
           </Button>
         </Field>
 
