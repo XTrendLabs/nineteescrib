@@ -41,6 +41,11 @@ export function createAuth() {
     },
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,
+    // Without this, OAuth failures fall back to `${baseURL}/error`, stranding
+    // the user on the API host instead of the app they signed in from.
+    onAPIError: {
+      errorURL: `${env.CORS_ORIGIN}/auth/login`,
+    },
     session: {
       cookieCache: {
         enabled: true,
