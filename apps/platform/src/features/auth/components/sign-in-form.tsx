@@ -11,6 +11,7 @@ import {
 import { Input } from "@propertyos/ui/components/input";
 import { PasswordInput } from "@propertyos/ui/components/password-input";
 import { useFeedback } from "@propertyos/ui/lib/use-feedback";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
@@ -33,6 +34,7 @@ export default function SignInForm() {
   const navigate = useNavigate({
     from: "/auth/login",
   });
+  const queryClient = useQueryClient();
   const feedback = useFeedback();
   const { isPending } = authClient.useSession();
   const [isGooglePending, setIsGooglePending] = useState(false);
@@ -52,7 +54,8 @@ export default function SignInForm() {
         password: value.password,
       },
       {
-        onSuccess: () => {
+        onSuccess: async () => {
+          queryClient.clear();
           navigate({ to: "/" });
           feedback.success("Sign in successful");
         },

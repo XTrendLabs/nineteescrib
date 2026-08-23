@@ -65,7 +65,9 @@ export function CheckoutForm({
         <Label htmlFor="arrivalTime">Estimated Arrival Time</Label>
         <Select
           value={value.arrivalTime}
-          onValueChange={(arrivalTime) => onChange({ ...value, arrivalTime })}
+          onValueChange={(arrivalTime) =>
+            onChange({ ...value, arrivalTime: (arrivalTime as string) ?? "" })
+          }
         >
           <SelectTrigger id="arrivalTime">
             <SelectValue placeholder="Select a time window">

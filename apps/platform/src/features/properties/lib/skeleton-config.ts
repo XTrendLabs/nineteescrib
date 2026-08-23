@@ -8,19 +8,11 @@ export const PROPERTY_TAB_SKELETONS: Record<string, SkeletonShape[]> = {
   overview: [
     { type: "hero" },
     { type: "cards", count: 4, columns: 4 },
+    { type: "form", fields: 8, columns: 2 },
     { type: "list", count: 1 },
   ],
   rooms: [{ type: "list", count: 3 }],
-  pricing: [
-    { type: "table", rows: 3, columns: 5 },
-    { type: "list", count: 2 },
-  ],
-  gallery: [
-    { type: "cards", count: 6, columns: 4 },
-    { type: "cards", count: 3, columns: 3 },
-  ],
   policies: [{ type: "form", fields: 8, columns: 2 }],
-  amenities: [{ type: "form", fields: 6, columns: 2 }],
   "booking-links": [{ type: "list", count: 3 }],
   taxes: [{ type: "form", fields: 6, columns: 2 }],
 };

@@ -11,6 +11,7 @@ import {
 import { Input } from "@propertyos/ui/components/input";
 import { PasswordInput } from "@propertyos/ui/components/password-input";
 import { useFeedback } from "@propertyos/ui/lib/use-feedback";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
@@ -34,6 +35,7 @@ export default function SignUpForm() {
   const navigate = useNavigate({
     from: "/auth/register",
   });
+  const queryClient = useQueryClient();
   const feedback = useFeedback();
   const { isPending } = authClient.useSession();
   const [isGooglePending, setIsGooglePending] = useState(false);
@@ -55,7 +57,8 @@ export default function SignUpForm() {
         password: value.password,
       },
       {
-        onSuccess: () => {
+        onSuccess: async () => {
+          queryClient.clear();
           navigate({ to: "/" });
           feedback.success("Sign up successful");
         },

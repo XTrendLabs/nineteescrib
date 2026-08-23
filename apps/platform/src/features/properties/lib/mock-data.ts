@@ -191,6 +191,15 @@ export type Billing = {
   invoiceAuto: boolean;
 };
 
+export type BusinessDetails = {
+  ownerName: string;
+  phone: string;
+  email: string;
+  operationsStartTime: string;
+  operationsEndTime: string;
+  whatsappNumber: string;
+};
+
 export type SetupChecklist = {
   detailsAdded: boolean;
   roomTypesConfigured: boolean;
@@ -228,6 +237,7 @@ export type PropertyDetail = {
   policies: Policies;
   bookingLink: BookingLinkConfig;
   billing: Billing;
+  business: BusinessDetails;
   checklist: SetupChecklist;
   metrics: LiveMetrics;
 };
@@ -541,6 +551,20 @@ function buildBilling(rand: () => number, name: string): Billing {
   };
 }
 
+function buildBusinessDetails(
+  rand: () => number,
+  name: string,
+): BusinessDetails {
+  return {
+    ownerName: "Karan Haritwal",
+    phone: "+91 98765 43210",
+    email: `contact@${name.toLowerCase().replace(/[^a-z0-9]+/g, "")}.in`,
+    operationsStartTime: "08:00",
+    operationsEndTime: rand() < 0.5 ? "22:00" : "23:59",
+    whatsappNumber: "+91 98765 43210",
+  };
+}
+
 function buildChecklist(
   roomTypes: RoomType[],
   propertyGallery: GalleryImage[],
@@ -600,6 +624,7 @@ export function buildPropertyDetail(property: MockProperty): PropertyDetail {
   const policies = buildPolicies(rand);
   const bookingLink = buildBookingLink(rand, property.name);
   const billing = buildBilling(rand, property.name);
+  const business = buildBusinessDetails(rand, property.name);
   const checklist = buildChecklist(
     roomTypes,
     propertyGallery,
@@ -630,6 +655,7 @@ export function buildPropertyDetail(property: MockProperty): PropertyDetail {
     policies,
     bookingLink,
     billing,
+    business,
     checklist,
     metrics,
   };

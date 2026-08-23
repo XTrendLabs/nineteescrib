@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { authClient } from "@/features/auth/lib/auth-client";
@@ -30,6 +31,7 @@ export const Route = createFileRoute("/onboarding/")({
 function RouteComponent() {
   const { activeOrganization } = Route.useRouteContext();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [step, setStep] = useState(activeOrganization ? 2 : 1);
   const [organizationId, setOrganizationId] = useState<string | null>(
     activeOrganization?.id ?? null,
@@ -47,6 +49,7 @@ function RouteComponent() {
   const createProperty = useCreateProperty();
 
   const finishOnboarding = () => {
+    queryClient.clear();
     navigate({ to: "/" });
   };
 

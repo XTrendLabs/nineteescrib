@@ -21,6 +21,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@propertyos/ui/components/sidebar";
+import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import {
   ChevronsUpDownIcon,
@@ -37,6 +38,7 @@ import { authClient } from "@/features/auth/lib/auth-client";
 export function NavUser() {
   const { isMobile } = useSidebar();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data: session } = useCachedSession();
   const { theme, setTheme } = useTheme();
 
@@ -143,7 +145,8 @@ export function NavUser() {
                 authClient.signOut({
                   fetchOptions: {
                     onSuccess: () => {
-                      navigate({ to: "/" });
+                      queryClient.clear();
+                      navigate({ to: "/auth/login" });
                     },
                   },
                 });

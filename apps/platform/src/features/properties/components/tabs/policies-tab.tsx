@@ -8,11 +8,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@propertyos/ui/components/select";
+import { PlusIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { paiseToRupees, rupeesToPaise } from "../../lib/format";
-import type { Policies, PropertyDetail } from "../../lib/mock-data";
+import type {
+  Amenity,
+  AmenityCategory,
+  Policies,
+  PropertyDetail,
+} from "../../lib/mock-data";
+
+const CATEGORY_LABELS: Record<AmenityCategory, string> = {
+  essentials: "Essentials",
+  kitchen: "Kitchen & Dining",
+  outdoor: "Outdoor & Recreation",
+  safety: "Safety & Security",
+  parking: "Parking & Transport",
+  views: "Views & Surroundings",
+};
+
+const CATEGORY_ORDER: AmenityCategory[] = [
+  "essentials",
+  "kitchen",
+  "outdoor",
+  "safety",
+  "parking",
+  "views",
+];
 
 const CANCELLATION_OPTIONS = [
   { value: "free", label: "Free" },
@@ -56,13 +80,58 @@ function Field({
 
 export function PoliciesTab({ property }: { property: PropertyDetail }) {
   const [policies, setPolicies] = useState<Policies>(property.policies);
+  const [amenities, setAmenities] = useState<Amenity[]>(property.amenities);
+  const [newCustom, setNewCustom] = useState("");
 
   function update<K extends keyof Policies>(key: K, value: Policies[K]) {
     setPolicies((prev) => ({ ...prev, [key]: value }));
   }
 
+  function toggleAmenity(key: string) {
+    setAmenities((prev) =>
+      prev.map((a) => (a.key === key ? { ...a, enabled: !a.enabled } : a)),
+    );
+  }
+
+  function addCustomAmenity() {
+    const label = newCustom.trim();
+    if (!label) return;
+    setAmenities((prev) => [
+      ...prev,
+      {
+        key: `custom:${label.toLowerCase().replace(/\s+/g, "_")}-${Date.now()}`,
+        label,
+        category: "essentials",
+        enabled: true,
+        custom: true,
+      },
+    ]);
+    setNewCustom("");
+  }
+
+  function removeCustomAmenity(key: string) {
+    setAmenities((prev) => prev.filter((a) => a.key !== key));
+  }
+
+  const standardAmenities = amenities.filter((a) => !a.custom);
+  const customAmenities = amenities.filter((a) => a.custom);
+
   return (
     <div className="flex flex-col gap-6">
+      <div className="flex items-center justify-between">
+        <p className="font-medium text-sm">Policies & Rules</p>
+        <Button
+          size="sm"
+          onClick={() =>
+            toast.success("Policies saved", {
+              description: `Policies and amenities updated for ${property.name}.`,
+            })
+          }
+        >
+          Save Changes
+        </Button>
+      </div>
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <Field label="Check-in Time">
           <Input
@@ -234,16 +303,64 @@ export function PoliciesTab({ property }: { property: PropertyDetail }) {
         Require guest ID verification at booking/check-in
       </button>
 
-      <div>
-        <Button
-          onClick={() =>
-            toast.success("Policies saved", {
-              description: `Policies updated for ${property.name}.`,
-            })
-          }
-        >
-          Save Changes
-        </Button>
+      <div className="flex flex-col gap-4 border-t pt-6">
+        <p className="font-medium text-sm">Amenities</p>
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          {CATEGORY_ORDER.map((category) => (
+            <div key={category} className="flex flex-col gap-2">
+              <p className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+                {CATEGORY_LABELS[category]}
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {standardAmenities
+                  .filter((a) => a.category === category)
+                  .map((amenity) => (
+                    <button
+                      key={amenity.key}
+                      type="button"
+                      onClick={() => toggleAmenity(amenity.key)}
+                      className="flex items-center gap-2 text-left text-xs"
+                    >
+                      <Checkbox checked={amenity.enabled} tabIndex={-1} />
+                      {amenity.label}
+                    </button>
+                  ))}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <p className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
+            Custom Amenities
+          </p>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {customAmenities.map((amenity) => (
+              <span
+                key={amenity.key}
+                className="flex items-center gap-1 border bg-muted/30 px-2 py-1 text-xs"
+              >
+                {amenity.label}
+                <button
+                  type="button"
+                  onClick={() => removeCustomAmenity(amenity.key)}
+                >
+                  <XIcon className="size-3" />
+                </button>
+              </span>
+            ))}
+          </div>
+          <div className="flex max-w-sm items-center gap-1.5">
+            <Input
+              value={newCustom}
+              onChange={(e) => setNewCustom(e.target.value)}
+              placeholder="e.g. Private Chef Available"
+            />
+            <Button variant="outline" size="icon-sm" onClick={addCustomAmenity}>
+              <PlusIcon />
+            </Button>
+          </div>
+        </div>
       </div>
     </div>
   );

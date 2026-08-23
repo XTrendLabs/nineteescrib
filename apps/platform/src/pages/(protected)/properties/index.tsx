@@ -1,11 +1,16 @@
 import { Button } from "@propertyos/ui/components/button";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 
 import { useCachedActiveOrganization } from "@/features/auth/api/use-cached-organizations";
+import {
+  useCreatedProperties,
+  useCreatePropertyAndNavigate,
+} from "@/features/properties/api/use-created-properties";
 import { useProperties } from "@/features/properties/api/use-properties";
+import { CreatePropertyDialog } from "@/features/properties/components/create-property-dialog";
 import {
   DEFAULT_FILTERS,
   FilterToolbar,
@@ -21,13 +26,17 @@ export const Route = createFileRoute("/(protected)/properties/")({
 });
 
 function RouteComponent() {
-  const navigate = useNavigate();
   const { data: activeOrganization } = useCachedActiveOrganization();
   const { data: propertiesResponse } = useProperties(activeOrganization?.id);
+  const { createdProperties } = useCreatedProperties();
+  const createPropertyAndNavigate = useCreatePropertyAndNavigate();
 
   const properties = useMemo(
-    () => resolveProperties(propertiesResponse?.data),
-    [propertiesResponse?.data],
+    () => [
+      ...resolveProperties(propertiesResponse?.data),
+      ...createdProperties,
+    ],
+    [propertiesResponse?.data, createdProperties],
   );
 
   const propertyDetails = useMemo(
@@ -37,6 +46,12 @@ function RouteComponent() {
   );
 
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+
+  function handleCreate(name: string) {
+    setCreateDialogOpen(false);
+    createPropertyAndNavigate(name);
+  }
 
   const filtered = useMemo(() => {
     const search = filters.search.trim().toLowerCase();
@@ -72,7 +87,7 @@ function RouteComponent() {
             Configure locations, room inventories, pricing, and booking links
           </p>
         </div>
-        <Button onClick={() => navigate({ to: "/properties/new" })}>
+        <Button onClick={() => setCreateDialogOpen(true)}>
           <PlusIcon />
           Add Property
         </Button>
@@ -95,7 +110,7 @@ function RouteComponent() {
 
           <motion.button
             type="button"
-            onClick={() => navigate({ to: "/properties/new" })}
+            onClick={() => setCreateDialogOpen(true)}
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{
@@ -114,6 +129,12 @@ function RouteComponent() {
           </motion.button>
         </div>
       )}
+
+      <CreatePropertyDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        onCreate={handleCreate}
+      />
     </div>
   );
 }

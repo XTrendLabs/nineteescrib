@@ -21,13 +21,10 @@ import { useMemo, useState } from "react";
 import { useCachedActiveOrganization } from "@/features/auth/api/use-cached-organizations";
 import { useProperties } from "@/features/properties/api/use-properties";
 import { StatusBadge } from "@/features/properties/components/status-badge";
-import { AmenitiesTab } from "@/features/properties/components/tabs/amenities-tab";
 import { BookingLinksTab } from "@/features/properties/components/tabs/booking-links-tab";
-import { GalleryTab } from "@/features/properties/components/tabs/gallery-tab";
 import { OverviewTab } from "@/features/properties/components/tabs/overview-tab";
 import { PoliciesTab } from "@/features/properties/components/tabs/policies-tab";
-import { PricingTab } from "@/features/properties/components/tabs/pricing-tab";
-import { RoomsUnitsTab } from "@/features/properties/components/tabs/rooms-units-tab";
+import { RoomsTab } from "@/features/properties/components/tabs/rooms-tab";
 import { TaxesBillingTab } from "@/features/properties/components/tabs/taxes-billing-tab";
 import { TypeBadge } from "@/features/properties/components/type-badge";
 import {
@@ -76,11 +73,8 @@ function RouteComponent() {
         >
           <TabsList className="flex-wrap">
             <TabsTab value="overview">Overview</TabsTab>
-            <TabsTab value="rooms">Rooms & Units</TabsTab>
-            <TabsTab value="pricing">Pricing</TabsTab>
-            <TabsTab value="gallery">Gallery</TabsTab>
-            <TabsTab value="policies">Policies</TabsTab>
-            <TabsTab value="amenities">Amenities</TabsTab>
+            <TabsTab value="rooms">Rooms</TabsTab>
+            <TabsTab value="policies">Policies & Amenities</TabsTab>
             <TabsTab value="booking-links">Booking Links</TabsTab>
             <TabsTab value="taxes">Taxes & Billing</TabsTab>
           </TabsList>
@@ -138,28 +132,16 @@ function RouteComponent() {
           <TabsTab value="pricing">Pricing</TabsTab>
           <TabsTab value="gallery">Gallery</TabsTab>
           <TabsTab value="policies">Policies</TabsTab>
-          <TabsTab value="amenities">Amenities</TabsTab>
-          <TabsTab value="booking-links">Booking Links</TabsTab>
-          <TabsTab value="taxes">Taxes & Billing</TabsTab>
         </TabsList>
 
         <TabsPanel value="overview">
           <OverviewTab property={property} />
         </TabsPanel>
         <TabsPanel value="rooms">
-          <RoomsUnitsTab property={property} />
-        </TabsPanel>
-        <TabsPanel value="pricing">
-          <PricingTab property={property} />
-        </TabsPanel>
-        <TabsPanel value="gallery">
-          <GalleryTab property={property} />
+          <RoomsTab property={property} />
         </TabsPanel>
         <TabsPanel value="policies">
           <PoliciesTab property={property} />
-        </TabsPanel>
-        <TabsPanel value="amenities">
-          <AmenitiesTab property={property} />
         </TabsPanel>
         <TabsPanel value="booking-links">
           <BookingLinksTab property={property} />
