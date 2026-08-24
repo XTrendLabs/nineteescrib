@@ -3,7 +3,6 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@propertyos/ui/components/dropdown-menu";
@@ -13,6 +12,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@propertyos/ui/components/sidebar";
+import { cn } from "@propertyos/ui/lib/utils";
 import {
   Building2Icon,
   ChevronsUpDownIcon,
@@ -88,17 +88,19 @@ export function HqPropertySwitcher({
               <>
                 <DropdownMenuGroup>
                   <DropdownMenuItem
-                    className="gap-2 px-4 py-2"
+                    className={cn(
+                      "gap-2 px-4 py-2 hover:bg-white/90 hover:text-black",
+                      activeView.type === "hq" && "bg-white/90 text-black",
+                    )}
                     onClick={onSelectHq}
                   >
                     <div className="flex size-6 items-center justify-center rounded-md border">
                       <LayoutGridIcon className="size-3.5" />
                     </div>
-                    <div>
-                      <div className="font-medium">HQ</div>
-                      <div className="text-muted-foreground text-xs">
-                        All properties
-                      </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">HQ</span>
+
+                      <span className="text-xs">(All properties)</span>
                     </div>
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
@@ -107,14 +109,16 @@ export function HqPropertySwitcher({
             )}
 
             <DropdownMenuGroup>
-              <DropdownMenuLabel className="text-muted-foreground text-xs">
-                Properties
-              </DropdownMenuLabel>
               {properties?.data?.length ? (
                 properties.data.map((property) => (
                   <DropdownMenuItem
                     key={property.id}
-                    className="gap-2 px-4 py-2"
+                    className={cn(
+                      "gap-2 px-4 py-2 hover:bg-white/90 hover:text-black",
+                      activeView.type === "property" &&
+                        activeView.propertyId === property.id &&
+                        "bg-white/90 text-black",
+                    )}
                     onClick={() => onSelectProperty(property.id, property.name)}
                   >
                     <div className="flex size-6 items-center justify-center rounded-md border">
@@ -132,7 +136,7 @@ export function HqPropertySwitcher({
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
               <DropdownMenuItem
-                className="gap-2 px-4 py-2"
+                className="gap-2 px-4 py-2 hover:bg-white/90 hover:text-black"
                 onClick={onAddProperty}
               >
                 <div className="flex size-6 items-center justify-center rounded-md border border-dashed">

@@ -38,7 +38,7 @@ import { Route as protectedSettingsDangerRouteImport } from './pages/(protected)
 import { Route as protectedSettingsCompanyRouteImport } from './pages/(protected)/settings/company'
 import { Route as protectedSettingsAuditRouteImport } from './pages/(protected)/settings/audit'
 import { Route as protectedReportsBuilderRouteImport } from './pages/(protected)/reports/builder'
-import { Route as protectedPropertiesPropertyIdRouteImport } from './pages/(protected)/properties/$propertyId'
+import { Route as protectedPropertiesPropertySlugRouteImport } from './pages/(protected)/properties/$propertySlug'
 import { Route as BookSlugPropertySlugIndexRouteImport } from './pages/book/$slug/$propertySlug/index'
 import { Route as BookSlugPropertySlugConfirmedRouteImport } from './pages/book/$slug/$propertySlug/confirmed'
 import { Route as BookSlugPropertySlugCheckoutRouteImport } from './pages/book/$slug/$propertySlug/checkout'
@@ -195,10 +195,10 @@ const protectedReportsBuilderRoute = protectedReportsBuilderRouteImport.update({
   path: '/reports/builder',
   getParentRoute: () => protectedLayoutRoute,
 } as any)
-const protectedPropertiesPropertyIdRoute =
-  protectedPropertiesPropertyIdRouteImport.update({
-    id: '/properties/$propertyId',
-    path: '/properties/$propertyId',
+const protectedPropertiesPropertySlugRoute =
+  protectedPropertiesPropertySlugRouteImport.update({
+    id: '/properties/$propertySlug',
+    path: '/properties/$propertySlug',
     getParentRoute: () => protectedLayoutRoute,
   } as any)
 const BookSlugPropertySlugIndexRoute =
@@ -237,7 +237,7 @@ export interface FileRoutesByFullPath {
   '/quote/$token': typeof QuoteTokenRoute
   '/': typeof protectedIndexRoute
   '/onboarding/': typeof OnboardingIndexRoute
-  '/properties/$propertyId': typeof protectedPropertiesPropertyIdRoute
+  '/properties/$propertySlug': typeof protectedPropertiesPropertySlugRoute
   '/reports/builder': typeof protectedReportsBuilderRoute
   '/settings/audit': typeof protectedSettingsAuditRoute
   '/settings/company': typeof protectedSettingsCompanyRoute
@@ -271,7 +271,7 @@ export interface FileRoutesByTo {
   '/quote/$token': typeof QuoteTokenRoute
   '/': typeof protectedIndexRoute
   '/onboarding': typeof OnboardingIndexRoute
-  '/properties/$propertyId': typeof protectedPropertiesPropertyIdRoute
+  '/properties/$propertySlug': typeof protectedPropertiesPropertySlugRoute
   '/reports/builder': typeof protectedReportsBuilderRoute
   '/settings/audit': typeof protectedSettingsAuditRoute
   '/settings/company': typeof protectedSettingsCompanyRoute
@@ -308,7 +308,7 @@ export interface FileRoutesById {
   '/quote/$token': typeof QuoteTokenRoute
   '/(protected)/': typeof protectedIndexRoute
   '/onboarding/': typeof OnboardingIndexRoute
-  '/(protected)/properties/$propertyId': typeof protectedPropertiesPropertyIdRoute
+  '/(protected)/properties/$propertySlug': typeof protectedPropertiesPropertySlugRoute
   '/(protected)/reports/builder': typeof protectedReportsBuilderRoute
   '/(protected)/settings/audit': typeof protectedSettingsAuditRoute
   '/(protected)/settings/company': typeof protectedSettingsCompanyRoute
@@ -345,7 +345,7 @@ export interface FileRouteTypes {
     | '/quote/$token'
     | '/'
     | '/onboarding/'
-    | '/properties/$propertyId'
+    | '/properties/$propertySlug'
     | '/reports/builder'
     | '/settings/audit'
     | '/settings/company'
@@ -379,7 +379,7 @@ export interface FileRouteTypes {
     | '/quote/$token'
     | '/'
     | '/onboarding'
-    | '/properties/$propertyId'
+    | '/properties/$propertySlug'
     | '/reports/builder'
     | '/settings/audit'
     | '/settings/company'
@@ -415,7 +415,7 @@ export interface FileRouteTypes {
     | '/quote/$token'
     | '/(protected)/'
     | '/onboarding/'
-    | '/(protected)/properties/$propertyId'
+    | '/(protected)/properties/$propertySlug'
     | '/(protected)/reports/builder'
     | '/(protected)/settings/audit'
     | '/(protected)/settings/company'
@@ -657,11 +657,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof protectedReportsBuilderRouteImport
       parentRoute: typeof protectedLayoutRoute
     }
-    '/(protected)/properties/$propertyId': {
-      id: '/(protected)/properties/$propertyId'
-      path: '/properties/$propertyId'
-      fullPath: '/properties/$propertyId'
-      preLoaderRoute: typeof protectedPropertiesPropertyIdRouteImport
+    '/(protected)/properties/$propertySlug': {
+      id: '/(protected)/properties/$propertySlug'
+      path: '/properties/$propertySlug'
+      fullPath: '/properties/$propertySlug'
+      preLoaderRoute: typeof protectedPropertiesPropertySlugRouteImport
       parentRoute: typeof protectedLayoutRoute
     }
     '/book/$slug/$propertySlug/': {
@@ -735,7 +735,7 @@ interface protectedLayoutRouteChildren {
   protectedCalendarRoute: typeof protectedCalendarRoute
   protectedGuestsRoute: typeof protectedGuestsRoute
   protectedIndexRoute: typeof protectedIndexRoute
-  protectedPropertiesPropertyIdRoute: typeof protectedPropertiesPropertyIdRoute
+  protectedPropertiesPropertySlugRoute: typeof protectedPropertiesPropertySlugRoute
   protectedReportsBuilderRoute: typeof protectedReportsBuilderRoute
   protectedStaffStaffIdRoute: typeof protectedStaffStaffIdRoute
   protectedExpensesIndexRoute: typeof protectedExpensesIndexRoute
@@ -752,7 +752,7 @@ const protectedLayoutRouteChildren: protectedLayoutRouteChildren = {
   protectedCalendarRoute: protectedCalendarRoute,
   protectedGuestsRoute: protectedGuestsRoute,
   protectedIndexRoute: protectedIndexRoute,
-  protectedPropertiesPropertyIdRoute: protectedPropertiesPropertyIdRoute,
+  protectedPropertiesPropertySlugRoute: protectedPropertiesPropertySlugRoute,
   protectedReportsBuilderRoute: protectedReportsBuilderRoute,
   protectedStaffStaffIdRoute: protectedStaffStaffIdRoute,
   protectedExpensesIndexRoute: protectedExpensesIndexRoute,

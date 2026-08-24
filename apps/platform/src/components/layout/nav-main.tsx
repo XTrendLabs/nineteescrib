@@ -6,7 +6,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@propertyos/ui/components/sidebar";
-import { useRouterState } from "@tanstack/react-router";
+import { Link, useRouterState } from "@tanstack/react-router";
 import type { LucideIcon } from "lucide-react";
 
 export type NavMainItem = {
@@ -41,7 +41,7 @@ export function NavMain({ groups }: { groups: NavMainGroup[] }) {
                     tooltip={item.title}
                     isActive={pathname === item.url}
                     className="data-active:bg-sidebar-primary data-active:text-sidebar-primary-foreground data-active:hover:bg-sidebar-primary data-active:hover:text-sidebar-primary-foreground"
-                    render={<a href={item.url} />}
+                    render={<Link to={item.url} />}
                   >
                     <item.icon className="size-4 shrink-0" />
                     <span>{item.title}</span>

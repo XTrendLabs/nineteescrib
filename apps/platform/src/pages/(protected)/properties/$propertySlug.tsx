@@ -1,11 +1,3 @@
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@propertyos/ui/components/breadcrumb";
 import { Skeleton } from "@propertyos/ui/components/skeleton";
 import { SkeletonLayout } from "@propertyos/ui/components/skeleton-block";
 import {
@@ -15,11 +7,10 @@ import {
   TabsTab,
 } from "@propertyos/ui/components/tabs";
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { AlertCircleIcon } from "lucide-react";
 import { motion } from "motion/react";
-import { useMemo, useState } from "react";
-
-import { useCachedActiveOrganization } from "@/features/auth/api/use-cached-organizations";
-import { useProperties } from "@/features/properties/api/use-properties";
+import { useState } from "react";
+import { usePropertyBySlug } from "@/features/properties/api/use-property-by-slug";
 import { StatusBadge } from "@/features/properties/components/status-badge";
 import { BookingLinksTab } from "@/features/properties/components/tabs/booking-links-tab";
 import { OverviewTab } from "@/features/properties/components/tabs/overview-tab";
@@ -28,35 +19,42 @@ import { RoomsTab } from "@/features/properties/components/tabs/rooms-tab";
 import { TaxesBillingTab } from "@/features/properties/components/tabs/taxes-billing-tab";
 import { TypeBadge } from "@/features/properties/components/type-badge";
 import {
-  buildPropertyDetails,
-  resolveProperties,
-} from "@/features/properties/lib/mock-data";
+  normalizePropertyStatus,
+  normalizePropertyType,
+} from "@/features/properties/lib/property";
 import { PROPERTY_TAB_SKELETONS } from "@/features/properties/lib/skeleton-config";
 
-export const Route = createFileRoute("/(protected)/properties/$propertyId")({
+export const Route = createFileRoute("/(protected)/properties/$propertySlug")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  const { propertyId } = Route.useParams();
-  const { data: activeOrganization } = useCachedActiveOrganization();
-  const { data: propertiesResponse, isLoading } = useProperties(
-    activeOrganization?.id,
-  );
+  const { propertySlug } = Route.useParams();
   const [activeTab, setActiveTab] = useState("overview");
 
-  const properties = useMemo(
-    () => resolveProperties(propertiesResponse?.data),
-    [propertiesResponse?.data],
-  );
+  const { data: response, isLoading } = usePropertyBySlug(propertySlug);
+  const property = response?.data;
 
-  const propertyDetails = useMemo(
-    () => buildPropertyDetails(properties),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [properties.map((p) => p.id).join(",")],
-  );
+  const missingBusinessDetails = property
+    ? !(
+        property.ownerName &&
+        property.contactPhone &&
+        property.contactEmail &&
+        property.whatsappNumber &&
+        property.operationsOpenTime &&
+        property.operationsCloseTime
+      )
+    : false;
 
-  const property = propertyDetails.find((p) => p.id === propertyId);
+  const missingTaxDetails = property
+    ? !(
+        property.gstNumber ||
+        property.panNumber ||
+        property.invoicePrefix ||
+        property.billingAddress ||
+        property.bankAccountNumber
+      )
+    : false;
 
   if (isLoading) {
     const shapes =
@@ -105,46 +103,52 @@ function RouteComponent() {
       className="flex flex-col gap-6 p-4"
     >
       <div className="flex flex-col gap-2">
-        <Breadcrumb>
-          <BreadcrumbList>
-            <BreadcrumbItem>
-              <BreadcrumbLink render={<Link to="/properties" />}>
-                Properties
-              </BreadcrumbLink>
-            </BreadcrumbItem>
-            <BreadcrumbSeparator />
-            <BreadcrumbItem>
-              <BreadcrumbPage>{property.name}</BreadcrumbPage>
-            </BreadcrumbItem>
-          </BreadcrumbList>
-        </Breadcrumb>
         <div className="flex flex-wrap items-center gap-3">
           <h1 className="text-display-md">{property.name}</h1>
-          <TypeBadge type={property.propertyType} />
-          <StatusBadge status={property.status} />
+          <TypeBadge type={normalizePropertyType(property.propertyType)} />
+          <StatusBadge status={normalizePropertyStatus(property.status)} />
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as string)}>
         <TabsList className="flex-wrap">
-          <TabsTab value="overview">Overview</TabsTab>
-          <TabsTab value="rooms">Rooms & Units</TabsTab>
-          <TabsTab value="pricing">Pricing</TabsTab>
-          <TabsTab value="gallery">Gallery</TabsTab>
-          <TabsTab value="policies">Policies</TabsTab>
+          <TabsTab value="overview" className="flex items-center gap-1.5">
+            Overview
+            {missingBusinessDetails && (
+              <AlertCircleIcon className="size-3.5 text-destructive" />
+            )}
+          </TabsTab>
+          <TabsTab value="rooms" className="flex items-center gap-1.5">
+            Rooms
+            <AlertCircleIcon className="size-3.5 text-destructive" />
+          </TabsTab>
+          <TabsTab value="policies" className="flex items-center gap-1.5">
+            Policies & Amenities
+            <AlertCircleIcon className="size-3.5 text-destructive" />
+          </TabsTab>
+          <TabsTab value="booking-links" className="flex items-center gap-1.5">
+            Booking Links
+            <AlertCircleIcon className="size-3.5 text-destructive" />
+          </TabsTab>
+          <TabsTab value="taxes" className="flex items-center gap-1.5">
+            Taxes & Billing
+            {missingTaxDetails && (
+              <AlertCircleIcon className="size-3.5 text-destructive" />
+            )}
+          </TabsTab>
         </TabsList>
 
         <TabsPanel value="overview">
           <OverviewTab property={property} />
         </TabsPanel>
         <TabsPanel value="rooms">
-          <RoomsTab property={property} />
+          <RoomsTab />
         </TabsPanel>
         <TabsPanel value="policies">
-          <PoliciesTab property={property} />
+          <PoliciesTab />
         </TabsPanel>
         <TabsPanel value="booking-links">
-          <BookingLinksTab property={property} />
+          <BookingLinksTab />
         </TabsPanel>
         <TabsPanel value="taxes">
           <TaxesBillingTab property={property} />

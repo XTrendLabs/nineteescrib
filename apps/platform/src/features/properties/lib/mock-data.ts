@@ -22,6 +22,7 @@ export type PropertyStatus = "active" | "inactive" | "maintenance";
 export type MockProperty = {
   id: string;
   name: string;
+  slug?: string;
   propertyType: string;
   city: string;
   status: string;
@@ -31,6 +32,7 @@ const FALLBACK_PROPERTIES: MockProperty[] = [
   {
     id: "fallback-1",
     name: "Sunrise Villa - Goa",
+    slug: "sunrise-villa-goa",
     propertyType: "villa",
     city: "Anjuna, Goa",
     status: "active",
@@ -38,6 +40,7 @@ const FALLBACK_PROPERTIES: MockProperty[] = [
   {
     id: "fallback-2",
     name: "Hilltop Retreat - Coorg",
+    slug: "hilltop-retreat-coorg",
     propertyType: "hotel",
     city: "Madikeri, Coorg",
     status: "active",
@@ -45,6 +48,7 @@ const FALLBACK_PROPERTIES: MockProperty[] = [
   {
     id: "fallback-3",
     name: "City Nest - Bengaluru",
+    slug: "city-nest-bengaluru",
     propertyType: "apartment",
     city: "Bengaluru",
     status: "inactive",
@@ -227,6 +231,9 @@ export type PropertyDetail = {
   pinCode: string;
   latitude: number;
   longitude: number;
+  /** Plain per-property slug, used for URL routing (/properties/:propertySlug). */
+  propertySlug: string;
+  /** Tenant-prefixed public booking-link path (tenant/property-slug). */
   slug: string;
   description: string;
   roomTypes: RoomType[];
@@ -645,6 +652,7 @@ export function buildPropertyDetail(property: MockProperty): PropertyDetail {
     pinCode: "403509",
     latitude: 15.5937,
     longitude: 73.7425,
+    propertySlug: property.slug ?? slugify(property.name),
     slug: bookingLink.slug,
     description: `A well-loved ${propertyType} located in ${property.city}, offering a comfortable stay for guests seeking a home base for exploring the region.`,
     roomTypes,

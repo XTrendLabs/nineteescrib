@@ -70,6 +70,13 @@ export function PropertyShareCard({
       </CardHeader>
       <CardContent className="flex flex-1 flex-col">
         <div className="relative h-56 w-full">
+          {properties.length === 0 && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center">
+              <p className="text-muted-foreground text-sm">
+                No data to show in chart
+              </p>
+            </div>
+          )}
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>
               <defs>

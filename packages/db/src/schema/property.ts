@@ -19,20 +19,38 @@ export const property = pgTable(
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
-    propertyType: text("property_type").notNull(),
-    addressLine1: text("address_line1").notNull(),
-    city: text("city").notNull(),
-    state: text("state").notNull(),
-    country: text("country").notNull(),
+    slug: text("slug").notNull().unique(),
+    propertyType: text("property_type").default("other").notNull(),
+    addressLine1: text("address_line1").default("").notNull(),
+    city: text("city").default("").notNull(),
+    state: text("state").default("").notNull(),
+    country: text("country").default("India").notNull(),
     coverImage: text("cover_image"),
     status: text("status").default("active").notNull(),
+    ownerName: text("owner_name"),
+    contactPhone: text("contact_phone"),
+    contactEmail: text("contact_email"),
+    whatsappNumber: text("whatsapp_number"),
+    operationsOpenTime: text("operations_open_time"),
+    operationsCloseTime: text("operations_close_time"),
+    invoicePrefix: text("invoice_prefix"),
+    gstNumber: text("gst_number"),
+    panNumber: text("pan_number"),
+    billingAddress: text("billing_address"),
+    bankAccountHolderName: text("bank_account_holder_name"),
+    bankAccountNumber: text("bank_account_number"),
+    bankIfscCode: text("bank_ifsc_code"),
+    bankName: text("bank_name"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [index("property_organizationId_idx").on(table.organizationId)],
+  (table) => [
+    index("property_organizationId_idx").on(table.organizationId),
+    index("property_slug_idx").on(table.slug),
+  ],
 );
 
 export const roomType = pgTable(

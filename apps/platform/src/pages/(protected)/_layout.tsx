@@ -2,7 +2,12 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@propertyos/ui/components/sidebar";
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import {
+  createFileRoute,
+  Outlet,
+  redirect,
+  useNavigate,
+} from "@tanstack/react-router";
 import { useState } from "react";
 
 import { AppSidebar } from "@/components/layout/app-sidebar";
@@ -12,12 +17,12 @@ import {
   fetchActiveOrganization,
   fetchOrganizationList,
   getActiveOrganizationId,
+  useCachedActiveOrganization,
 } from "@/features/auth/api/use-cached-organizations";
 import {
   fetchSession,
   SESSION_STALE_TIME,
 } from "@/features/auth/api/use-cached-session";
-import { useCreatePropertyAndNavigate } from "@/features/properties/api/use-created-properties";
 import { CreatePropertyDialog } from "@/features/properties/components/create-property-dialog";
 import { useActiveView } from "@/shared/lib/use-active-view";
 
@@ -61,9 +66,10 @@ export const Route = createFileRoute("/(protected)")({
 });
 
 function ProtectedLayout() {
+  const navigate = useNavigate();
   const { activeView, activePropertyName, selectHq, selectProperty } =
     useActiveView();
-  const createPropertyAndNavigate = useCreatePropertyAndNavigate();
+  const { data: activeOrganization } = useCachedActiveOrganization();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const title =
@@ -92,10 +98,13 @@ function ProtectedLayout() {
       <CreatePropertyDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
-        onCreate={(name) => {
-          setCreateDialogOpen(false);
-          createPropertyAndNavigate(name);
-        }}
+        organizationId={activeOrganization?.id}
+        onCreated={(slug) =>
+          navigate({
+            to: "/properties/$propertySlug",
+            params: { propertySlug: slug },
+          })
+        }
       />
     </SidebarProvider>
   );

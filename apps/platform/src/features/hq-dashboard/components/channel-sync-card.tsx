@@ -28,7 +28,10 @@ export function ChannelSyncCard({
   properties: MockProperty[];
 }) {
   const holds = useMemo(() => buildCheckoutHolds(properties), [properties]);
-  const heartbeats = useMemo(() => buildChannelHeartbeats(), []);
+  const heartbeats = useMemo(
+    () => buildChannelHeartbeats(properties),
+    [properties],
+  );
   const conflicts = useMemo(
     () => buildConflictAlerts(properties),
     [properties],
@@ -129,39 +132,50 @@ export function ChannelSyncCard({
             <RadioIcon className="size-3.5" />
             OTA sync monitor
           </p>
-          <div className="flex flex-col gap-2">
-            {heartbeats.map((hb) => (
-              <div
-                key={hb.channel}
-                className="flex items-center justify-between gap-3 border border-border p-2.5 text-sm"
-              >
-                <div className="flex items-center gap-2">
-                  <span className="relative flex size-2">
-                    <span
-                      className={cn(
-                        "absolute inline-flex h-full w-full animate-ping rounded-full opacity-75",
-                        hb.status === "active" ? "bg-success" : "bg-amber-500",
-                      )}
-                    />
-                    <span
-                      className={cn(
-                        "relative inline-flex size-2 rounded-full",
-                        hb.status === "active" ? "bg-success" : "bg-amber-500",
-                      )}
-                    />
-                  </span>
-                  <span className="flex items-center gap-1.5 font-medium">
-                    <WifiIcon className="size-3.5 text-muted-foreground" />
-                    {hb.channel}
+          {heartbeats.length === 0 ? (
+            <p className="text-muted-foreground text-xs">
+              No channels connected yet.
+            </p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {heartbeats.map((hb) => (
+                <div
+                  key={hb.channel}
+                  className="flex items-center justify-between gap-3 border border-border p-2.5 text-sm"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex size-2">
+                      <span
+                        className={cn(
+                          "absolute inline-flex h-full w-full animate-ping rounded-full opacity-75",
+                          hb.status === "active"
+                            ? "bg-success"
+                            : "bg-amber-500",
+                        )}
+                      />
+                      <span
+                        className={cn(
+                          "relative inline-flex size-2 rounded-full",
+                          hb.status === "active"
+                            ? "bg-success"
+                            : "bg-amber-500",
+                        )}
+                      />
+                    </span>
+                    <span className="flex items-center gap-1.5 font-medium">
+                      <WifiIcon className="size-3.5 text-muted-foreground" />
+                      {hb.channel}
+                    </span>
+                  </div>
+                  <span className="text-muted-foreground text-xs">
+                    Active {hb.lastSyncMinutesAgo}m ago · {hb.conflicts}{" "}
+                    conflict
+                    {hb.conflicts === 1 ? "" : "s"}
                   </span>
                 </div>
-                <span className="text-muted-foreground text-xs">
-                  Active {hb.lastSyncMinutesAgo}m ago · {hb.conflicts} conflict
-                  {hb.conflicts === 1 ? "" : "s"}
-                </span>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

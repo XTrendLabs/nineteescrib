@@ -1,4 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 import { authClient } from "../lib/auth-client";
 import { authQueryKeys } from "./query-keys";
@@ -44,6 +45,21 @@ export function useCachedOrganizationList() {
 export function useCachedActiveOrganization() {
   const { data: session } = useCachedSession();
   const activeOrganizationId = getActiveOrganizationId(session);
+  const organizationList = useCachedOrganizationList();
+  const queryClient = useQueryClient();
+
+  const fallbackOrganizationId = !activeOrganizationId
+    ? organizationList.data?.[0]?.id
+    : undefined;
+
+  useEffect(() => {
+    if (!fallbackOrganizationId) return;
+    authClient.organization
+      .setActive({ organizationId: fallbackOrganizationId })
+      .then(() => {
+        queryClient.invalidateQueries({ queryKey: authQueryKeys.session() });
+      });
+  }, [fallbackOrganizationId, queryClient]);
 
   return useQuery({
     queryKey: authQueryKeys.activeOrganization(
@@ -51,7 +67,7 @@ export function useCachedActiveOrganization() {
       activeOrganizationId,
     ),
     queryFn: fetchActiveOrganization,
-    enabled: Boolean(session),
+    enabled: Boolean(session) && Boolean(activeOrganizationId),
     staleTime: SESSION_STALE_TIME,
     gcTime: SESSION_STALE_TIME,
   });

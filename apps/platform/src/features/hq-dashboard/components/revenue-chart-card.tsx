@@ -151,7 +151,14 @@ export function RevenueChartCard({
         </CardAction>
       </CardHeader>
       <CardContent>
-        <div className="h-72 w-full">
+        <div className="relative h-72 w-full">
+          {properties.length === 0 && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center">
+              <p className="text-muted-foreground text-sm">
+                No data to show in chart
+              </p>
+            </div>
+          )}
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} barGap={2} margin={{ left: -12, right: 8 }}>
               <defs>

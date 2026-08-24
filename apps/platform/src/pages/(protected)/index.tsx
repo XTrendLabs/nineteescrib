@@ -1,5 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { Button } from "@propertyos/ui/components/button";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { subDays } from "date-fns";
+import { AlertTriangleIcon, PlusIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 import type { DateRange } from "react-day-picker";
@@ -17,6 +19,7 @@ import {
   resolveDashboardProperties,
 } from "@/features/hq-dashboard/lib/mock-data";
 import { useProperties } from "@/features/properties/api/use-properties";
+import { CreatePropertyDialog } from "@/features/properties/components/create-property-dialog";
 
 export const Route = createFileRoute("/(protected)/")({
   component: RouteComponent,
@@ -24,14 +27,21 @@ export const Route = createFileRoute("/(protected)/")({
 
 function RouteComponent() {
   const { session } = Route.useRouteContext();
+  const navigate = useNavigate();
   const { data: activeOrganization } = useCachedActiveOrganization();
-  const { data: propertiesResponse } = useProperties(activeOrganization?.id);
+  const { data: propertiesResponse, isLoading } = useProperties(
+    activeOrganization?.id,
+  );
 
   const [filter, setFilter] = useState("all");
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: subDays(new Date(), 29),
     to: new Date(),
   });
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+
+  const hasNoProperties =
+    !isLoading && (propertiesResponse?.data.length ?? 0) === 0;
 
   const allProperties = useMemo(
     () => resolveDashboardProperties(propertiesResponse?.data),
@@ -69,15 +79,36 @@ function RouteComponent() {
             Portfolio overview across all your properties
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <PortfolioFilter
-            properties={allProperties}
-            value={filter}
-            onChange={setFilter}
-          />
-          <DateRangePicker value={dateRange} onChange={setDateRange} />
-        </div>
+        {!hasNoProperties && (
+          <div className="flex flex-wrap items-center gap-2">
+            <PortfolioFilter
+              properties={allProperties}
+              value={filter}
+              onChange={setFilter}
+            />
+            <DateRangePicker value={dateRange} onChange={setDateRange} />
+          </div>
+        )}
       </motion.div>
+
+      {hasNoProperties && (
+        <div className="flex flex-wrap items-center justify-between gap-3 border-2 border-warning bg-warning/10 p-4">
+          <div className="flex items-start gap-2.5">
+            <AlertTriangleIcon className="mt-0.5 size-5 shrink-0 text-warning" />
+            <div>
+              <p className="font-medium text-sm">No properties yet</p>
+              <p className="text-muted-foreground text-xs">
+                Add your first property to start seeing revenue, occupancy, and
+                booking activity on this dashboard.
+              </p>
+            </div>
+          </div>
+          <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
+            <PlusIcon />
+            Add Property
+          </Button>
+        </div>
+      )}
 
       <MetricsBand metrics={metrics} />
 
@@ -94,6 +125,18 @@ function RouteComponent() {
         <CheckinCockpitCard properties={activeProperties} />
         <ChannelSyncCard properties={activeProperties} />
       </div>
+
+      <CreatePropertyDialog
+        open={createDialogOpen}
+        onOpenChange={setCreateDialogOpen}
+        organizationId={activeOrganization?.id}
+        onCreated={(slug) =>
+          navigate({
+            to: "/properties/$propertySlug",
+            params: { propertySlug: slug },
+          })
+        }
+      />
     </div>
   );
 }

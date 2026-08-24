@@ -119,6 +119,11 @@ export function CheckinCockpitCard({
               transition={{ duration: 0.15 }}
               className="flex max-h-96 flex-col gap-2 overflow-y-auto"
             >
+              {arrivals.length === 0 && (
+                <p className="py-6 text-center text-muted-foreground text-xs">
+                  No arrivals to show.
+                </p>
+              )}
               {arrivals.map((row) => {
                 const highlight = row.isToday && row.paymentStatus !== "paid";
                 return (
@@ -164,6 +169,11 @@ export function CheckinCockpitCard({
               transition={{ duration: 0.15 }}
               className="flex max-h-96 flex-col gap-2 overflow-y-auto"
             >
+              {departures.length === 0 && (
+                <p className="py-6 text-center text-muted-foreground text-xs">
+                  No departures to show.
+                </p>
+              )}
               {departures.map((row) => (
                 <div
                   key={row.id}

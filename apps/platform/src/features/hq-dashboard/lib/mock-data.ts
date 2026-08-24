@@ -14,12 +14,6 @@ export type MockProperty = {
   name: string;
 };
 
-const FALLBACK_PROPERTIES: MockProperty[] = [
-  { id: "fallback-1", name: "Sunrise Villa - Goa" },
-  { id: "fallback-2", name: "Deluxe Suite - Coorg" },
-  { id: "fallback-3", name: "Lakeview Cottage - Munnar" },
-];
-
 /** Deterministic pseudo-random in [0, 1) seeded by a string, so mock data is stable across renders. */
 function seededRandom(seed: string): () => number {
   let h = 0;
@@ -33,13 +27,15 @@ function seededRandom(seed: string): () => number {
   };
 }
 
+/**
+ * Caps the portfolio dashboard to the first 4 properties for chart
+ * legibility. Returns an empty array (not fallback data) when the org has
+ * no properties yet, so the dashboard renders its real empty state.
+ */
 export function resolveDashboardProperties(
   properties: MockProperty[] | undefined,
 ): MockProperty[] {
-  if (properties && properties.length > 0) {
-    return properties.slice(0, 4);
-  }
-  return FALLBACK_PROPERTIES;
+  return (properties ?? []).slice(0, 4);
 }
 
 export type TimeScale = "daily" | "weekly" | "monthly";
@@ -126,6 +122,19 @@ export type PortfolioMetrics = {
 export function buildPortfolioMetrics(
   properties: MockProperty[],
 ): PortfolioMetrics {
+  if (properties.length === 0) {
+    return {
+      totalRevenue: 0,
+      totalRevenuePrevDelta: 0,
+      avgOccupancy: 0,
+      avgOccupancyPrevDelta: 0,
+      commissionSaved: 0,
+      commissionSavedPrevDelta: 0,
+      todayCheckIns: 0,
+      todayCheckOuts: 0,
+    };
+  }
+
   const shares = buildPropertyShares(properties);
   const totalRevenue = shares.reduce((sum, s) => sum + s.revenue, 0);
   const avgOccupancy =
@@ -191,6 +200,7 @@ const ROOM_TYPES = [
 ];
 
 export function buildArrivals(properties: MockProperty[]): CheckinRow[] {
+  if (properties.length === 0) return [];
   const rand = seededRandom("arrivals");
   const count = Math.max(4, properties.length * 2);
   return Array.from({ length: count }, (_, i) => {
@@ -212,6 +222,7 @@ export function buildArrivals(properties: MockProperty[]): CheckinRow[] {
 }
 
 export function buildDepartures(properties: MockProperty[]): CheckoutRow[] {
+  if (properties.length === 0) return [];
   const count = Math.max(3, properties.length + 1);
   return Array.from({ length: count }, (_, i) => {
     const property = properties[(i + 1) % properties.length];
@@ -253,7 +264,10 @@ export type ChannelHeartbeat = {
   status: "active" | "delayed";
 };
 
-export function buildChannelHeartbeats(): ChannelHeartbeat[] {
+export function buildChannelHeartbeats(
+  properties: MockProperty[],
+): ChannelHeartbeat[] {
+  if (properties.length === 0) return [];
   return [
     {
       channel: "Airbnb",
@@ -281,7 +295,8 @@ export type ConflictAlert = {
 export function buildConflictAlerts(
   properties: MockProperty[],
 ): ConflictAlert[] {
-  const property = properties[0] ?? FALLBACK_PROPERTIES[0];
+  const property = properties[0];
+  if (!property) return [];
   return [
     {
       id: "conflict-1",

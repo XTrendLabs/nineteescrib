@@ -125,7 +125,7 @@ function RouteComponent() {
         }}
       />
 
-      <div className="flex max-w-[calc(100vw-var(--sidebar-width)-3rem)] flex-col border">
+      <div className="flex max-w-[calc(100vw-var(--sidebar-width)-4rem)] flex-col border">
         <TimelineGrid
           inventory={inventory}
           bookings={bookings}

@@ -1,14 +1,10 @@
 import { Button } from "@propertyos/ui/components/button";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 
 import { useCachedActiveOrganization } from "@/features/auth/api/use-cached-organizations";
-import {
-  useCreatedProperties,
-  useCreatePropertyAndNavigate,
-} from "@/features/properties/api/use-created-properties";
 import { useProperties } from "@/features/properties/api/use-properties";
 import { CreatePropertyDialog } from "@/features/properties/components/create-property-dialog";
 import {
@@ -17,49 +13,35 @@ import {
 } from "@/features/properties/components/filter-toolbar";
 import { PropertyCard } from "@/features/properties/components/property-card";
 import {
-  buildPropertyDetails,
-  resolveProperties,
-} from "@/features/properties/lib/mock-data";
+  normalizePropertyStatus,
+  normalizePropertyType,
+} from "@/features/properties/lib/property";
 
 export const Route = createFileRoute("/(protected)/properties/")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
+  const navigate = useNavigate();
   const { data: activeOrganization } = useCachedActiveOrganization();
-  const { data: propertiesResponse } = useProperties(activeOrganization?.id);
-  const { createdProperties } = useCreatedProperties();
-  const createPropertyAndNavigate = useCreatePropertyAndNavigate();
-
-  const properties = useMemo(
-    () => [
-      ...resolveProperties(propertiesResponse?.data),
-      ...createdProperties,
-    ],
-    [propertiesResponse?.data, createdProperties],
+  const { data: propertiesResponse, isLoading } = useProperties(
+    activeOrganization?.id,
   );
 
-  const propertyDetails = useMemo(
-    () => buildPropertyDetails(properties),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [properties.map((p) => p.id).join(",")],
-  );
+  const properties = propertiesResponse?.data ?? [];
 
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
-  function handleCreate(name: string) {
-    setCreateDialogOpen(false);
-    createPropertyAndNavigate(name);
-  }
-
   const filtered = useMemo(() => {
     const search = filters.search.trim().toLowerCase();
-    return propertyDetails.filter((property) => {
-      if (filters.type !== "all" && property.propertyType !== filters.type) {
+    return properties.filter((property) => {
+      const propertyType = normalizePropertyType(property.propertyType);
+      const status = normalizePropertyStatus(property.status);
+      if (filters.type !== "all" && propertyType !== filters.type) {
         return false;
       }
-      if (filters.status !== "all" && property.status !== filters.status) {
+      if (filters.status !== "all" && status !== filters.status) {
         return false;
       }
       if (
@@ -71,7 +53,7 @@ function RouteComponent() {
       }
       return true;
     });
-  }, [propertyDetails, filters]);
+  }, [properties, filters]);
 
   return (
     <div className="flex flex-col gap-6 p-4">
@@ -95,7 +77,23 @@ function RouteComponent() {
 
       <FilterToolbar filters={filters} onChange={setFilters} />
 
-      {filtered.length === 0 ? (
+      {isLoading ? null : properties.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-2 border border-dashed py-16 text-center">
+          <p className="text-sm">No properties yet</p>
+          <p className="text-muted-foreground text-xs">
+            Add your first property to start managing rooms, pricing, and
+            bookings.
+          </p>
+          <Button
+            size="sm"
+            className="mt-2"
+            onClick={() => setCreateDialogOpen(true)}
+          >
+            <PlusIcon />
+            Add Property
+          </Button>
+        </div>
+      ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-1 border py-16 text-center">
           <p className="text-sm">No properties match your filters</p>
           <p className="text-muted-foreground text-xs">
@@ -133,7 +131,13 @@ function RouteComponent() {
       <CreatePropertyDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
-        onCreate={handleCreate}
+        organizationId={activeOrganization?.id}
+        onCreated={(slug) =>
+          navigate({
+            to: "/properties/$propertySlug",
+            params: { propertySlug: slug },
+          })
+        }
       />
     </div>
   );
