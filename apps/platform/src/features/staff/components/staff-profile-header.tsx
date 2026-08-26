@@ -4,8 +4,7 @@ import {
   AvatarImage,
 } from "@propertyos/ui/components/avatar";
 import { Button } from "@propertyos/ui/components/button";
-import { Link } from "@tanstack/react-router";
-import { ArrowLeftIcon, UploadIcon } from "lucide-react";
+import { UploadIcon } from "lucide-react";
 import { formatJoinedDate, getInitials } from "../lib/format";
 import type { StaffMember } from "../lib/mock-data";
 import { RoleBadge } from "./role-badge";
@@ -13,16 +12,6 @@ import { RoleBadge } from "./role-badge";
 export function StaffProfileHeader({ staff }: { staff: StaffMember }) {
   return (
     <div className="flex flex-col gap-4">
-      <Button
-        variant="ghost"
-        size="sm"
-        className="w-fit"
-        render={<Link to="/staff" />}
-      >
-        <ArrowLeftIcon />
-        Back to Directory
-      </Button>
-
       <div className="flex flex-wrap items-center gap-4">
         <div className="flex flex-col items-center gap-1.5">
           <Avatar className="size-16">

@@ -66,6 +66,11 @@ export function createAuth() {
     plugins: [
       organization({
         creatorRole: "owner",
+        // Each property organization can group its staff into teams
+        // (housekeeping, front desk, ...).
+        teams: {
+          enabled: true,
+        },
         schema: {
           organization: {
             additionalFields: {
@@ -75,6 +80,18 @@ export function createAuth() {
               },
               phoneNumberVerifiedAt: {
                 type: "date",
+                required: false,
+              },
+              // An organization is either a single property or the HQ that
+              // groups a set of them. See the schema note in
+              // packages/db/src/schema/organization.ts.
+              kind: {
+                type: "string",
+                required: false,
+                defaultValue: "property",
+              },
+              parentOrganizationId: {
+                type: "string",
                 required: false,
               },
             },

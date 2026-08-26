@@ -8,7 +8,7 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 
-import { property } from "./property";
+import { organization } from "./organization";
 
 export const roomTypeValues = [
   "single",
@@ -34,9 +34,9 @@ export const room = pgTable(
   "room",
   {
     id: text("id").primaryKey(),
-    propertyId: text("property_id")
+    organizationId: text("organization_id")
       .notNull()
-      .references(() => property.id, { onDelete: "cascade" }),
+      .references(() => organization.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
     roomNumber: text("room_number"),
     floor: text("floor"),
@@ -51,7 +51,7 @@ export const room = pgTable(
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [index("room_propertyId_idx").on(table.propertyId)],
+  (table) => [index("room_organizationId_idx").on(table.organizationId)],
 );
 
 export const roomImage = pgTable(
@@ -86,9 +86,9 @@ export const roomAmenity = pgTable(
 );
 
 export const roomRelations = relations(room, ({ one, many }) => ({
-  property: one(property, {
-    fields: [room.propertyId],
-    references: [property.id],
+  organization: one(organization, {
+    fields: [room.organizationId],
+    references: [organization.id],
   }),
   roomAmenities: many(roomAmenity),
   images: many(roomImage),

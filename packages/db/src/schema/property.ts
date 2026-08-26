@@ -18,15 +18,18 @@ export const propertyRuleCategoryValues = [
   "checkin_checkout_instructions",
 ] as const;
 
-export const property = pgTable(
-  "property",
+export const propertyStatusValues = ["active", "inactive"] as const;
+
+// A property *is* an organization (kind "property"); this table carries only
+// the hospitality-specific attributes that Better Auth does not own. Identity
+// -- name, slug, logo -- stays on `organization` so the auth plugin remains
+// the single writer for it.
+export const propertyDetails = pgTable(
+  "property_details",
   {
-    id: text("id").primaryKey(),
     organizationId: text("organization_id")
-      .notNull()
+      .primaryKey()
       .references(() => organization.id, { onDelete: "cascade" }),
-    name: text("name").notNull(),
-    slug: text("slug").notNull().unique(),
     propertyType: text("property_type").default("other").notNull(),
     addressLine1: text("address_line1").default("").notNull(),
     city: text("city").default("").notNull(),
@@ -58,19 +61,16 @@ export const property = pgTable(
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [
-    index("property_organizationId_idx").on(table.organizationId),
-    index("property_slug_idx").on(table.slug),
-  ],
+  (table) => [index("property_details_status_idx").on(table.status)],
 );
 
 export const propertyRule = pgTable(
   "property_rule",
   {
     id: text("id").primaryKey(),
-    propertyId: text("property_id")
+    organizationId: text("organization_id")
       .notNull()
-      .references(() => property.id, { onDelete: "cascade" }),
+      .references(() => organization.id, { onDelete: "cascade" }),
     category: text("category").notNull(),
     content: text("content").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -80,25 +80,27 @@ export const propertyRule = pgTable(
       .notNull(),
   },
   (table) => [
-    index("property_rule_propertyId_idx").on(table.propertyId),
-    index("property_rule_propertyId_category_idx").on(
-      table.propertyId,
+    index("property_rule_organizationId_idx").on(table.organizationId),
+    index("property_rule_organizationId_category_idx").on(
+      table.organizationId,
       table.category,
     ),
   ],
 );
 
-export const propertyRelations = relations(property, ({ one, many }) => ({
-  organization: one(organization, {
-    fields: [property.organizationId],
-    references: [organization.id],
+export const propertyDetailsRelations = relations(
+  propertyDetails,
+  ({ one }) => ({
+    organization: one(organization, {
+      fields: [propertyDetails.organizationId],
+      references: [organization.id],
+    }),
   }),
-  rules: many(propertyRule),
-}));
+);
 
 export const propertyRuleRelations = relations(propertyRule, ({ one }) => ({
-  property: one(property, {
-    fields: [propertyRule.propertyId],
-    references: [property.id],
+  organization: one(organization, {
+    fields: [propertyRule.organizationId],
+    references: [organization.id],
   }),
 }));
