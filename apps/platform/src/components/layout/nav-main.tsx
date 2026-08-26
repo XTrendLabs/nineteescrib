@@ -46,7 +46,7 @@ export function NavMain({ groups }: { groups: NavMainGroup[] }) {
                     <item.icon className="size-4 shrink-0" />
                     <span>{item.title}</span>
                     {item.soon && (
-                      <span className="absolute top-1/2 right-3 -translate-y-1/2 font-bold text-[10px] text-muted-foreground tracking-wider group-data-[collapsible=icon]:hidden">
+                      <span className="absolute top-1/2 right-3 -translate-y-1/2 font-medium text-[10px] text-muted-foreground/50 uppercase tracking-wider group-data-[collapsible=icon]:hidden">
                         SOON
                       </span>
                     )}

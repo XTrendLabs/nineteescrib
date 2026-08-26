@@ -40,7 +40,7 @@ export function PropertyRuleDialog({
       upsertRule.reset();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, initialContent]);
+  }, [open, initialContent, upsertRule.reset]);
 
   function handleSubmit() {
     upsertRule.mutate(

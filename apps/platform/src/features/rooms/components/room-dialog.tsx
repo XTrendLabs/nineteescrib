@@ -100,7 +100,7 @@ export function RoomDialog({
       setStep(1);
       setSavedRoom(room);
     }
-  }, [open]);
+  }, [open, room, mutation.reset, form.reset]);
 
   function invalidate() {
     api.api.platform.rooms.$get.invalidate({ query: { propertyId } });

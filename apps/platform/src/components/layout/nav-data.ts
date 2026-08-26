@@ -21,26 +21,31 @@ export type NavMainGroup = {
 export const navMainGroups: NavMainGroup[] = [
   {
     items: [
-      { title: "Overview", url: "/", icon: LayoutGridIcon },
-      { title: "Calendar", url: "/calendar", icon: CalendarIcon },
-      { title: "Bookings", url: "/bookings", icon: ClipboardListIcon },
-      { title: "Guests", url: "/guests", icon: ContactIcon },
+      { title: "Overview", url: "/", icon: LayoutGridIcon, soon: true },
+      { title: "Calendar", url: "/calendar", icon: CalendarIcon, soon: true },
+      {
+        title: "Bookings",
+        url: "/bookings",
+        icon: ClipboardListIcon,
+        soon: true,
+      },
+      { title: "Guests", url: "/guests", icon: ContactIcon, soon: true },
     ],
   },
   {
     label: "Finance",
     items: [
-      { title: "Invoices", url: "/invoices", icon: FileTextIcon },
-      { title: "Expenses", url: "/expenses", icon: ReceiptIcon },
-      { title: "Reports", url: "/reports", icon: BarChart3Icon },
+      { title: "Invoices", url: "/invoices", icon: FileTextIcon, soon: true },
+      { title: "Expenses", url: "/expenses", icon: ReceiptIcon, soon: true },
+      { title: "Reports", url: "/reports", icon: BarChart3Icon, soon: true },
     ],
   },
   {
     label: "Management",
     items: [
-      { title: "Staff", url: "/staff", icon: UsersIcon },
+      { title: "Staff", url: "/staff", icon: UsersIcon, soon: true },
       { title: "Properties", url: "/properties", icon: Building2Icon },
-      { title: "Settings", url: "/settings", icon: SettingsIcon },
+      { title: "Settings", url: "/settings", icon: SettingsIcon, soon: true },
     ],
   },
 ];

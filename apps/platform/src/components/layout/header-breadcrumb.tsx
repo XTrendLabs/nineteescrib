@@ -6,17 +6,9 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@propertyos/ui/components/breadcrumb";
-import { cn } from "@propertyos/ui/lib/utils";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { settingsNavGroups } from "@/features/settings/lib/nav";
 import { navMainGroups } from "./nav-data";
-
-const PAGE_UNAVAILABLE = new Set(
-  navMainGroups
-    .flatMap((group) => group.items)
-    .filter((item) => item.soon)
-    .map((item) => item.url),
-);
 
 const TITLE_BY_URL = new Map(
   navMainGroups
@@ -32,11 +24,10 @@ for (const group of settingsNavGroups) {
 type Crumb = {
   label: string;
   url: string;
-  clickable: boolean;
 };
 
 function buildCrumbs(pathname: string, hqLabel: string): Crumb[] {
-  const crumbs: Crumb[] = [{ label: hqLabel, url: "/", clickable: true }];
+  const crumbs: Crumb[] = [{ label: hqLabel, url: "/" }];
 
   if (pathname === "/") {
     return crumbs;
@@ -47,7 +38,7 @@ function buildCrumbs(pathname: string, hqLabel: string): Crumb[] {
   for (const segment of segments) {
     url += `/${segment}`;
     const label = TITLE_BY_URL.get(url) ?? toTitleCase(segment);
-    crumbs.push({ label, url, clickable: !PAGE_UNAVAILABLE.has(url) });
+    crumbs.push({ label, url });
   }
 
   return crumbs;
@@ -74,21 +65,13 @@ export function HeaderBreadcrumb({ hqLabel }: { hqLabel: string }) {
               <BreadcrumbItem>
                 {isLast ? (
                   <BreadcrumbPage>{crumb.label}</BreadcrumbPage>
-                ) : crumb.clickable ? (
+                ) : (
                   <BreadcrumbLink
                     render={<Link to={crumb.url} />}
                     className="hover:underline"
                   >
                     {crumb.label}
                   </BreadcrumbLink>
-                ) : (
-                  <span
-                    className={cn(
-                      "cursor-not-allowed text-muted-foreground/50",
-                    )}
-                  >
-                    {crumb.label}
-                  </span>
                 )}
               </BreadcrumbItem>
               {!isLast && <BreadcrumbSeparator />}
