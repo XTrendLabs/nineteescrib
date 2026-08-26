@@ -51,6 +51,25 @@ export const propertyRepo = {
     return result;
   },
 
+  async findById(id: string) {
+    const [result] = await db
+      .select()
+      .from(property)
+      .where(eq(property.id, id))
+      .limit(1);
+    return result;
+  },
+
+  async updateCoverImage(propertyId: string, coverImage: string) {
+    const rows = await db
+      .update(property)
+      .set({ coverImage })
+      .where(eq(property.id, propertyId))
+      .returning();
+    const result: typeof property.$inferSelect | undefined = rows[0];
+    return result;
+  },
+
   async create(input: {
     organizationId: string;
     name: string;

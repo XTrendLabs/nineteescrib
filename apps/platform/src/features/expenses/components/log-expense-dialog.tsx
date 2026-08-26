@@ -116,7 +116,7 @@ export function LogExpenseDialog({
       setForm(expense ? formFromExpense(expense) : emptyForm());
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, expense?.id]);
+  }, [open, expense?.id, expense]);
 
   const isEditing = expense !== null;
   const showPaymentFields =

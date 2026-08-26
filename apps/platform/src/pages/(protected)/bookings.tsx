@@ -41,7 +41,7 @@ function RouteComponent() {
   useMemo(() => {
     setBookings(buildBookings(properties));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [properties.map((p) => p.id).join(",")]);
+  }, [properties]);
 
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [createOpen, setCreateOpen] = useState(false);

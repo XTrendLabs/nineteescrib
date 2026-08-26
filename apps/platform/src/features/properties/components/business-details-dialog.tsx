@@ -85,7 +85,7 @@ export function BusinessDetailsDialog({
       form.reset(toDefaultValues(property, defaults));
       updateBusinessDetails.reset();
     }
-  }, [open]);
+  }, [open, updateBusinessDetails.reset, property, form.reset, defaults]);
 
   const handleSubmit = form.handleSubmit((values) => {
     updateBusinessDetails.mutate(

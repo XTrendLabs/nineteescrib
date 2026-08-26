@@ -63,7 +63,7 @@ export function RecordPaymentDialog({
       setNotes("");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [expense?.id]);
+  }, [expense?.id, remainingPaise, expense]);
 
   const amountPaise = Math.round((Number(amount) || 0) * 100);
   const newRemainingPaise = Math.max(0, remainingPaise - amountPaise);

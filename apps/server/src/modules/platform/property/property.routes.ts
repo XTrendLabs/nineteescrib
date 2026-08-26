@@ -84,4 +84,20 @@ export const propertyRoutes = createRouter()
     const result = await propertyService.create(body.data);
 
     return c.json(ok(result));
+  })
+  .post("/:id/cover-image", async (c) => {
+    const id = c.req.param("id");
+    const body = await c.req.parseBody();
+    const file = body.file;
+
+    if (!(file instanceof File)) {
+      throw AppError.validation("An image file is required");
+    }
+
+    const result = await propertyService.updateCoverImage(id, file);
+    if (!result) {
+      throw AppError.notFound("Property not found");
+    }
+
+    return c.json(ok(result));
   });

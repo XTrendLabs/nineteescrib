@@ -9,7 +9,6 @@ import {
 import { format } from "date-fns";
 import {
   BriefcaseIcon,
-  Building2Icon,
   CalendarIcon,
   ClockIcon,
   MapPinIcon,
@@ -24,6 +23,7 @@ import { useCachedSession } from "@/features/auth/api/use-cached-session";
 import type { Property } from "../../lib/property";
 import { formatTime12Hour } from "../../lib/property";
 import { BusinessDetailsDialog } from "../business-details-dialog";
+import { CoverImageUploader } from "../cover-image-uploader";
 import { DetailField } from "../detail-field";
 import { EmptyTabState } from "../empty-tab-state";
 import { PropertyDetailsDialog } from "../property-details-dialog";
@@ -55,9 +55,7 @@ export function OverviewTab({ property }: { property: Property }) {
   return (
     <div className="flex flex-col gap-6">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-        <div className="flex h-56 w-full items-center justify-center bg-muted">
-          <Building2Icon className="size-10 text-muted-foreground" />
-        </div>
+        <CoverImageUploader property={property} />
         <Card className="h-full">
           <CardHeader>
             <CardAction>

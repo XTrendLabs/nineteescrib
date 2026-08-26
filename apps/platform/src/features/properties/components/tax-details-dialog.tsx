@@ -60,7 +60,7 @@ export function TaxDetailsDialog({
       form.reset(toDefaultValues(property));
       updateTaxDetails.reset();
     }
-  }, [open]);
+  }, [open, updateTaxDetails.reset, property, form.reset]);
 
   const handleSubmit = form.handleSubmit((values) => {
     updateTaxDetails.mutate(

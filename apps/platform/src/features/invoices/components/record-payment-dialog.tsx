@@ -62,7 +62,7 @@ export function RecordPaymentDialog({
       setTransactionId("");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [invoice?.id]);
+  }, [invoice?.id, remainingPaise, invoice]);
 
   const amountPaise = Math.round((Number(amount) || 0) * 100);
   const newRemainingPaise = Math.max(0, remainingPaise - amountPaise);

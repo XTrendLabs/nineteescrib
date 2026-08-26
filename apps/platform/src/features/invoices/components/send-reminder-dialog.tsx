@@ -39,7 +39,7 @@ export function SendReminderDialog({
     if (invoice) {
       setChannel("whatsapp");
     }
-  }, [invoice?.id]);
+  }, [invoice?.id, invoice]);
 
   const canEmail = Boolean(invoice?.guestEmail);
 

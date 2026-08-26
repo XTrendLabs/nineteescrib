@@ -80,7 +80,7 @@ export function PropertyDetailsDialog({
       form.reset(toDefaultValues(property));
       updatePropertyDetails.reset();
     }
-  }, [open]);
+  }, [open, updatePropertyDetails.reset, property, form.reset]);
 
   const handleSubmit = form.handleSubmit((values) => {
     updatePropertyDetails.mutate(

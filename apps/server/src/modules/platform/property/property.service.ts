@@ -1,3 +1,4 @@
+import { storageService } from "../storage/storage.service";
 import { propertyRepo } from "./property.repo";
 
 export const propertyService = {
@@ -63,5 +64,22 @@ export const propertyService = {
     },
   ) {
     return propertyRepo.updateTaxDetails(propertyId, input);
+  },
+
+  async updateCoverImage(propertyId: string, file: File) {
+    const existing = await propertyRepo.findById(propertyId);
+    if (!existing) return undefined;
+
+    const { url } = await storageService.uploadImage(file, [
+      "properties",
+      propertyId,
+      "cover",
+    ]);
+
+    if (existing.coverImage) {
+      await storageService.deleteByUrl(existing.coverImage);
+    }
+
+    return propertyRepo.updateCoverImage(propertyId, url);
   },
 };

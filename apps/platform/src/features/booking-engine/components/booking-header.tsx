@@ -6,7 +6,7 @@ export function BookingHeader({ property }: { property: PropertyDetail }) {
   return (
     <header
       className="flex items-center justify-between border-b bg-background px-4 py-3 sm:px-8"
-      style={{ borderBottomColor: property.bookingLink.accentColor + "22" }}
+      style={{ borderBottomColor: `${property.bookingLink.accentColor}22` }}
     >
       <div className="flex items-center gap-2">
         <div
