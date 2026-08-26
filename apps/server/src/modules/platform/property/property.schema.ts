@@ -1,4 +1,7 @@
-import { propertyTypeValues } from "@propertyos/db/schema/property";
+import {
+  propertyRuleCategoryValues,
+  propertyTypeValues,
+} from "@propertyos/db/schema/property";
 import z from "zod";
 
 export const createPropertySchema = z.object({
@@ -49,3 +52,19 @@ export const updateTaxDetailsSchema = z.object({
 });
 
 export type UpdateTaxDetailsInput = z.infer<typeof updateTaxDetailsSchema>;
+
+export const updatePoliciesSchema = z.object({
+  checkInTime: z.string().min(1, "Check-in time is required"),
+  checkOutTime: z.string().min(1, "Check-out time is required"),
+  minStayNights: z.number().int().positive().optional(),
+  maxStayNights: z.number().int().positive().optional(),
+});
+
+export type UpdatePoliciesInput = z.infer<typeof updatePoliciesSchema>;
+
+export const upsertPropertyRuleSchema = z.object({
+  category: z.enum(propertyRuleCategoryValues),
+  content: z.string().min(1, "Rule content is required"),
+});
+
+export type UpsertPropertyRuleInput = z.infer<typeof upsertPropertyRuleSchema>;

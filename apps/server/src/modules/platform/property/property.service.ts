@@ -66,6 +66,30 @@ export const propertyService = {
     return propertyRepo.updateTaxDetails(propertyId, input);
   },
 
+  updatePolicies(
+    propertyId: string,
+    input: {
+      checkInTime: string;
+      checkOutTime: string;
+      minStayNights?: number;
+      maxStayNights?: number;
+    },
+  ) {
+    return propertyRepo.updatePolicies(propertyId, input);
+  },
+
+  listRules(propertyId: string) {
+    return propertyRepo.listRules(propertyId);
+  },
+
+  upsertRule(propertyId: string, input: { category: string; content: string }) {
+    return propertyRepo.upsertRule(propertyId, input);
+  },
+
+  removeRule(propertyId: string, category: string) {
+    return propertyRepo.removeRule(propertyId, category);
+  },
+
   async updateCoverImage(propertyId: string, file: File) {
     const existing = await propertyRepo.findById(propertyId);
     if (!existing) return undefined;

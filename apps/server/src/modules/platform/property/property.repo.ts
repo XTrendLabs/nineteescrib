@@ -1,6 +1,6 @@
 import { createDb } from "@propertyos/db";
-import { property, roomType } from "@propertyos/db/schema/property";
-import { eq } from "drizzle-orm";
+import { property, propertyRule } from "@propertyos/db/schema/property";
+import { and, eq } from "drizzle-orm";
 import slugify from "slugify";
 
 const db = createDb();
@@ -88,11 +88,6 @@ export const propertyRepo = {
       ...input,
     });
 
-    await db.insert(roomType).values({
-      id: crypto.randomUUID(),
-      propertyId,
-    });
-
     return { propertyId, slug };
   },
 
@@ -156,5 +151,80 @@ export const propertyRepo = {
       .returning();
     const result: typeof property.$inferSelect | undefined = rows[0];
     return result;
+  },
+
+  async updatePolicies(
+    propertyId: string,
+    input: {
+      checkInTime: string;
+      checkOutTime: string;
+      minStayNights?: number;
+      maxStayNights?: number;
+    },
+  ) {
+    const rows = await db
+      .update(property)
+      .set(input)
+      .where(eq(property.id, propertyId))
+      .returning();
+    const result: typeof property.$inferSelect | undefined = rows[0];
+    return result;
+  },
+
+  listRules(propertyId: string) {
+    return db
+      .select()
+      .from(propertyRule)
+      .where(eq(propertyRule.propertyId, propertyId))
+      .orderBy(propertyRule.createdAt);
+  },
+
+  async upsertRule(
+    propertyId: string,
+    input: { category: string; content: string },
+  ) {
+    const [existing] = await db
+      .select({ id: propertyRule.id })
+      .from(propertyRule)
+      .where(
+        and(
+          eq(propertyRule.propertyId, propertyId),
+          eq(propertyRule.category, input.category),
+        ),
+      )
+      .limit(1);
+
+    if (existing) {
+      const rows = await db
+        .update(propertyRule)
+        .set({ content: input.content })
+        .where(eq(propertyRule.id, existing.id))
+        .returning();
+      return rows[0];
+    }
+
+    const rows = await db
+      .insert(propertyRule)
+      .values({
+        id: crypto.randomUUID(),
+        propertyId,
+        category: input.category,
+        content: input.content,
+      })
+      .returning();
+    return rows[0];
+  },
+
+  async removeRule(propertyId: string, category: string) {
+    const rows = await db
+      .delete(propertyRule)
+      .where(
+        and(
+          eq(propertyRule.propertyId, propertyId),
+          eq(propertyRule.category, category),
+        ),
+      )
+      .returning();
+    return rows[0];
   },
 };

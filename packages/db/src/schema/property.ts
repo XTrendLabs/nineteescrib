@@ -11,6 +11,13 @@ export const propertyTypeValues = [
   "other",
 ] as const;
 
+export const propertyRuleCategoryValues = [
+  "property_rules",
+  "cancellation_policy",
+  "damage_policy",
+  "checkin_checkout_instructions",
+] as const;
+
 export const property = pgTable(
   "property",
   {
@@ -41,6 +48,10 @@ export const property = pgTable(
     bankAccountNumber: text("bank_account_number"),
     bankIfscCode: text("bank_ifsc_code"),
     bankName: text("bank_name"),
+    checkInTime: text("check_in_time"),
+    checkOutTime: text("check_out_time"),
+    minStayNights: integer("min_stay_nights"),
+    maxStayNights: integer("max_stay_nights"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()
@@ -53,22 +64,28 @@ export const property = pgTable(
   ],
 );
 
-export const roomType = pgTable(
-  "room_type",
+export const propertyRule = pgTable(
+  "property_rule",
   {
     id: text("id").primaryKey(),
     propertyId: text("property_id")
       .notNull()
       .references(() => property.id, { onDelete: "cascade" }),
-    name: text("name").default("Entire Property").notNull(),
-    quantity: integer("quantity").default(1).notNull(),
+    category: text("category").notNull(),
+    content: text("content").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [index("room_type_propertyId_idx").on(table.propertyId)],
+  (table) => [
+    index("property_rule_propertyId_idx").on(table.propertyId),
+    index("property_rule_propertyId_category_idx").on(
+      table.propertyId,
+      table.category,
+    ),
+  ],
 );
 
 export const propertyRelations = relations(property, ({ one, many }) => ({
@@ -76,12 +93,12 @@ export const propertyRelations = relations(property, ({ one, many }) => ({
     fields: [property.organizationId],
     references: [organization.id],
   }),
-  roomTypes: many(roomType),
+  rules: many(propertyRule),
 }));
 
-export const roomTypeRelations = relations(roomType, ({ one }) => ({
+export const propertyRuleRelations = relations(propertyRule, ({ one }) => ({
   property: one(property, {
-    fields: [roomType.propertyId],
+    fields: [propertyRule.propertyId],
     references: [property.id],
   }),
 }));

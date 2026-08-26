@@ -3,9 +3,56 @@
 import { Select as SelectPrimitive } from "@base-ui/react/select";
 import { cn } from "@propertyos/ui/lib/utils";
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
+import { Children, isValidElement, type ReactNode, useRef } from "react";
 
-function Select({ ...props }: SelectPrimitive.Root.Props<unknown>) {
-  return <SelectPrimitive.Root data-slot="select" {...props} />;
+type SelectItemEntry = { value: unknown; label: ReactNode };
+
+/** Recursively collects {value, label} from nested SelectItem children so SelectValue can auto-resolve labels without every call site wiring up an `items` prop. */
+function collectItems(children: ReactNode): SelectItemEntry[] {
+  const items: SelectItemEntry[] = [];
+
+  Children.forEach(children, (child) => {
+    if (!isValidElement(child)) return;
+
+    if (child.type === SelectItem) {
+      const props = child.props as { value: unknown; children: ReactNode };
+      items.push({ value: props.value, label: props.children });
+      return;
+    }
+
+    const props = child.props as { children?: ReactNode } | undefined;
+    if (props?.children) {
+      items.push(...collectItems(props.children));
+    }
+  });
+
+  return items;
+}
+
+function sameItems(a: SelectItemEntry[], b: SelectItemEntry[]) {
+  if (a.length !== b.length) return false;
+  return a.every(
+    (item, index) =>
+      item.value === b[index]?.value && item.label === b[index]?.label,
+  );
+}
+
+function Select({ children, ...props }: SelectPrimitive.Root.Props<unknown>) {
+  const itemsRef = useRef<SelectItemEntry[]>([]);
+  const nextItems = collectItems(children);
+  if (!sameItems(itemsRef.current, nextItems)) {
+    itemsRef.current = nextItems;
+  }
+
+  return (
+    <SelectPrimitive.Root
+      data-slot="select"
+      items={itemsRef.current}
+      {...props}
+    >
+      {children}
+    </SelectPrimitive.Root>
+  );
 }
 
 function SelectGroup({ ...props }: SelectPrimitive.Group.Props) {

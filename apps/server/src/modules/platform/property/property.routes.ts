@@ -6,8 +6,10 @@ import { requireSubscription } from "../subscription/subscription.middleware";
 import {
   createPropertySchema,
   updateBusinessDetailsSchema,
+  updatePoliciesSchema,
   updatePropertyDetailsSchema,
   updateTaxDetailsSchema,
+  upsertPropertyRuleSchema,
 } from "./property.schema";
 import { propertyService } from "./property.service";
 
@@ -56,6 +58,21 @@ export const propertyRoutes = createRouter()
       return c.json(ok(result));
     },
   )
+  .patch(
+    "/:id/policies",
+    zValidator("json", updatePoliciesSchema),
+    async (c) => {
+      const id = c.req.param("id");
+      const body = c.req.valid("json");
+
+      const result = await propertyService.updatePolicies(id, body);
+      if (!result) {
+        throw AppError.notFound("Property not found");
+      }
+
+      return c.json(ok(result));
+    },
+  )
   .get("/", async (c) => {
     const organizationId = c.req.query("organizationId");
     if (!organizationId) {
@@ -97,6 +114,33 @@ export const propertyRoutes = createRouter()
     const result = await propertyService.updateCoverImage(id, file);
     if (!result) {
       throw AppError.notFound("Property not found");
+    }
+
+    return c.json(ok(result));
+  })
+  .get("/:id/rules", async (c) => {
+    const id = c.req.param("id");
+    const result = await propertyService.listRules(id);
+    return c.json(ok(result));
+  })
+  .put(
+    "/:id/rules",
+    zValidator("json", upsertPropertyRuleSchema),
+    async (c) => {
+      const id = c.req.param("id");
+      const body = c.req.valid("json");
+
+      const result = await propertyService.upsertRule(id, body);
+      return c.json(ok(result));
+    },
+  )
+  .delete("/:id/rules/:category", async (c) => {
+    const id = c.req.param("id");
+    const category = c.req.param("category");
+
+    const result = await propertyService.removeRule(id, category);
+    if (!result) {
+      throw AppError.notFound("Rule not found");
     }
 
     return c.json(ok(result));

@@ -37,6 +37,10 @@ export type Property = {
   bankAccountNumber: string | null;
   bankIfscCode: string | null;
   bankName: string | null;
+  checkInTime: string | null;
+  checkOutTime: string | null;
+  minStayNights: number | null;
+  maxStayNights: number | null;
   createdAt: string;
   updatedAt: string;
 };

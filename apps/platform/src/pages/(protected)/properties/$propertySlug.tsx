@@ -11,6 +11,7 @@ import { AlertCircleIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 import { usePropertyBySlug } from "@/features/properties/api/use-property-by-slug";
+import { usePropertyRules } from "@/features/properties/api/use-property-rules";
 import { StatusBadge } from "@/features/properties/components/status-badge";
 import { BookingLinksTab } from "@/features/properties/components/tabs/booking-links-tab";
 import { OverviewTab } from "@/features/properties/components/tabs/overview-tab";
@@ -23,6 +24,7 @@ import {
   normalizePropertyType,
 } from "@/features/properties/lib/property";
 import { PROPERTY_TAB_SKELETONS } from "@/features/properties/lib/skeleton-config";
+import { useRooms } from "@/features/rooms/api/use-rooms";
 
 export const Route = createFileRoute("/(protected)/properties/$propertySlug")({
   component: RouteComponent,
@@ -34,6 +36,16 @@ function RouteComponent() {
 
   const { data: response, isLoading } = usePropertyBySlug(propertySlug);
   const property = response?.data;
+
+  const { data: roomsResponse } = useRooms(property?.id);
+  const missingRooms = !roomsResponse?.data?.some(
+    (room) => room.status === "published",
+  );
+
+  const { data: rulesResponse } = usePropertyRules(property?.id);
+  const rules = rulesResponse?.data ?? [];
+  const hasRule = (category: string) =>
+    rules.some((rule) => rule.category === category);
 
   const missingBusinessDetails = property
     ? !(
@@ -53,6 +65,15 @@ function RouteComponent() {
         property.invoicePrefix ||
         property.billingAddress ||
         property.bankAccountNumber
+      )
+    : false;
+
+  const missingPolicies = property
+    ? !(
+        property.checkInTime &&
+        property.checkOutTime &&
+        hasRule("property_rules") &&
+        hasRule("cancellation_policy")
       )
     : false;
 
@@ -120,11 +141,15 @@ function RouteComponent() {
           </TabsTab>
           <TabsTab value="rooms" className="flex items-center gap-1.5">
             Rooms
-            <AlertCircleIcon className="size-3.5 text-destructive" />
+            {missingRooms && (
+              <AlertCircleIcon className="size-3.5 text-destructive" />
+            )}
           </TabsTab>
           <TabsTab value="policies" className="flex items-center gap-1.5">
             Policies & Amenities
-            <AlertCircleIcon className="size-3.5 text-destructive" />
+            {missingPolicies && (
+              <AlertCircleIcon className="size-3.5 text-destructive" />
+            )}
           </TabsTab>
           <TabsTab value="booking-links" className="flex items-center gap-1.5">
             Booking Links
@@ -142,10 +167,10 @@ function RouteComponent() {
           <OverviewTab property={property} />
         </TabsPanel>
         <TabsPanel value="rooms">
-          <RoomsTab />
+          <RoomsTab propertyId={property.id} />
         </TabsPanel>
         <TabsPanel value="policies">
-          <PoliciesTab />
+          <PoliciesTab property={property} />
         </TabsPanel>
         <TabsPanel value="booking-links">
           <BookingLinksTab />

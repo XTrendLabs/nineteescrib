@@ -26,6 +26,7 @@ import { BusinessDetailsDialog } from "../business-details-dialog";
 import { CoverImageUploader } from "../cover-image-uploader";
 import { DetailField } from "../detail-field";
 import { EmptyTabState } from "../empty-tab-state";
+import { PoliciesDialog } from "../policies-dialog";
 import { PropertyDetailsDialog } from "../property-details-dialog";
 import { StatCard } from "../stat-card";
 import { TaxDetailsDialog } from "../tax-details-dialog";
@@ -34,6 +35,7 @@ export function OverviewTab({ property }: { property: Property }) {
   const [propertyDialogOpen, setPropertyDialogOpen] = useState(false);
   const [businessDialogOpen, setBusinessDialogOpen] = useState(false);
   const [taxDialogOpen, setTaxDialogOpen] = useState(false);
+  const [policiesDialogOpen, setPoliciesDialogOpen] = useState(false);
   const { data: session } = useCachedSession();
   const { data: activeOrganization } = useCachedActiveOrganization();
   const hasAddress = Boolean(property.addressLine1 || property.city);
@@ -113,14 +115,14 @@ export function OverviewTab({ property }: { property: Property }) {
         <button
           type="button"
           className="text-left"
-          onClick={() => setBusinessDialogOpen(true)}
+          onClick={() => setPoliciesDialogOpen(true)}
         >
           <StatCard
             icon={ClockIcon}
-            label="Hours"
+            label="Check-in / Check-out"
             value={
-              property.operationsOpenTime && property.operationsCloseTime
-                ? `${formatTime12Hour(property.operationsOpenTime)} – ${formatTime12Hour(property.operationsCloseTime)}`
+              property.checkInTime && property.checkOutTime
+                ? `${formatTime12Hour(property.checkInTime)} – ${formatTime12Hour(property.checkOutTime)}`
                 : "Not set"
             }
           />
@@ -249,6 +251,11 @@ export function OverviewTab({ property }: { property: Property }) {
       <TaxDetailsDialog
         open={taxDialogOpen}
         onOpenChange={setTaxDialogOpen}
+        property={property}
+      />
+      <PoliciesDialog
+        open={policiesDialogOpen}
+        onOpenChange={setPoliciesDialogOpen}
         property={property}
       />
     </div>
