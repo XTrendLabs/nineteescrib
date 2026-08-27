@@ -1,7 +1,11 @@
 import { zValidator } from "@hono/zod-validator";
 
 import { AppError, createRouter, ok, requireSession } from "../../../core";
-import { requirePermission } from "../permission/permission.middleware";
+import {
+  assertInScope,
+  assertStaffInScope,
+  requirePermissionTo,
+} from "../permission/permission.middleware";
 import { requireSubscription } from "../subscription/subscription.middleware";
 import { createStaffSchema, updateStaffSchema } from "./staff.schema";
 import { staffService } from "./staff.service";
@@ -9,17 +13,20 @@ import { staffService } from "./staff.service";
 export const staffRoutes = createRouter()
   .use(requireSession)
   .use(requireSubscription)
-  .use(requirePermission)
-  .get("/", async (c) => {
+  .get("/", requirePermissionTo("staff", "read"), async (c) => {
     const hqOrganizationId = c.req.query("hqOrganizationId");
     if (!hqOrganizationId) {
       throw AppError.validation("hqOrganizationId is required");
     }
 
+    await assertInScope(c, hqOrganizationId);
+
     const result = await staffService.listByHqOrganization(hqOrganizationId);
     return c.json(ok(result));
   })
-  .get("/:id", async (c) => {
+  .get("/:id", requirePermissionTo("staff", "read"), async (c) => {
+    await assertStaffInScope(c, c.req.param("id"));
+
     const result = await staffService.findById(c.req.param("id"));
     if (!result) {
       throw AppError.notFound("Staff member not found");
@@ -27,22 +34,39 @@ export const staffRoutes = createRouter()
 
     return c.json(ok(result));
   })
-  .post("/", zValidator("json", createStaffSchema), async (c) => {
-    const result = await staffService.create(c.req.valid("json"));
-    return c.json(ok(result));
-  })
-  .patch("/:id", zValidator("json", updateStaffSchema), async (c) => {
-    const result = await staffService.update(
-      c.req.param("id"),
-      c.req.valid("json"),
-    );
-    if (!result) {
-      throw AppError.notFound("Staff member not found");
-    }
+  .post(
+    "/",
+    requirePermissionTo("staff", "create"),
+    zValidator("json", createStaffSchema),
+    async (c) => {
+      const body = c.req.valid("json");
+      await assertInScope(c, body.hqOrganizationId);
 
-    return c.json(ok(result));
-  })
-  .delete("/:id", async (c) => {
+      const result = await staffService.create(body);
+      return c.json(ok(result));
+    },
+  )
+  .patch(
+    "/:id",
+    requirePermissionTo("staff", "update"),
+    zValidator("json", updateStaffSchema),
+    async (c) => {
+      await assertStaffInScope(c, c.req.param("id"));
+
+      const result = await staffService.update(
+        c.req.param("id"),
+        c.req.valid("json"),
+      );
+      if (!result) {
+        throw AppError.notFound("Staff member not found");
+      }
+
+      return c.json(ok(result));
+    },
+  )
+  .delete("/:id", requirePermissionTo("staff", "delete"), async (c) => {
+    await assertStaffInScope(c, c.req.param("id"));
+
     const result = await staffService.remove(c.req.param("id"));
     if (!result) {
       throw AppError.notFound("Staff member not found");

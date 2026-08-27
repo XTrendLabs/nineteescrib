@@ -12,10 +12,13 @@ export type PropertyListItem = {
 
 /** Row shape returned by GET /api/platform/properties/:slug (detail). */
 export type Property = {
+  /** The property's organization id -- a property *is* an organization. */
   id: string;
-  organizationId: string;
   name: string;
   slug: string;
+  logo: string | null;
+  /** The HQ this property sits under, or null for a standalone property. */
+  parentOrganizationId: string | null;
   propertyType: string;
   addressLine1: string;
   city: string;
@@ -43,6 +46,12 @@ export type Property = {
   maxStayNights: number | null;
   createdAt: string;
   updatedAt: string;
+  /**
+   * Completion flags computed server-side, so the detail page's tab badges do
+   * not each need their own request.
+   */
+  hasPublishedRoom: boolean;
+  ruleCategories: string[];
 };
 
 export function normalizePropertyType(value: string): PropertyType {

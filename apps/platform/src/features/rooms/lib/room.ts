@@ -41,7 +41,8 @@ export type RoomImage = {
 
 export type Room = {
   id: string;
-  propertyId: string;
+  /** The property's organization id. */
+  organizationId: string;
   name: string;
   roomNumber: string | null;
   floor: string | null;

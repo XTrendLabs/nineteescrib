@@ -12,6 +12,11 @@ const router = createRouter({
   defaultPreload: "intent",
   scrollRestoration: true,
   defaultPendingComponent: Loading,
+  // The router waits 1s before showing a pending component by default, which
+  // leaves the app looking frozen on a remote database where requests
+  // routinely take a few hundred milliseconds.
+  defaultPendingMs: 200,
+  defaultPendingMinMs: 300,
   defaultErrorComponent: ErrorFallback,
   defaultNotFoundComponent: NotFound,
   context: {

@@ -11,6 +11,20 @@ function hasBody(error: unknown): error is { body: ApiErrorBody } {
   );
 }
 
+/**
+ * True when a request failed because the caller lacks access, as opposed to
+ * the resource not existing -- the two need different wording in the UI.
+ */
+export function isForbidden(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false;
+
+  const status = (error as { status?: unknown }).status;
+  if (status === 403) return true;
+
+  const response = (error as { response?: { status?: unknown } }).response;
+  return response?.status === 403;
+}
+
 export function getApiErrorMessage(
   error: unknown,
   fallback?: string,

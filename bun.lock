@@ -64,6 +64,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@hookform/resolvers": "^5.2.2",
+        "@propertyos/auth": "workspace:*",
         "@propertyos/env": "workspace:*",
         "@propertyos/ui": "workspace:*",
         "@tailwindcss/vite": "^4.2.2",

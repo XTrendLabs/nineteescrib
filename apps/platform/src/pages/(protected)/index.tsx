@@ -6,7 +6,7 @@ import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 import type { DateRange } from "react-day-picker";
 
-import { useCachedActiveOrganization } from "@/features/auth/api/use-cached-organizations";
+import { useActiveHq } from "@/features/auth/api/use-cached-organizations";
 import { ChannelSyncCard } from "@/features/hq-dashboard/components/channel-sync-card";
 import { CheckinCockpitCard } from "@/features/hq-dashboard/components/checkin-cockpit-card";
 import { DateRangePicker } from "@/features/hq-dashboard/components/date-range-picker";
@@ -28,10 +28,8 @@ export const Route = createFileRoute("/(protected)/")({
 function RouteComponent() {
   const { session } = Route.useRouteContext();
   const navigate = useNavigate();
-  const { data: activeOrganization } = useCachedActiveOrganization();
-  const { data: propertiesResponse, isLoading } = useProperties(
-    activeOrganization?.id,
-  );
+  const { activeHqId, activeScopeId } = useActiveHq();
+  const { data: propertiesResponse, isLoading } = useProperties(activeScopeId);
 
   const [filter, setFilter] = useState("all");
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -129,7 +127,7 @@ function RouteComponent() {
       <CreatePropertyDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
-        organizationId={activeOrganization?.id}
+        organizationId={activeHqId}
         onCreated={(slug) =>
           navigate({
             to: "/properties/$propertySlug",

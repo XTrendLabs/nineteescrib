@@ -20,3 +20,8 @@ export const PROPERTY_TAB_SKELETONS: Record<string, SkeletonShape[]> = {
 export const PROPERTY_DIRECTORY_SKELETON: SkeletonShape[] = [
   { type: "cards", count: 6, columns: 3 },
 ];
+
+/** Matches the room card grid, which is 3 columns at desktop width. */
+export const ROOMS_TAB_SKELETON: SkeletonShape[] = [
+  { type: "cards", count: 3, columns: 3 },
+];

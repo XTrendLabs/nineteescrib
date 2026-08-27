@@ -10,8 +10,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { AlertCircleIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
+import { useActiveHq } from "@/features/auth/api/use-cached-organizations";
 import { usePropertyBySlug } from "@/features/properties/api/use-property-by-slug";
-import { usePropertyRules } from "@/features/properties/api/use-property-rules";
 import { StatusBadge } from "@/features/properties/components/status-badge";
 import { BookingLinksTab } from "@/features/properties/components/tabs/booking-links-tab";
 import { OverviewTab } from "@/features/properties/components/tabs/overview-tab";
@@ -24,7 +24,7 @@ import {
   normalizePropertyType,
 } from "@/features/properties/lib/property";
 import { PROPERTY_TAB_SKELETONS } from "@/features/properties/lib/skeleton-config";
-import { useRooms } from "@/features/rooms/api/use-rooms";
+import { isForbidden } from "@/shared/lib/api-error";
 
 export const Route = createFileRoute("/(protected)/properties/$propertySlug")({
   component: RouteComponent,
@@ -34,18 +34,15 @@ function RouteComponent() {
   const { propertySlug } = Route.useParams();
   const [activeTab, setActiveTab] = useState("overview");
 
-  const { data: response, isLoading } = usePropertyBySlug(propertySlug);
+  const { data: response, isLoading, error } = usePropertyBySlug(propertySlug);
   const property = response?.data;
+  const { isHqActive } = useActiveHq();
 
-  const { data: roomsResponse } = useRooms(property?.id);
-  const missingRooms = !roomsResponse?.data?.some(
-    (room) => room.status === "published",
-  );
-
-  const { data: rulesResponse } = usePropertyRules(property?.id);
-  const rules = rulesResponse?.data ?? [];
+  // These come back with the property itself; the rooms and rules tabs fetch
+  // their own data when opened.
+  const missingRooms = !property?.hasPublishedRoom;
   const hasRule = (category: string) =>
-    rules.some((rule) => rule.category === category);
+    property?.ruleCategories?.includes(category) ?? false;
 
   const missingBusinessDetails = property
     ? !(
@@ -104,14 +101,24 @@ function RouteComponent() {
   }
 
   if (!property) {
+    // The server returns 403 for a property the user is not assigned to, so
+    // say so plainly rather than implying it does not exist. "Back to
+    // Properties" is only offered to someone scoped to an HQ -- a
+    // property-scoped user has no all-properties page to return to.
+    const denied = isForbidden(error);
+
     return (
       <div className="flex flex-col items-center gap-3 p-10 text-center">
         <p className="text-muted-foreground text-sm">
-          This property could not be found.
+          {denied
+            ? "You do not have access to this property."
+            : "This property could not be found."}
         </p>
-        <Link to="/properties" className="text-foreground text-sm underline">
-          Back to Properties
-        </Link>
+        {isHqActive && (
+          <Link to="/properties" className="text-foreground text-sm underline">
+            Back to Properties
+          </Link>
+        )}
       </div>
     );
   }
@@ -167,7 +174,7 @@ function RouteComponent() {
           <OverviewTab property={property} />
         </TabsPanel>
         <TabsPanel value="rooms">
-          <RoomsTab propertyId={property.id} />
+          <RoomsTab propertyId={property.id} propertySlug={property.slug} />
         </TabsPanel>
         <TabsPanel value="policies">
           <PoliciesTab property={property} />

@@ -13,7 +13,7 @@ export function SiteHeader({
   onAddProperty,
 }: {
   title: string;
-  onSelectHq: () => void;
+  onSelectHq: (hqId?: string) => void;
   onSelectProperty: (propertyId: string, name: string) => void;
   onAddProperty: () => void;
 }) {

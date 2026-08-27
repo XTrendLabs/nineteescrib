@@ -4,8 +4,12 @@ import {
 } from "@propertyos/db/schema/property";
 import z from "zod";
 
-export const createPropertySchema = z.object({
-  organizationId: z.string().min(1),
+// `.strict()` so a renamed or misspelled field is a loud 400 rather than a
+// silently dropped key -- an omitted hqOrganizationId creates an orphaned
+// property that no HQ can list.
+export const createPropertySchema = z.strictObject({
+  // Absent for a solo property that is not grouped under an HQ.
+  hqOrganizationId: z.string().min(1).optional(),
   name: z.string().min(2, "Property name must be at least 2 characters"),
   propertyType: z.enum(propertyTypeValues).optional(),
   addressLine1: z.string().optional(),

@@ -1,7 +1,10 @@
 import { zValidator } from "@hono/zod-validator";
 
 import { AppError, createRouter, ok, requireSession } from "../../../core";
-import { requirePermission } from "../permission/permission.middleware";
+import {
+  assertInScope,
+  requirePermissionTo,
+} from "../permission/permission.middleware";
 import { requireSubscription } from "../subscription/subscription.middleware";
 import {
   createPropertySchema,
@@ -16,24 +19,33 @@ import { propertyService } from "./property.service";
 export const propertyRoutes = createRouter()
   .use(requireSession)
   .use(requireSubscription)
-  .use(requirePermission)
-  .patch("/:id", zValidator("json", updateBusinessDetailsSchema), async (c) => {
-    const id = c.req.param("id");
-    const body = c.req.valid("json");
+  .patch(
+    "/:id",
+    requirePermissionTo("property", "update"),
+    zValidator("json", updateBusinessDetailsSchema),
+    async (c) => {
+      const id = c.req.param("id");
+      const body = c.req.valid("json");
 
-    const result = await propertyService.updateBusinessDetails(id, body);
-    if (!result) {
-      throw AppError.notFound("Property not found");
-    }
+      await assertInScope(c, id);
 
-    return c.json(ok(result));
-  })
+      const result = await propertyService.updateBusinessDetails(id, body);
+      if (!result) {
+        throw AppError.notFound("Property not found");
+      }
+
+      return c.json(ok(result));
+    },
+  )
   .patch(
     "/:id/tax-details",
+    requirePermissionTo("finance", "update"),
     zValidator("json", updateTaxDetailsSchema),
     async (c) => {
       const id = c.req.param("id");
       const body = c.req.valid("json");
+
+      await assertInScope(c, id);
 
       const result = await propertyService.updateTaxDetails(id, body);
       if (!result) {
@@ -45,10 +57,13 @@ export const propertyRoutes = createRouter()
   )
   .patch(
     "/:id/property-details",
+    requirePermissionTo("property", "update"),
     zValidator("json", updatePropertyDetailsSchema),
     async (c) => {
       const id = c.req.param("id");
       const body = c.req.valid("json");
+
+      await assertInScope(c, id);
 
       const result = await propertyService.updatePropertyDetails(id, body);
       if (!result) {
@@ -60,10 +75,13 @@ export const propertyRoutes = createRouter()
   )
   .patch(
     "/:id/policies",
+    requirePermissionTo("property", "update"),
     zValidator("json", updatePoliciesSchema),
     async (c) => {
       const id = c.req.param("id");
       const body = c.req.valid("json");
+
+      await assertInScope(c, id);
 
       const result = await propertyService.updatePolicies(id, body);
       if (!result) {
@@ -73,22 +91,33 @@ export const propertyRoutes = createRouter()
       return c.json(ok(result));
     },
   )
-  .get("/", async (c) => {
-    const organizationId = c.req.query("organizationId");
-    if (!organizationId) {
-      throw AppError.validation("organizationId is required");
+  /**
+   * The properties the caller can currently see. Scope comes from the session,
+   * not the query string: at HQ scope that is every property beneath the HQ,
+   * at property scope it is just that one.
+   */
+  .get("/", requirePermissionTo("property", "read"), async (c) => {
+    const access = c.get("access");
+    if (!access) {
+      throw AppError.forbidden("You do not have access to this workspace");
     }
 
-    const result = await propertyService.list(organizationId);
+    const result =
+      access.organization.kind === "hq"
+        ? await propertyService.list(access.organization.id)
+        : await propertyService.listSelf(access.organization.id);
 
     return c.json(ok(result));
   })
-  .get("/:slug", async (c) => {
+  .get("/:slug", requirePermissionTo("property", "read"), async (c) => {
     const slug = c.req.param("slug");
     const result = await propertyService.findBySlug(slug);
     if (!result) {
       throw AppError.notFound("Property not found");
     }
+
+    // The slug names any property; only the one in scope may be read.
+    await assertInScope(c, result.id);
 
     return c.json(ok(result));
   })
@@ -98,50 +127,67 @@ export const propertyRoutes = createRouter()
       throw AppError.validation("Invalid request", body.error.flatten());
     }
 
-    const result = await propertyService.create(body.data);
+    const result = await propertyService.create(body.data, c.req.raw.headers);
 
     return c.json(ok(result));
   })
-  .post("/:id/cover-image", async (c) => {
+  .post(
+    "/:id/cover-image",
+    requirePermissionTo("property", "update"),
+    async (c) => {
+      const id = c.req.param("id");
+      await assertInScope(c, id);
+
+      const body = await c.req.parseBody();
+      const file = body.file;
+
+      if (!(file instanceof File)) {
+        throw AppError.validation("An image file is required");
+      }
+
+      const result = await propertyService.updateCoverImage(id, file);
+      if (!result) {
+        throw AppError.notFound("Property not found");
+      }
+
+      return c.json(ok(result));
+    },
+  )
+  .get("/:id/rules", requirePermissionTo("property", "read"), async (c) => {
     const id = c.req.param("id");
-    const body = await c.req.parseBody();
-    const file = body.file;
+    await assertInScope(c, id);
 
-    if (!(file instanceof File)) {
-      throw AppError.validation("An image file is required");
-    }
-
-    const result = await propertyService.updateCoverImage(id, file);
-    if (!result) {
-      throw AppError.notFound("Property not found");
-    }
-
-    return c.json(ok(result));
-  })
-  .get("/:id/rules", async (c) => {
-    const id = c.req.param("id");
     const result = await propertyService.listRules(id);
     return c.json(ok(result));
   })
   .put(
     "/:id/rules",
+    requirePermissionTo("property", "update"),
     zValidator("json", upsertPropertyRuleSchema),
     async (c) => {
       const id = c.req.param("id");
       const body = c.req.valid("json");
 
+      await assertInScope(c, id);
+
       const result = await propertyService.upsertRule(id, body);
       return c.json(ok(result));
     },
   )
-  .delete("/:id/rules/:category", async (c) => {
-    const id = c.req.param("id");
-    const category = c.req.param("category");
+  .delete(
+    "/:id/rules/:category",
+    requirePermissionTo("property", "update"),
+    async (c) => {
+      const id = c.req.param("id");
+      const category = c.req.param("category");
 
-    const result = await propertyService.removeRule(id, category);
-    if (!result) {
-      throw AppError.notFound("Rule not found");
-    }
+      await assertInScope(c, id);
 
-    return c.json(ok(result));
-  });
+      const result = await propertyService.removeRule(id, category);
+      if (!result) {
+        throw AppError.notFound("Rule not found");
+      }
+
+      return c.json(ok(result));
+    },
+  );

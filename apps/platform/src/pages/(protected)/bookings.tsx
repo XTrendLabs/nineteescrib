@@ -4,7 +4,7 @@ import { PlusIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 
-import { useCachedActiveOrganization } from "@/features/auth/api/use-cached-organizations";
+import { useActiveHq } from "@/features/auth/api/use-cached-organizations";
 import { AuditDrawer } from "@/features/bookings/components/audit-drawer";
 import { BookingsTable } from "@/features/bookings/components/bookings-table";
 import { BulkActionsBar } from "@/features/bookings/components/bulk-actions-bar";
@@ -29,8 +29,8 @@ export const Route = createFileRoute("/(protected)/bookings")({
 });
 
 function RouteComponent() {
-  const { data: activeOrganization } = useCachedActiveOrganization();
-  const { data: propertiesResponse } = useProperties(activeOrganization?.id);
+  const { activeScopeId } = useActiveHq();
+  const { data: propertiesResponse } = useProperties(activeScopeId);
 
   const properties = useMemo(
     () => resolveBookingsProperties(propertiesResponse?.data),

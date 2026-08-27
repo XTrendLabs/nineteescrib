@@ -45,7 +45,7 @@ export const roomRepo = {
     const rows = await db
       .select()
       .from(room)
-      .where(eq(room.propertyId, propertyId))
+      .where(eq(room.organizationId, propertyId))
       .orderBy(room.createdAt);
     return attachRelations(rows);
   },
@@ -74,9 +74,13 @@ export const roomRepo = {
     amenityIds?: string[];
   }) {
     const roomId = crypto.randomUUID();
-    const { amenityIds, ...roomInput } = input;
+    // A property *is* an organization, so the room hangs off the property's
+    // organization id.
+    const { amenityIds, propertyId, ...roomInput } = input;
 
-    await db.insert(room).values({ id: roomId, ...roomInput });
+    await db
+      .insert(room)
+      .values({ id: roomId, organizationId: propertyId, ...roomInput });
 
     if (amenityIds && amenityIds.length > 0) {
       await db
@@ -120,6 +124,15 @@ export const roomRepo = {
     }
 
     return roomRepo.findById(id);
+  },
+
+  /** Image URLs for a room, so stored files can be cleaned up on delete. */
+  listImageUrls(roomId: string) {
+    return db
+      .select({ url: roomImage.url })
+      .from(roomImage)
+      .where(eq(roomImage.roomId, roomId))
+      .then((rows) => rows.map((row) => row.url));
   },
 
   async remove(id: string) {

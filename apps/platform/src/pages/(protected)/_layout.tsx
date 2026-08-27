@@ -17,13 +17,14 @@ import {
   fetchActiveOrganization,
   fetchOrganizationList,
   getActiveOrganizationId,
-  useCachedActiveOrganization,
+  useActiveHq,
 } from "@/features/auth/api/use-cached-organizations";
 import {
   fetchSession,
   SESSION_STALE_TIME,
 } from "@/features/auth/api/use-cached-session";
 import { CreatePropertyDialog } from "@/features/properties/components/create-property-dialog";
+import { WorkspaceSwitchOverlay } from "@/shared/components/workspace-switch-overlay";
 import { useActiveView } from "@/shared/lib/use-active-view";
 
 export const Route = createFileRoute("/(protected)")({
@@ -69,7 +70,9 @@ function ProtectedLayout() {
   const navigate = useNavigate();
   const { activeView, activePropertyName, selectHq, selectProperty } =
     useActiveView();
-  const { data: activeOrganization } = useCachedActiveOrganization();
+  // New properties always hang off the HQ in scope, never off whichever
+  // property happens to be active.
+  const { activeHqId } = useActiveHq();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const title =
@@ -95,10 +98,12 @@ function ProtectedLayout() {
         </div>
       </SidebarInset>
 
+      <WorkspaceSwitchOverlay />
+
       <CreatePropertyDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
-        organizationId={activeOrganization?.id}
+        organizationId={activeHqId}
         onCreated={(slug) =>
           navigate({
             to: "/properties/$propertySlug",

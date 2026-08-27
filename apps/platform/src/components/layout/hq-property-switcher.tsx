@@ -19,8 +19,7 @@ import {
   LayoutGridIcon,
   PlusIcon,
 } from "lucide-react";
-import { useCachedActiveOrganization } from "@/features/auth/api/use-cached-organizations";
-import { useCachedSession } from "@/features/auth/api/use-cached-session";
+import { useActiveHq } from "@/features/auth/api/use-cached-organizations";
 import { useProperties } from "@/features/properties/api/use-properties";
 
 export function HqPropertySwitcher({
@@ -30,18 +29,16 @@ export function HqPropertySwitcher({
   onAddProperty,
 }: {
   activeView: { type: "hq" } | { type: "property"; propertyId: string };
-  onSelectHq: () => void;
+  onSelectHq: (hqId: string) => void;
   onSelectProperty: (propertyId: string, name: string) => void;
   onAddProperty: () => void;
 }) {
   const { isMobile } = useSidebar();
-  const { data: session } = useCachedSession();
-  const { data: activeOrganization } = useCachedActiveOrganization();
-  const { data: properties } = useProperties(activeOrganization?.id);
-
-  const isOwner = activeOrganization?.members?.some(
-    (member) => member.userId === session?.user.id && member.role === "owner",
-  );
+  // Properties always come from the HQ in scope: the active organization
+  // becomes the property itself once one is selected, and a property has no
+  // children of its own to list.
+  const { hqs, activeHqId, activeScopeId, activeHq } = useActiveHq();
+  const { data: properties } = useProperties(activeScopeId);
 
   const activeProperty =
     activeView.type === "property"
@@ -49,9 +46,13 @@ export function HqPropertySwitcher({
       : undefined;
 
   const label =
-    activeView.type === "hq" ? "HQ" : (activeProperty?.name ?? "Property");
+    activeView.type === "hq"
+      ? (activeHq?.name ?? "HQ")
+      : (activeProperty?.name ?? "Property");
   const description =
-    activeView.type === "hq" ? "All properties" : "Managing this property";
+    activeView.type === "hq"
+      ? "All properties"
+      : (activeHq?.name ?? "Managing this property");
 
   return (
     <SidebarMenu>
@@ -84,29 +85,35 @@ export function HqPropertySwitcher({
             side={isMobile ? "bottom" : "right"}
             sideOffset={4}
           >
-            {isOwner && (
+            {hqs?.length ? (
               <>
                 <DropdownMenuGroup>
-                  <DropdownMenuItem
-                    className={cn(
-                      "gap-2 px-4 py-2 hover:bg-white/90 hover:text-black",
-                      activeView.type === "hq" && "bg-white/90 text-black",
-                    )}
-                    onClick={onSelectHq}
-                  >
-                    <div className="flex size-6 items-center justify-center rounded-md border">
-                      <LayoutGridIcon className="size-3.5" />
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">HQ</span>
-
-                      <span className="text-xs">(All properties)</span>
-                    </div>
-                  </DropdownMenuItem>
+                  {hqs.map((hq) => (
+                    <DropdownMenuItem
+                      key={hq.id}
+                      className={cn(
+                        "gap-2 px-4 py-2 hover:bg-white/90 hover:text-black",
+                        activeView.type === "hq" &&
+                          activeHqId === hq.id &&
+                          "bg-white/90 text-black",
+                      )}
+                      onClick={() => onSelectHq(hq.id)}
+                    >
+                      <div className="flex size-6 items-center justify-center rounded-md border">
+                        <LayoutGridIcon className="size-3.5" />
+                      </div>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <span className="truncate font-medium">{hq.name}</span>
+                        <span className="shrink-0 text-xs">
+                          (All properties)
+                        </span>
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
               </>
-            )}
+            ) : null}
 
             <DropdownMenuGroup>
               {properties?.data?.length ? (

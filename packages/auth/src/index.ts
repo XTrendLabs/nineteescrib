@@ -6,6 +6,8 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { organization } from "better-auth/plugins";
 
+import { ac, roles } from "./permissions";
+
 export function createAuth() {
   const db = createDb();
 
@@ -66,6 +68,8 @@ export function createAuth() {
     plugins: [
       organization({
         creatorRole: "owner",
+        ac,
+        roles,
         // Each property organization can group its staff into teams
         // (housekeeping, front desk, ...).
         teams: {

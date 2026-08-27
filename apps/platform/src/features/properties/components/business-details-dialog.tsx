@@ -69,23 +69,31 @@ export function BusinessDetailsDialog({
   defaultOwnerName?: string;
   defaultContactPhone?: string;
 }) {
-  const defaults = {
-    ownerName: defaultOwnerName,
-    contactPhone: defaultContactPhone,
-  };
   const updateBusinessDetails = useUpdateBusinessDetails();
 
   const form = useForm<BusinessDetailsValues>({
     resolver: zodResolver(businessDetailsSchema),
-    defaultValues: toDefaultValues(property, defaults),
+    defaultValues: toDefaultValues(property, {
+      ownerName: defaultOwnerName,
+      contactPhone: defaultContactPhone,
+    }),
   });
 
+  // Re-seed the form only when the dialog opens. Depending on the props here
+  // would reset the form on every render -- wiping whatever is being typed --
+  // because the defaults object is rebuilt each time.
+  const { reset: resetForm } = form;
+  const { reset: resetMutation } = updateBusinessDetails;
   useEffect(() => {
-    if (open) {
-      form.reset(toDefaultValues(property, defaults));
-      updateBusinessDetails.reset();
-    }
-  }, [open, updateBusinessDetails.reset, property, form.reset, defaults]);
+    if (!open) return;
+    resetForm(
+      toDefaultValues(property, {
+        ownerName: defaultOwnerName,
+        contactPhone: defaultContactPhone,
+      }),
+    );
+    resetMutation();
+  }, [open]);
 
   const handleSubmit = form.handleSubmit((values) => {
     updateBusinessDetails.mutate(

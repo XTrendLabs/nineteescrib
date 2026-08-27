@@ -10,7 +10,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 
-import { useCachedActiveOrganization } from "@/features/auth/api/use-cached-organizations";
+import { useActiveHq } from "@/features/auth/api/use-cached-organizations";
 import { useDeleteStaff } from "@/features/staff/api/use-delete-staff";
 import { useStaff } from "@/features/staff/api/use-staff";
 import { AttendanceMarkDialog } from "@/features/staff/components/attendance-mark-dialog";
@@ -30,8 +30,7 @@ export const Route = createFileRoute("/(protected)/staff/")({
 
 function RouteComponent() {
   const feedback = useFeedback();
-  const { data: activeOrganization } = useCachedActiveOrganization();
-  const hqOrganizationId = activeOrganization?.id;
+  const { activeHqId: hqOrganizationId } = useActiveHq();
 
   const { data: response, isLoading } = useStaff(hqOrganizationId);
   const staff = (response?.data ?? []) as unknown as Staff[];

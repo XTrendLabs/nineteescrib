@@ -51,7 +51,7 @@ export function CreatePropertyDialog({
     if (!canSubmit || !organizationId) return;
 
     createProperty.mutate(
-      { json: { organizationId, name: trimmedName } },
+      { json: { hqOrganizationId: organizationId, name: trimmedName } },
       {
         onSuccess: (data) => {
           reset();

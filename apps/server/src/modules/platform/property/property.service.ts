@@ -1,25 +1,63 @@
+import { auth } from "@propertyos/auth";
+
+import { AppError } from "../../../core";
 import { storageService } from "../storage/storage.service";
-import { propertyRepo } from "./property.repo";
+import { generateUniquePropertySlug, propertyRepo } from "./property.repo";
 
 export const propertyService = {
-  list(organizationId: string) {
-    return propertyRepo.listByOrganization(organizationId);
+  list(hqOrganizationId: string) {
+    return propertyRepo.listByHq(hqOrganizationId);
+  },
+
+  /** Used at property scope, where the list is just the active property. */
+  listSelf(organizationId: string) {
+    return propertyRepo.listSelf(organizationId);
   },
 
   findBySlug(slug: string) {
     return propertyRepo.findBySlug(slug);
   },
 
-  create(input: {
-    organizationId: string;
-    name: string;
-    propertyType?: string;
-    addressLine1?: string;
-    city?: string;
-    state?: string;
-    country?: string;
-  }) {
-    return propertyRepo.create(input);
+  /**
+   * A property is an organization, so it is created through Better Auth --
+   * that is what grants the caller an owner membership on it -- and then given
+   * its hospitality details row.
+   */
+  async create(
+    input: {
+      hqOrganizationId?: string;
+      name: string;
+      propertyType?: string;
+      addressLine1?: string;
+      city?: string;
+      state?: string;
+      country?: string;
+    },
+    headers: Headers,
+  ) {
+    const { hqOrganizationId, name, ...details } = input;
+    const slug = await generateUniquePropertySlug(name);
+
+    const created = await auth.api.createOrganization({
+      body: {
+        name,
+        slug,
+        kind: "property",
+        parentOrganizationId: hqOrganizationId,
+      },
+      headers,
+    });
+
+    if (!created) {
+      throw AppError.validation("Could not create the property organization");
+    }
+
+    await propertyRepo.createDetails({
+      organizationId: created.id,
+      ...details,
+    });
+
+    return { propertyId: created.id, slug };
   },
 
   updateBusinessDetails(

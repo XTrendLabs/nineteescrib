@@ -152,8 +152,11 @@ export function RoomImageManager({
               Image {index + 1}
             </span>
             {deletingIds.includes(image.id) && (
-              <div className="absolute inset-0 flex items-center justify-center bg-background/60">
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-background/60">
                 <Loader2Icon className="size-4 animate-spin" />
+                <span className="text-[10px] text-muted-foreground">
+                  Deleting…
+                </span>
               </div>
             )}
             <button
@@ -177,13 +180,18 @@ export function RoomImageManager({
               alt={item.file.name}
               className="h-full w-full object-cover opacity-50"
             />
-            <div className="absolute inset-0 flex items-center justify-center">
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1">
               {item.status === "error" ? (
                 <span className="bg-destructive px-1 text-[10px] text-destructive-foreground">
                   Failed
                 </span>
               ) : (
-                <Loader2Icon className="size-4 animate-spin text-foreground" />
+                <>
+                  <Loader2Icon className="size-4 animate-spin text-foreground" />
+                  <span className="text-[10px] text-muted-foreground">
+                    {item.status === "uploading" ? "Uploading…" : "Queued"}
+                  </span>
+                </>
               )}
             </div>
             <span className="absolute bottom-1 left-1 bg-black/60 px-1 text-[10px] text-white">

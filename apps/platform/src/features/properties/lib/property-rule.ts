@@ -40,7 +40,8 @@ export const PROPERTY_RULE_CATEGORY_OPTIONAL: Record<
 
 export type PropertyRule = {
   id: string;
-  propertyId: string;
+  /** The property's organization id. */
+  organizationId: string;
   category: string;
   content: string;
   createdAt: string;

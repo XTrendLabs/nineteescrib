@@ -39,8 +39,28 @@ export const roomService = {
     return roomRepo.update(id, input);
   },
 
-  remove(id: string) {
-    return roomRepo.remove(id);
+  /**
+   * Deleting the row cascades the `room_image` records away, so the stored
+   * files have to be removed first or they are orphaned in object storage with
+   * nothing left pointing at them.
+   */
+  async remove(id: string) {
+    const urls = await roomRepo.listImageUrls(id);
+
+    const removed = await roomRepo.remove(id);
+    if (!removed) return undefined;
+
+    await Promise.all(
+      urls.map((url) =>
+        storageService.deleteByUrl(url).catch((error) => {
+          // The room is already gone; a failed cleanup should not turn a
+          // successful delete into an error for the caller.
+          console.error("[room] failed to delete image", url, error);
+        }),
+      ),
+    );
+
+    return removed;
   },
 
   listAmenities() {

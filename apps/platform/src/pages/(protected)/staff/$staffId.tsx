@@ -12,7 +12,7 @@ import { PencilIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useState } from "react";
 
-import { useCachedActiveOrganization } from "@/features/auth/api/use-cached-organizations";
+import { useActiveHq } from "@/features/auth/api/use-cached-organizations";
 import { useStaffMember } from "@/features/staff/api/use-staff-member";
 import { StaffDialog } from "@/features/staff/components/staff-dialog";
 import { formatPhone, getInitials } from "@/features/staff/lib/format";
@@ -41,7 +41,7 @@ function DetailRow({ label, value }: { label: string; value?: string | null }) {
 
 function RouteComponent() {
   const { staffId } = Route.useParams();
-  const { data: activeOrganization } = useCachedActiveOrganization();
+  const { activeHqId } = useActiveHq();
   const { data: response, isLoading, isError } = useStaffMember(staffId);
   const member = response?.data as unknown as Staff | undefined;
 
@@ -157,11 +157,11 @@ function RouteComponent() {
         </CardContent>
       </Card>
 
-      {activeOrganization?.id && (
+      {activeHqId && (
         <StaffDialog
           open={dialogOpen}
           onOpenChange={setDialogOpen}
-          hqOrganizationId={activeOrganization.id}
+          hqOrganizationId={activeHqId}
           staff={member}
         />
       )}

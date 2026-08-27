@@ -44,7 +44,14 @@ export const navMainGroups: NavMainGroup[] = [
     label: "Management",
     items: [
       { title: "Staff", url: "/staff", icon: UsersIcon, soon: true },
-      { title: "Properties", url: "/properties", icon: Building2Icon },
+      {
+        title: "Properties",
+        url: "/properties",
+        icon: Building2Icon,
+        // The all-properties list belongs to an HQ; someone scoped to a single
+        // property has no such list to open.
+        hqOnly: true,
+      },
       { title: "Settings", url: "/settings", icon: SettingsIcon, soon: true },
     ],
   },

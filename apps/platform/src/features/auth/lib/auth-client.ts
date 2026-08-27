@@ -1,3 +1,4 @@
+import { ac, roles } from "@propertyos/auth/permissions";
 import { env } from "@propertyos/env/web";
 import { organizationClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
@@ -11,11 +12,18 @@ export const authClient = createAuthClient({
   },
   plugins: [
     organizationClient({
+      // Same access-control definitions as the server, so
+      // `checkRolePermission` can be evaluated client-side.
+      ac,
+      roles,
       schema: {
         organization: {
           additionalFields: {
             phoneNumber: { type: "string", required: false },
             phoneNumberVerifiedAt: { type: "date", required: false },
+            // "hq" or "property" -- see packages/db/src/schema/organization.ts
+            kind: { type: "string", required: false },
+            parentOrganizationId: { type: "string", required: false },
           },
         },
         member: {

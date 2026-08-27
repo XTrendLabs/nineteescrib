@@ -14,19 +14,21 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
-import { useCachedActiveOrganization } from "@/features/auth/api/use-cached-organizations";
+import { useActiveHq } from "@/features/auth/api/use-cached-organizations";
 import { useProperties } from "@/features/properties/api/use-properties";
 
 export function PlatformSearch({
   onSelectHq,
   onSelectProperty,
 }: {
-  onSelectHq: () => void;
+  onSelectHq: (hqId?: string) => void;
   onSelectProperty: (propertyId: string, name: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const { data: activeOrganization } = useCachedActiveOrganization();
-  const { data: properties } = useProperties(activeOrganization?.id);
+  // Search within the HQ in scope: the active organization is the selected
+  // property once one is chosen, and a property has no children to list.
+  const { activeScopeId } = useActiveHq();
+  const { data: properties } = useProperties(activeScopeId);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {

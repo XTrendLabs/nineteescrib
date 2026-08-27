@@ -69,11 +69,13 @@ export function RoomDialog({
   open,
   onOpenChange,
   propertyId,
+  propertySlug,
   room,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   propertyId: string;
+  propertySlug: string;
   room?: Room;
 }) {
   const { data: amenitiesResponse, isLoading: isLoadingAmenities } =
@@ -104,6 +106,11 @@ export function RoomDialog({
 
   function invalidate() {
     api.api.platform.rooms.$get.invalidate({ query: { propertyId } });
+    // The property carries the "has a published room" flag behind the Rooms
+    // tab's warning badge, so publishing has to refresh it too.
+    api.api.platform.properties[":slug"].$get.invalidate({
+      param: { slug: propertySlug },
+    });
   }
 
   async function persist(status: "draft" | "published", close: boolean) {
@@ -427,13 +434,16 @@ export function RoomDialog({
                 Save as Draft
               </LoadingButton>
               {step < STEPS.length ? (
-                <Button
+                // Advancing saves the room as a draft, so this waits on the
+                // server like the other actions do.
+                <LoadingButton
                   type="button"
+                  loading={mutation.isPending}
+                  loadingText="Saving…"
                   onClick={() => goToStep(step + 1)}
-                  disabled={mutation.isPending}
                 >
                   Next
-                </Button>
+                </LoadingButton>
               ) : (
                 <LoadingButton
                   type="submit"

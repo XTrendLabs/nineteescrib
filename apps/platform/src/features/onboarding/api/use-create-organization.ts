@@ -20,9 +20,12 @@ export function useCreateOrganization() {
     }) => {
       await checkPhoneAvailable(input.phoneNumber);
 
+      // The organization created during onboarding is the HQ; individual
+      // properties are created as child organizations beneath it.
       const { data, error } = await authClient.organization.create({
         name: input.name,
         slug: slugify(input.name),
+        kind: "hq",
       });
 
       if (error || !data) {

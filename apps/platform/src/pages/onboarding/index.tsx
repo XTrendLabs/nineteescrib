@@ -96,7 +96,7 @@ function RouteComponent() {
           onSkip={finishOnboarding}
           onSubmit={async (values) => {
             await createProperty.mutateAsync({
-              json: { organizationId, ...values },
+              json: { hqOrganizationId: organizationId, ...values },
             });
             finishOnboarding();
           }}

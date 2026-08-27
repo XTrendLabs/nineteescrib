@@ -1,10 +1,19 @@
 import { Button } from "@propertyos/ui/components/button";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { motion } from "motion/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { useCachedActiveOrganization } from "@/features/auth/api/use-cached-organizations";
+import { authQueryKeys } from "@/features/auth/api/query-keys";
+import {
+  fetchOrganizationList,
+  getActiveOrganizationId,
+  useActiveHq,
+} from "@/features/auth/api/use-cached-organizations";
+import {
+  fetchSession,
+  SESSION_STALE_TIME,
+} from "@/features/auth/api/use-cached-session";
 import { useProperties } from "@/features/properties/api/use-properties";
 import { CreatePropertyDialog } from "@/features/properties/components/create-property-dialog";
 import {
@@ -18,15 +27,58 @@ import {
 } from "@/features/properties/lib/property";
 
 export const Route = createFileRoute("/(protected)/properties/")({
+  /**
+   * This page is the HQ overview. When a single property is the active
+   * organization the user is scoped to that property, so the all-properties
+   * list is not theirs to see -- send them into their property instead.
+   */
+  beforeLoad: async ({ context }) => {
+    const session = await context.queryClient.ensureQueryData({
+      queryKey: authQueryKeys.session(),
+      queryFn: fetchSession,
+      staleTime: SESSION_STALE_TIME,
+    });
+
+    const activeOrganizationId = getActiveOrganizationId(session);
+    if (!activeOrganizationId) return;
+
+    const organizations = await context.queryClient.ensureQueryData({
+      queryKey: authQueryKeys.organizations(session?.user.id),
+      queryFn: fetchOrganizationList,
+      staleTime: SESSION_STALE_TIME,
+    });
+
+    const active = organizations?.find((o) => o.id === activeOrganizationId);
+    if (active && active.kind !== "hq" && active.slug) {
+      throw redirect({
+        to: "/properties/$propertySlug",
+        params: { propertySlug: active.slug },
+        replace: true,
+      });
+    }
+  },
   component: RouteComponent,
 });
 
 function RouteComponent() {
   const navigate = useNavigate();
-  const { data: activeOrganization } = useCachedActiveOrganization();
-  const { data: propertiesResponse, isLoading } = useProperties(
-    activeOrganization?.id,
-  );
+  // Always the HQ in scope: when a property is the active organization this is
+  // its parent, so this page keeps listing that HQ's properties.
+  const { activeHqId, activeScopeId, activePropertySlug } = useActiveHq();
+
+  // `beforeLoad` only guards navigation *to* this page. Switching scope while
+  // already here does not re-run it, so leave as soon as the active
+  // organization becomes a property.
+  useEffect(() => {
+    if (!activePropertySlug) return;
+    navigate({
+      to: "/properties/$propertySlug",
+      params: { propertySlug: activePropertySlug },
+      replace: true,
+    });
+  }, [activePropertySlug, navigate]);
+
+  const { data: propertiesResponse, isLoading } = useProperties(activeScopeId);
 
   const properties = propertiesResponse?.data ?? [];
 
@@ -131,7 +183,7 @@ function RouteComponent() {
       <CreatePropertyDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
-        organizationId={activeOrganization?.id}
+        organizationId={activeHqId}
         onCreated={(slug) =>
           navigate({
             to: "/properties/$propertySlug",
