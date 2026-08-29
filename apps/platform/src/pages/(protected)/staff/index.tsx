@@ -119,6 +119,7 @@ function RouteComponent() {
           <AttendanceTracker
             staff={staff}
             hqOrganizationId={hqOrganizationId}
+            canMark={canManage}
           />
         </TabsPanel>
       </Tabs>

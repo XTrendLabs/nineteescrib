@@ -9,6 +9,8 @@ const SOLID_CLASS: Partial<Record<AttendanceCellStatus, string>> = {
   // A day nobody has taken yet reads as an empty outline, so an unmarked
   // month is visibly blank instead of looking like perfect attendance.
   unmarked: "border border-muted-foreground/30 bg-transparent",
+  // Before someone joined there is nothing to show at all.
+  not_applicable: "bg-transparent",
 };
 
 export function AttendanceStatusDot({

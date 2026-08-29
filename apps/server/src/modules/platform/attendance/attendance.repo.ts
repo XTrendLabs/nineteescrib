@@ -27,8 +27,17 @@ export const attendanceRepo = {
    *
    * Both halves are indexed on (hq_organization_id, date), and neither depends
    * on the other, so they overlap into a single round-trip's worth of latency.
+   *
+   * `staffId` narrows the result to one person, for a caller who may only see
+   * their own attendance. It is an extra condition on the same index scan, so
+   * it costs nothing beyond the rows it removes.
    */
-  async listRange(hqOrganizationId: string, from: string, to: string) {
+  async listRange(
+    hqOrganizationId: string,
+    from: string,
+    to: string,
+    staffId?: string,
+  ) {
     const [records, days] = await Promise.all([
       db
         .select({
@@ -43,28 +52,39 @@ export const attendanceRepo = {
           and(
             eq(attendanceRecord.hqOrganizationId, hqOrganizationId),
             between(attendanceRecord.date, from, to),
+            staffId ? eq(attendanceRecord.staffId, staffId) : undefined,
           ),
         ),
       db
-        .select({ date: attendanceDay.date })
+        .select({ staffId: attendanceDay.staffId, date: attendanceDay.date })
         .from(attendanceDay)
         .where(
           and(
             eq(attendanceDay.hqOrganizationId, hqOrganizationId),
             between(attendanceDay.date, from, to),
+            staffId ? eq(attendanceDay.staffId, staffId) : undefined,
           ),
         ),
     ]);
 
-    return { records, markedDays: days.map((d) => d.date) };
+    // `staffId|date`, so a cell can ask whether that person was marked that
+    // day rather than whether anyone was.
+    return {
+      records,
+      markedDays: days.map((d) => `${d.staffId}|${d.date}`),
+    };
   },
 
-  /** Which of `staffIds` actually belong to this HQ. Guards every write. */
-  async filterStaffInHq(hqOrganizationId: string, staffIds: string[]) {
+  /**
+   * Which of `staffIds` belong to this HQ, with the day each joined. Guards
+   * every write: the caller checks both membership and that the date being
+   * marked is not before the person started.
+   */
+  async findStaffInHq(hqOrganizationId: string, staffIds: string[]) {
     if (staffIds.length === 0) return [];
 
-    const rows = await db
-      .select({ id: staff.id })
+    return db
+      .select({ id: staff.id, joinedAt: staff.joinedAt })
       .from(staff)
       .where(
         and(
@@ -72,25 +92,35 @@ export const attendanceRepo = {
           inArray(staff.id, staffIds),
         ),
       );
-    return rows.map((r) => r.id);
   },
 
-  /** Records that `date` has been taken for this HQ. Idempotent. */
+  /**
+   * Records that `date` has been taken for each of `staffIds`. Idempotent.
+   *
+   * Per staff member, so marking one person never decides what another
+   * person's unmarked cell shows.
+   */
   markDayTaken(
     hqOrganizationId: string,
     date: string,
+    staffIds: string[],
     markedByUserId?: string,
   ) {
+    if (staffIds.length === 0) return undefined;
+
     return db
       .insert(attendanceDay)
-      .values({
-        id: crypto.randomUUID(),
-        hqOrganizationId,
-        date,
-        markedByUserId,
-      })
+      .values(
+        staffIds.map((staffId) => ({
+          id: crypto.randomUUID(),
+          staffId,
+          hqOrganizationId,
+          date,
+          markedByUserId,
+        })),
+      )
       .onConflictDoNothing({
-        target: [attendanceDay.hqOrganizationId, attendanceDay.date],
+        target: [attendanceDay.staffId, attendanceDay.date],
       });
   },
 
@@ -139,7 +169,12 @@ export const attendanceRepo = {
 
     await Promise.all([
       write,
-      attendanceRepo.markDayTaken(hqOrganizationId, input.date, markedByUserId),
+      attendanceRepo.markDayTaken(
+        hqOrganizationId,
+        input.date,
+        [input.staffId],
+        markedByUserId,
+      ),
     ]);
   },
 
@@ -199,7 +234,12 @@ export const attendanceRepo = {
               ),
             )
         : undefined,
-      attendanceRepo.markDayTaken(hqOrganizationId, date, markedByUserId),
+      attendanceRepo.markDayTaken(
+        hqOrganizationId,
+        date,
+        marks.map((m) => m.staffId),
+        markedByUserId,
+      ),
     ]);
   },
 };

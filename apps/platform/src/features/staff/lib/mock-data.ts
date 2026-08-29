@@ -40,15 +40,17 @@ export const ATTENDANCE_LABELS: Record<AttendanceCellStatus, string> = {
   on_leave: "On Leave",
   half_day: "Half Day",
   unmarked: "Not Marked",
+  not_applicable: "Not Yet Joined",
 };
 
-/** Legend order: the storable statuses, then the empty state. */
+/** Legend order: the storable statuses, then the two empty states. */
 export const ATTENDANCE_CYCLE: AttendanceCellStatus[] = [
   "present",
   "absent",
   "on_leave",
   "half_day",
   "unmarked",
+  "not_applicable",
 ];
 
 export type MockProperty = {
@@ -366,12 +368,18 @@ export type AttendanceRecord = {
 };
 
 /**
- * What a matrix cell can show. Attendance is stored as exceptions, so a cell
- * with no record is "present" on a day that was taken and "unmarked" on a day
- * that was not -- the latter is not a storable status, only a rendering of
- * absent data.
+ * What a matrix cell can show.
+ *
+ * Attendance is stored as exceptions, so a cell with no record is "present" on
+ * a day that was taken and "unmarked" on a day that was not. Days before
+ * someone joined are "not_applicable": they were not employed, so neither
+ * present nor absent describes them. None of the three are storable statuses
+ * -- they are renderings of absent data.
  */
-export type AttendanceCellStatus = AttendanceStatus | "unmarked";
+export type AttendanceCellStatus =
+  | AttendanceStatus
+  | "unmarked"
+  | "not_applicable";
 
 export type PermissionModule =
   | "calendar"

@@ -116,14 +116,19 @@ export const staffRepo = {
     );
   },
 
-  /** The staff record belonging to a login, if there is one. */
-  async findIdByUserId(userId: string) {
+  /**
+   * The staff record belonging to a login, if there is one.
+   *
+   * Carries the HQ as well: a caller reading their own data should be scoped
+   * by the record itself rather than by an organization id they supplied.
+   */
+  async findByUserId(userId: string) {
     const [row] = await db
-      .select({ id: staff.id })
+      .select({ id: staff.id, hqOrganizationId: staff.hqOrganizationId })
       .from(staff)
       .where(eq(staff.userId, userId))
       .limit(1);
-    return row?.id;
+    return row;
   },
 
   replaceProperties: replacePropertiesFor,

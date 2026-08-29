@@ -25,15 +25,28 @@ import { QuickMarkBanner } from "./quick-mark-banner";
 type TrackedStaff = {
   id: string;
   fullName: string;
+  /** When they started; days before it are not theirs to answer for. */
+  joinedAt?: string;
   properties: Array<{ id: string; name: string }>;
 };
+
+/** The day a member joined, as a comparable yyyy-MM-dd key. */
+function joinedKey(member: TrackedStaff) {
+  return member.joinedAt ? toDateKey(new Date(member.joinedAt)) : "";
+}
 
 export function AttendanceTracker({
   staff,
   hqOrganizationId,
+  canMark,
 }: {
   staff: TrackedStaff[];
   hqOrganizationId: string | undefined;
+  /**
+   * Whether the viewer may record attendance. When false the grid is a
+   * read-only view of their own history -- the server sends nobody else's.
+   */
+  canMark: boolean;
 }) {
   const feedback = useFeedback();
   const [month, setMonth] = useState(new Date());
@@ -128,14 +141,14 @@ export function AttendanceTracker({
           reason: m.reason ?? null,
           organizationId: null,
         }));
-      const dates = new Set(marks.map((m) => m.date));
+      const cells = marks.map((m) => `${m.staffId}|${m.date}`);
 
       return {
         ...current,
         data: {
           ...current.data,
           records: [...kept, ...added],
-          markedDays: [...new Set([...current.data.markedDays, ...dates])],
+          markedDays: [...new Set([...current.data.markedDays, ...cells])],
         },
       };
     });
@@ -153,24 +166,48 @@ export function AttendanceTracker({
     const filteredIds = new Set(filteredStaff.map((s) => s.id));
     const inScope = records.filter((r) => filteredIds.has(r.staffId));
 
+    // Nobody answers for a day before they joined, so every count below is
+    // taken over the people actually employed on the day in question.
+    const employedOn = (dateKey: string) =>
+      filteredStaff.filter((member) => joinedKey(member) <= dateKey);
+
+    // Markers are per staff member, so "taken" is asked per person.
+    const wasMarked = (staffId: string, dateKey: string) =>
+      markedDays.has(`${staffId}|${dateKey}`);
+
     // Stored records are exceptions only, so today's present count is whoever
     // is left after the exceptions -- and only once today has been taken.
     const todayExceptions = inScope.filter((r) => r.date === todayKey);
     const countToday = (status: AttendanceStatus) =>
       todayExceptions.filter((r) => r.status === status).length;
 
-    const todayTaken = markedDays.has(todayKey);
-    const presentToday = todayTaken
-      ? filteredStaff.length - todayExceptions.length
-      : 0;
+    const employedTodayList = employedOn(todayKey);
+    const employedToday = employedTodayList.length;
+    // Present today is whoever was marked today and has no exception -- a
+    // colleague's mark no longer implies anything about anyone else.
+    const markedTodayIds = employedTodayList.filter((m) =>
+      wasMarked(m.id, todayKey),
+    );
+    const exceptionIds = new Set(todayExceptions.map((r) => r.staffId));
+    const presentToday = markedTodayIds.filter(
+      (m) => !exceptionIds.has(m.id),
+    ).length;
+    const todayTaken = markedTodayIds.length > 0;
 
-    // Average across the days actually taken: dividing by the whole month
-    // would count untaken days as absences.
-    const takenDays = days.filter((day) => markedDays.has(toDateKey(day)));
-    const possible = takenDays.length * filteredStaff.length;
-    const takenKeys = new Set(takenDays.map(toDateKey));
+    // Average over the cells actually marked: counting days nobody was
+    // marked on would read as absence rather than as missing data.
+    const marked = new Set<string>();
+    for (const day of days) {
+      const dateKey = toDateKey(day);
+      for (const member of employedOn(dateKey)) {
+        if (wasMarked(member.id, dateKey)) {
+          marked.add(`${member.id}|${dateKey}`);
+        }
+      }
+    }
+    const possible = marked.size;
     const shortfall = inScope
-      .filter((r) => takenKeys.has(r.date))
+      .filter((r) => marked.has(`${r.staffId}|${r.date}`))
       .reduce((total, r) => total + (r.status === "half_day" ? 0.5 : 1), 0);
     const avgAttendance = possible
       ? ((possible - shortfall) / possible) * 100
@@ -182,6 +219,7 @@ export function AttendanceTracker({
       onLeaveToday: countToday("on_leave"),
       avgAttendance,
       todayTaken,
+      employedToday,
     };
   }, [records, filteredStaff, todayKey, markedDays, days]);
 
@@ -212,59 +250,61 @@ export function AttendanceTracker({
         </Select>
       </div>
 
-      <QuickMarkBanner
-        staff={filteredStaff}
-        alreadyMarked={summary.todayTaken}
-        pending={bulkMark.isPending}
-        onSubmit={(marks) => {
-          if (!hqOrganizationId) return;
+      {canMark && (
+        <QuickMarkBanner
+          staff={filteredStaff}
+          alreadyMarked={summary.todayTaken}
+          pending={bulkMark.isPending}
+          onSubmit={(marks) => {
+            if (!hqOrganizationId) return;
 
-          const entries = Object.entries(marks).map(([staffId, status]) => ({
-            staffId,
-            status,
-            date: todayKey,
-          }));
-          const previous = applyLocally(entries);
+            const entries = Object.entries(marks).map(([staffId, status]) => ({
+              staffId,
+              status,
+              date: todayKey,
+            }));
+            const previous = applyLocally(entries);
 
-          bulkMark.mutate(
-            {
-              json: {
-                hqOrganizationId,
-                date: todayKey,
-                marks: entries.map(({ staffId, status }) => ({
-                  staffId,
-                  status,
-                })),
+            bulkMark.mutate(
+              {
+                json: {
+                  hqOrganizationId,
+                  date: todayKey,
+                  marks: entries.map(({ staffId, status }) => ({
+                    staffId,
+                    status,
+                  })),
+                },
               },
-            },
-            {
-              onSuccess: () => {
-                refetchMonth();
-                feedback.success(
-                  "Attendance submitted",
-                  `Recorded today's status for ${Object.keys(marks).length} staff members.`,
-                );
+              {
+                onSuccess: () => {
+                  refetchMonth();
+                  feedback.success(
+                    "Attendance submitted",
+                    `Recorded today's status for ${Object.keys(marks).length} staff members.`,
+                  );
+                },
+                onError: (error) => {
+                  rollback(previous);
+                  feedback.error(
+                    "Couldn't submit attendance",
+                    getApiErrorMessage(
+                      error,
+                      "Something went wrong. Please try again.",
+                    ),
+                  );
+                },
               },
-              onError: (error) => {
-                rollback(previous);
-                feedback.error(
-                  "Couldn't submit attendance",
-                  getApiErrorMessage(
-                    error,
-                    "Something went wrong. Please try again.",
-                  ),
-                );
-              },
-            },
-          );
-        }}
-      />
+            );
+          }}
+        />
+      )}
 
       <AttendanceSummaryBand
         presentToday={summary.presentToday}
         absentToday={summary.absentToday}
         onLeaveToday={summary.onLeaveToday}
-        totalStaff={filteredStaff.length}
+        totalStaff={summary.employedToday}
         avgAttendance={summary.avgAttendance}
       />
 
@@ -275,8 +315,9 @@ export function AttendanceTracker({
           records={records}
           markedDays={markedDays}
           isLoading={isLoading}
+          canMark={canMark}
           onMark={(input) => {
-            if (!hqOrganizationId) return;
+            if (!hqOrganizationId || !canMark) return;
 
             const previous = applyLocally([input]);
 

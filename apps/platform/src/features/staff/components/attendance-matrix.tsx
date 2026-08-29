@@ -17,7 +17,18 @@ export type MarkInput = {
   reason?: string;
 };
 
-type MatrixStaff = { id: string; fullName: string };
+type MatrixStaff = { id: string; fullName: string; joinedAt?: string };
+
+/**
+ * The day a member joined, as a comparable yyyy-MM-dd key.
+ *
+ * Comparing formatted local dates as strings keeps this in the viewer's own
+ * timezone, matching how every other date in the grid is derived. Without a
+ * joining date nothing is excluded.
+ */
+function joinedKey(member: MatrixStaff) {
+  return member.joinedAt ? toDateKey(new Date(member.joinedAt)) : "";
+}
 
 const CELL_WIDTH = 36;
 const LABEL_WIDTH = 176;
@@ -28,14 +39,22 @@ export function AttendanceMatrix({
   records,
   markedDays,
   isLoading,
+  canMark,
   onMark,
 }: {
   staff: MatrixStaff[];
   days: Date[];
   records: AttendanceRecord[];
-  /** Dates the roster has actually been taken on, as yyyy-MM-dd. */
+  /**
+   * Which cells have actually been marked, as `staffId|date`.
+   *
+   * Per staff member: a shared per-day flag would let one person's mark decide
+   * what everyone else's empty cell shows.
+   */
   markedDays: Set<string>;
   isLoading?: boolean;
+  /** When false the grid is read-only and cells do not open the mark dialog. */
+  canMark?: boolean;
   onMark: (input: MarkInput) => void;
 }) {
   const attendanceMark = useAttendanceMark();
@@ -48,14 +67,27 @@ export function AttendanceMatrix({
   /**
    * Only exceptions are stored, so a cell with no record means present on a
    * day that was taken and unmarked on a day that was not.
+   *
+   * Days before someone joined are neither: they were not employed, so the
+   * cell shows nothing rather than crediting them with attendance for a period
+   * they were not here. A stored record still wins -- backdating someone's
+   * start date should not silently discard marks already made.
    */
-  function cellStatus(staffId: string, dateKey: string): AttendanceCellStatus {
-    const record = recordMap.get(`${staffId}|${dateKey}`);
+  function cellStatus(
+    member: MatrixStaff,
+    dateKey: string,
+  ): AttendanceCellStatus {
+    const record = recordMap.get(`${member.id}|${dateKey}`);
     if (record) return record.status;
-    return markedDays.has(dateKey) ? "present" : "unmarked";
+    if (joinedKey(member) > dateKey) return "not_applicable";
+    return markedDays.has(`${member.id}|${dateKey}`) ? "present" : "unmarked";
   }
 
   function handleCellClick(member: MatrixStaff, dateKey: string) {
+    if (!canMark) return;
+    // Nothing to record for a day before they joined.
+    if (joinedKey(member) > dateKey) return;
+
     const current = recordMap.get(`${member.id}|${dateKey}`);
     attendanceMark.open({
       staffId: member.id,
@@ -137,14 +169,27 @@ export function AttendanceMatrix({
             </div>
             {days.map((day) => {
               const dateKey = toDateKey(day);
-              const status = cellStatus(member.id, dateKey);
+              const status = cellStatus(member, dateKey);
+              const beforeJoining = status === "not_applicable";
               return (
                 <button
                   key={dateKey}
                   type="button"
+                  disabled={!canMark || beforeJoining}
+                  aria-label={
+                    beforeJoining
+                      ? `${member.fullName}, ${dateKey}: not yet joined`
+                      : `${member.fullName}, ${dateKey}`
+                  }
                   onClick={() => handleCellClick(member, dateKey)}
                   className={cn(
-                    "flex items-center justify-center border-r border-b py-1.5 transition-colors hover:bg-muted/60",
+                    "flex items-center justify-center border-r border-b py-1.5 transition-colors",
+                    canMark && !beforeJoining
+                      ? "hover:bg-muted/60"
+                      : "cursor-default",
+                    // Struck out rather than merely empty, so a gap before
+                    // someone joined is legible as "not employed yet".
+                    beforeJoining && "bg-muted/30",
                     isToday(day) &&
                       "bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/40 dark:hover:bg-sky-950/70",
                   )}

@@ -22,8 +22,13 @@ export const staffService = {
     return staffRepo.listByProperty(organizationId, viewerUserId);
   },
 
-  findIdByUserId(userId: string) {
-    return staffRepo.findIdByUserId(userId);
+  findByUserId(userId: string) {
+    return staffRepo.findByUserId(userId);
+  },
+
+  async findIdByUserId(userId: string) {
+    const row = await staffRepo.findByUserId(userId);
+    return row?.id;
   },
 
   findById(id: string) {

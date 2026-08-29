@@ -24,9 +24,14 @@ function assertReason(status: string, reason?: string) {
   }
 }
 
+/** The joining day as a yyyy-MM-dd key, comparable with a request's date. */
+function joinedKey(joinedAt: Date) {
+  return joinedAt.toISOString().slice(0, 10);
+}
+
 export const attendanceService = {
-  list({ hqOrganizationId, from, to }: ListAttendanceInput) {
-    return attendanceRepo.listRange(hqOrganizationId, from, to);
+  list({ hqOrganizationId, from, to }: ListAttendanceInput, staffId?: string) {
+    return attendanceRepo.listRange(hqOrganizationId, from, to, staffId);
   },
 
   async mark(input: MarkAttendanceInput, markedByUserId?: string) {
@@ -34,12 +39,15 @@ export const attendanceService = {
 
     // The staff member must belong to the HQ the caller is scoped to;
     // otherwise a valid session could write attendance for someone else's HQ.
-    const allowed = await attendanceRepo.filterStaffInHq(
+    const [member] = await attendanceRepo.findStaffInHq(
       input.hqOrganizationId,
       [input.staffId],
     );
-    if (allowed.length === 0) {
+    if (!member) {
       throw AppError.notFound("Staff member not found");
+    }
+    if (joinedKey(member.joinedAt) > input.date) {
+      throw AppError.validation("That date is before this staff member joined");
     }
 
     await attendanceRepo.mark(input.hqOrganizationId, input, markedByUserId);
@@ -51,18 +59,27 @@ export const attendanceService = {
       assertReason(mark.status, mark.reason);
     }
 
-    const allowed = new Set(
-      await attendanceRepo.filterStaffInHq(
-        input.hqOrganizationId,
-        input.marks.map((m) => m.staffId),
-      ),
+    const members = await attendanceRepo.findStaffInHq(
+      input.hqOrganizationId,
+      input.marks.map((m) => m.staffId),
     );
+    const byId = new Map(members.map((m) => [m.id, m]));
 
     // Silently dropping the rest would report a success that did not happen.
-    const unknown = input.marks.filter((m) => !allowed.has(m.staffId));
+    const unknown = input.marks.filter((m) => !byId.has(m.staffId));
     if (unknown.length > 0) {
       throw AppError.notFound(
         `${unknown.length} staff member(s) are not in this workspace`,
+      );
+    }
+
+    const tooEarly = input.marks.filter((m) => {
+      const member = byId.get(m.staffId);
+      return member ? joinedKey(member.joinedAt) > input.date : false;
+    });
+    if (tooEarly.length > 0) {
+      throw AppError.validation(
+        `${tooEarly.length} staff member(s) had not joined on ${input.date}`,
       );
     }
 

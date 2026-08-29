@@ -76,17 +76,27 @@ export const attendanceRecord = pgTable(
 );
 
 /**
- * Marks a date as taken for an HQ.
+ * Marks one staff member's day as taken.
  *
  * Without this a missing record is ambiguous -- it could mean present, or it
  * could mean nobody has marked that day yet. Recording the day makes the
  * distinction explicit, so an unmarked month reads as empty instead of as
  * perfect attendance.
+ *
+ * This is per staff member, not per HQ. A single flag for the whole
+ * organization would make one person's mark decide what every other person's
+ * empty cell shows -- marking one member absent would silently report everyone
+ * else present for that day.
  */
 export const attendanceDay = pgTable(
   "attendance_day",
   {
     id: text("id").primaryKey(),
+    staffId: text("staff_id")
+      .notNull()
+      .references(() => staff.id, { onDelete: "cascade" }),
+    // Carried for the same reason as on `attendanceRecord`: the month read
+    // filters by HQ and date, and this keeps that a single index scan.
     hqOrganizationId: text("hq_organization_id")
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
@@ -101,7 +111,8 @@ export const attendanceDay = pgTable(
       .notNull(),
   },
   (table) => [
-    uniqueIndex("attendance_day_hqOrganizationId_date_uq").on(
+    uniqueIndex("attendance_day_staffId_date_uq").on(table.staffId, table.date),
+    index("attendance_day_hqOrganizationId_date_idx").on(
       table.hqOrganizationId,
       table.date,
     ),
@@ -123,6 +134,10 @@ export const attendanceRecordRelations = relations(
 );
 
 export const attendanceDayRelations = relations(attendanceDay, ({ one }) => ({
+  staff: one(staff, {
+    fields: [attendanceDay.staffId],
+    references: [staff.id],
+  }),
   hqOrganization: one(organization, {
     fields: [attendanceDay.hqOrganizationId],
     references: [organization.id],
