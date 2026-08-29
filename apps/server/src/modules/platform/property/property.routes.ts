@@ -109,6 +109,17 @@ export const propertyRoutes = createRouter()
 
     return c.json(ok(result));
   })
+  /**
+   * The switcher's list: every property the user may switch into, regardless
+   * of which one is currently active. Scoped to the caller's own memberships,
+   * so it needs no organization parameter and cannot leak another user's
+   * portfolio.
+   */
+  .get("/accessible", async (c) => {
+    const session = c.get("session");
+    const result = await propertyService.listAccessible(session.user.id);
+    return c.json(ok(result));
+  })
   .get("/:slug", requirePermissionTo("property", "read"), async (c) => {
     const slug = c.req.param("slug");
     const result = await propertyService.findBySlug(slug);

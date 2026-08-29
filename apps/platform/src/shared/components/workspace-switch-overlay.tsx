@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from "react";
 
 import {
-  getActiveViewState,
+  getIsSwitching,
   subscribeActiveView,
 } from "@/shared/lib/active-view-store";
 import { LoadingOverlay } from "./loading-overlay";
@@ -12,10 +12,7 @@ import { LoadingOverlay } from "./loading-overlay";
  * the UI shows stale data from the previous workspace until the refetch lands.
  */
 export function WorkspaceSwitchOverlay() {
-  const { isSwitching } = useSyncExternalStore(
-    subscribeActiveView,
-    getActiveViewState,
-  );
+  const isSwitching = useSyncExternalStore(subscribeActiveView, getIsSwitching);
 
   if (!isSwitching) return null;
 

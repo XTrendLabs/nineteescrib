@@ -3,21 +3,32 @@ import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useSyncExternalStore } from "react";
 
 import { authQueryKeys } from "@/features/auth/api/query-keys";
-import { useActiveHq } from "@/features/auth/api/use-cached-organizations";
-import { authClient } from "@/features/auth/lib/auth-client";
 import {
-  getActiveViewState,
-  setHqView,
-  setPropertyView,
+  useActiveHq,
+  useCachedActiveOrganization,
+} from "@/features/auth/api/use-cached-organizations";
+import { authClient } from "@/features/auth/lib/auth-client";
+import type { ActiveView } from "./active-view-store";
+import {
+  getIsSwitching,
   setSwitching,
   subscribeActiveView,
 } from "./active-view-store";
 
 export function useActiveView() {
-  const state = useSyncExternalStore(subscribeActiveView, getActiveViewState);
+  const isSwitching = useSyncExternalStore(subscribeActiveView, getIsSwitching);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
   const { hqs } = useActiveHq();
+  const { data: activeOrganization } = useCachedActiveOrganization();
+
+  // Derived from the session, not remembered locally: an invited staff member
+  // whose only membership is a property must see that property on first load,
+  // before they have touched the switcher.
+  const activeView: ActiveView =
+    activeOrganization && activeOrganization.kind !== "hq"
+      ? { type: "property", propertyId: activeOrganization.id }
+      : { type: "hq" };
 
   /**
    * Selecting a scope sets Better Auth's active organization, which is what
@@ -50,24 +61,23 @@ export function useActiveView() {
       // Falls back to the only HQ when called without one, so callers that
       // just mean "go up a level" keep working.
       const targetId = hqId ?? (hqs?.length === 1 ? hqs[0].id : undefined);
-      setHqView();
       if (targetId) await applyActiveOrganization(targetId);
     },
     [applyActiveOrganization, hqs],
   );
 
   const selectProperty = useCallback(
-    async (propertyId: string, name: string) => {
-      setPropertyView(propertyId, name);
+    async (propertyId: string) => {
       await applyActiveOrganization(propertyId);
     },
     [applyActiveOrganization],
   );
 
   return {
-    activeView: state.activeView,
-    activePropertyName: state.activePropertyName,
-    isSwitching: state.isSwitching,
+    activeView,
+    activePropertyName:
+      activeView.type === "property" ? activeOrganization?.name : undefined,
+    isSwitching,
     selectHq,
     selectProperty,
   };

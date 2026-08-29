@@ -29,7 +29,11 @@ function RouteComponent() {
   const { session } = Route.useRouteContext();
   const navigate = useNavigate();
   const { activeHqId, activeScopeId } = useActiveHq();
-  const { data: propertiesResponse, isLoading } = useProperties(activeScopeId);
+  const {
+    data: propertiesResponse,
+    isPending,
+    isFetching,
+  } = useProperties(activeScopeId);
 
   const [filter, setFilter] = useState("all");
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
@@ -38,8 +42,15 @@ function RouteComponent() {
   });
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
+  // Only claim "no properties" once a response for the *current* scope has
+  // actually landed. Switching properties re-fetches, and an undefined/stale
+  // `data` mid-flight must not be mistaken for an empty portfolio.
   const hasNoProperties =
-    !isLoading && (propertiesResponse?.data.length ?? 0) === 0;
+    Boolean(activeScopeId) &&
+    !isPending &&
+    !isFetching &&
+    propertiesResponse !== undefined &&
+    propertiesResponse.data.length === 0;
 
   const allProperties = useMemo(
     () => resolveDashboardProperties(propertiesResponse?.data),

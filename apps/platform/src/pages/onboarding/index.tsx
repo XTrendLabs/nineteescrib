@@ -1,6 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
+import { needsOnboarding } from "@/features/auth/api/use-cached-organizations";
 import { authClient } from "@/features/auth/lib/auth-client";
 import { useCreateOrganization } from "@/features/onboarding/api/use-create-organization";
 import { useCreateProperty } from "@/features/onboarding/api/use-create-property";
@@ -19,10 +20,15 @@ export const Route = createFileRoute("/onboarding/")({
     }
 
     const { data: organizations } = await authClient.organization.list();
-    const activeOrganization = organizations?.[0];
-    if (activeOrganization?.phoneNumberVerifiedAt) {
+    if (!needsOnboarding(organizations)) {
       throw redirect({ to: "/" });
     }
+
+    // Resume a half-finished HQ rather than any organization the user happens
+    // to belong to.
+    const activeOrganization = organizations?.find(
+      (org) => org.kind === "hq" && !org.phoneNumberVerifiedAt,
+    );
 
     return { activeOrganization };
   },

@@ -22,7 +22,7 @@ export function PlatformSearch({
   onSelectProperty,
 }: {
   onSelectHq: (hqId?: string) => void;
-  onSelectProperty: (propertyId: string, name: string) => void;
+  onSelectProperty: (propertyId: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   // Search within the HQ in scope: the active organization is the selected
@@ -96,7 +96,7 @@ export function PlatformSearch({
                   key={property.id}
                   value={property.name}
                   onSelect={() => {
-                    onSelectProperty(property.id, property.name);
+                    onSelectProperty(property.id);
                     setOpen(false);
                   }}
                 >

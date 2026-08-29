@@ -9,6 +9,7 @@ import { Card, CardContent } from "@propertyos/ui/components/card";
 import { Link } from "@tanstack/react-router";
 import {
   ArrowRightIcon,
+  KeyRoundIcon,
   MailIcon,
   MapPinIcon,
   PencilIcon,
@@ -52,6 +53,12 @@ export function StaffCard({
                 <Badge variant="outline">
                   {STAFF_ROLE_LABEL[normalizeStaffRole(staff.role)]}
                 </Badge>
+                {staff.hasPlatformAccess && (
+                  <Badge variant="outline" className="gap-1">
+                    <KeyRoundIcon className="size-3" />
+                    Platform access
+                  </Badge>
+                )}
                 {staff.status === "pending_invite" && (
                   <Badge variant="outline">Pending</Badge>
                 )}

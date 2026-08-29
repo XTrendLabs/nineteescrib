@@ -2,31 +2,17 @@ export type ActiveView =
   | { type: "hq" }
   | { type: "property"; propertyId: string };
 
-export type ActiveViewState = {
-  activeView: ActiveView;
-  activePropertyName: string | undefined;
-  /**
-   * True while the active organization is being switched. Switching re-scopes
-   * every query on the page, so the app shows an overlay until it settles.
-   */
-  isSwitching: boolean;
-};
-
 type Listener = () => void;
 
-let state: ActiveViewState = {
-  activeView: { type: "hq" },
-  activePropertyName: undefined,
-  isSwitching: false,
-};
+/**
+ * Only the transient switch flag lives here. The selected scope itself is not
+ * stored: it is derived from Better Auth's active organization, so it is
+ * already correct on a fresh login and can never drift from what the server
+ * authorizes against.
+ */
+let isSwitching = false;
 
 const listeners = new Set<Listener>();
-
-function emit() {
-  for (const listener of listeners) {
-    listener();
-  }
-}
 
 export function subscribeActiveView(listener: Listener) {
   listeners.add(listener);
@@ -35,30 +21,14 @@ export function subscribeActiveView(listener: Listener) {
   };
 }
 
-export function getActiveViewState() {
-  return state;
+export function getIsSwitching() {
+  return isSwitching;
 }
 
-export function setHqView() {
-  state = {
-    ...state,
-    activeView: { type: "hq" },
-    activePropertyName: undefined,
-  };
-  emit();
-}
-
-export function setPropertyView(propertyId: string, name: string) {
-  state = {
-    ...state,
-    activeView: { type: "property", propertyId },
-    activePropertyName: name,
-  };
-  emit();
-}
-
-export function setSwitching(isSwitching: boolean) {
-  if (state.isSwitching === isSwitching) return;
-  state = { ...state, isSwitching };
-  emit();
+export function setSwitching(next: boolean) {
+  if (isSwitching === next) return;
+  isSwitching = next;
+  for (const listener of listeners) {
+    listener();
+  }
 }

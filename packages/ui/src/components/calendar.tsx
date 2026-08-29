@@ -22,16 +22,19 @@ function Calendar({
       showOutsideDays={showOutsideDays}
       className={cn(
         "group/calendar bg-background p-3 [--cell-size:--spacing(8)]",
+        String.raw`rtl:**:[.rdp-button\_next>svg]:rotate-180`,
+        String.raw`rtl:**:[.rdp-button\_previous>svg]:rotate-180`,
         className,
       )}
       captionLayout={captionLayout}
+      data-caption-layout={captionLayout}
       formatters={{
         formatMonthDropdown: (date) =>
           date.toLocaleString("default", { month: "short" }),
         ...formatters,
       }}
       classNames={{
-        root: cn("w-fit", defaultClassNames.root),
+        root: cn("w-full", defaultClassNames.root),
         months: cn(
           "relative flex flex-col gap-4 md:flex-row",
           defaultClassNames.months,
@@ -55,9 +58,25 @@ function Calendar({
           "flex h-(--cell-size) w-full items-center justify-center px-(--cell-size)",
           defaultClassNames.month_caption,
         ),
+        weeks: cn("w-full", defaultClassNames.weeks),
         caption_label: cn(
           "select-none font-medium text-sm",
+          // With dropdown navigation the label sits over a native <select>,
+          // so it has to look like the control the user is clicking.
+          "group-data-[caption-layout=dropdown]/calendar:flex group-data-[caption-layout=dropdown]/calendar:h-8 group-data-[caption-layout=dropdown]/calendar:items-center group-data-[caption-layout=dropdown]/calendar:gap-1 group-data-[caption-layout=dropdown]/calendar:rounded-md group-data-[caption-layout=dropdown]/calendar:pr-1 group-data-[caption-layout=dropdown]/calendar:pl-2 group-data-[caption-layout=dropdown]/calendar:[&>svg]:size-3.5 group-data-[caption-layout=dropdown]/calendar:[&>svg]:text-muted-foreground",
           defaultClassNames.caption_label,
+        ),
+        dropdowns: cn(
+          "flex h-(--cell-size) w-full items-center justify-center gap-1.5 text-sm",
+          defaultClassNames.dropdowns,
+        ),
+        dropdown_root: cn(
+          "relative rounded-md border border-input shadow-xs has-focus:border-ring has-focus:ring-[3px] has-focus:ring-ring/50",
+          defaultClassNames.dropdown_root,
+        ),
+        dropdown: cn(
+          "absolute inset-0 bg-popover opacity-0",
+          defaultClassNames.dropdown,
         ),
         month_grid: cn("w-full border-collapse", defaultClassNames.month_grid),
         weekdays: cn("flex", defaultClassNames.weekdays),

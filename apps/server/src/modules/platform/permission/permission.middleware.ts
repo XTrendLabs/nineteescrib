@@ -121,15 +121,32 @@ export async function assertRoomInScope(
   await assertInScope(c, organizationId);
 }
 
-/** `assertInScope` for a staff member, resolved through their HQ. */
+/**
+ * `assertInScope` for a staff member, resolved through their HQ.
+ *
+ * The lookup carries the parent too, so the common "is this within my HQ"
+ * check needs no follow-up query.
+ */
 export async function assertStaffInScope(
   c: Parameters<Parameters<typeof createMiddleware<AppEnv>>[0]>[0],
   staffId: string,
 ) {
-  const organizationId =
-    await permissionRepo.findOrganizationIdByStaff(staffId);
-  if (!organizationId) {
+  const scope = await permissionRepo.findStaffScope(staffId);
+  if (!scope) {
     throw AppError.notFound("Staff member not found");
   }
-  await assertInScope(c, organizationId);
+
+  const access = c.get("access");
+  if (!access) {
+    throw AppError.forbidden("You do not have access to this workspace");
+  }
+
+  if (
+    scope.organizationId === access.organization.id ||
+    scope.parentOrganizationId === access.organization.id
+  ) {
+    return;
+  }
+
+  throw AppError.forbidden("That is outside your current workspace");
 }

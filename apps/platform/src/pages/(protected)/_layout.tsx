@@ -17,6 +17,7 @@ import {
   fetchActiveOrganization,
   fetchOrganizationList,
   getActiveOrganizationId,
+  needsOnboarding,
   useActiveHq,
 } from "@/features/auth/api/use-cached-organizations";
 import {
@@ -46,8 +47,10 @@ export const Route = createFileRoute("/(protected)")({
       queryFn: fetchOrganizationList,
       staleTime: SESSION_STALE_TIME,
     });
-    const activeOrganization = organizations?.[0];
-    if (!activeOrganization?.phoneNumberVerifiedAt) {
+    // Onboarding exists to set up an HQ. Someone invited into an existing
+    // property already belongs somewhere, so sending them through it would
+    // strand them -- only an owner with an unverified HQ needs it.
+    if (needsOnboarding(organizations)) {
       throw redirect({
         to: "/onboarding",
       });
@@ -72,11 +75,13 @@ function ProtectedLayout() {
     useActiveView();
   // New properties always hang off the HQ in scope, never off whichever
   // property happens to be active.
-  const { activeHqId } = useActiveHq();
+  const { activeHqId, activeHq } = useActiveHq();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   const title =
-    activeView.type === "hq" ? "HQ" : (activePropertyName ?? "Property");
+    activeView.type === "hq"
+      ? (activeHq?.name ?? "HQ")
+      : (activePropertyName ?? "Property");
 
   return (
     <SidebarProvider>

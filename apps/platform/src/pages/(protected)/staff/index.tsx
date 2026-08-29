@@ -22,7 +22,9 @@ import { StaffDirectory } from "@/features/staff/components/staff-directory";
 import { StaffPageHeader } from "@/features/staff/components/staff-page-header";
 import { buildStaffMembers, MOCK_ROLES } from "@/features/staff/lib/mock-data";
 import type { Staff } from "@/features/staff/lib/staff";
+import { ConfirmDialog } from "@/shared/components/confirm-dialog";
 import { api } from "@/shared/lib/api-client";
+import { getApiErrorMessage } from "@/shared/lib/api-error";
 
 export const Route = createFileRoute("/(protected)/staff/")({
   component: RouteComponent,
@@ -37,6 +39,9 @@ function RouteComponent() {
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingStaff, setEditingStaff] = useState<Staff | undefined>(
+    undefined,
+  );
+  const [staffToDelete, setStaffToDelete] = useState<Staff | undefined>(
     undefined,
   );
   const deleteStaff = useDeleteStaff();
@@ -54,7 +59,10 @@ function RouteComponent() {
     setDialogOpen(true);
   }
 
-  function handleDelete(member: Staff) {
+  function handleDelete() {
+    if (!staffToDelete) return;
+    const member = staffToDelete;
+
     deleteStaff.mutate(
       { param: { id: member.id } },
       {
@@ -62,15 +70,19 @@ function RouteComponent() {
           api.api.platform.staff.$get.invalidate({
             query: { hqOrganizationId: hqOrganizationId ?? "" },
           });
+          setStaffToDelete(undefined);
           feedback.success(
             "Staff removed",
             `${member.fullName} has been deleted.`,
           );
         },
-        onError: () => {
+        onError: (error) => {
           feedback.error(
             "Couldn't delete staff member",
-            "Something went wrong. Please try again.",
+            getApiErrorMessage(
+              error,
+              "Something went wrong. Please try again.",
+            ),
           );
         },
       },
@@ -106,7 +118,7 @@ function RouteComponent() {
             isLoading={isLoading}
             onAddClick={openCreate}
             onEdit={openEdit}
-            onDelete={handleDelete}
+            onDelete={setStaffToDelete}
           />
         </TabsPanel>
 
@@ -141,6 +153,19 @@ function RouteComponent() {
           staff={editingStaff}
         />
       )}
+
+      <ConfirmDialog
+        open={Boolean(staffToDelete)}
+        onOpenChange={(open) => {
+          if (!open) setStaffToDelete(undefined);
+        }}
+        title={`Remove ${staffToDelete?.fullName ?? "staff member"}?`}
+        description="This permanently removes the staff member and their property assignments. This cannot be undone."
+        confirmLabel="Remove"
+        loadingLabel="Removing…"
+        loading={deleteStaff.isPending}
+        onConfirm={handleDelete}
+      />
     </motion.div>
   );
 }

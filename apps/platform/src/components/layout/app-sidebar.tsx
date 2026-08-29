@@ -21,7 +21,7 @@ export function AppSidebar({
 }: ComponentProps<typeof Sidebar> & {
   activeView: { type: "hq" } | { type: "property"; propertyId: string };
   onSelectHq: (hqId?: string) => void;
-  onSelectProperty: (propertyId: string, name: string) => void;
+  onSelectProperty: (propertyId: string) => void;
   onAddProperty: () => void;
 }) {
   return (

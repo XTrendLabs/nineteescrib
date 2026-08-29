@@ -19,6 +19,19 @@ const pool = new Pool({
 
 export const db = drizzle(pool, { schema });
 
+/**
+ * Open a few connections up front. The pool is lazy, so without this the first
+ * concurrent request of the process pays a ~300ms TLS handshake per connection
+ * -- which costs more than the round-trip it was trying to overlap.
+ */
+export async function warmPool(connections = 4) {
+  await Promise.all(
+    Array.from({ length: connections }, () =>
+      pool.query("select 1").catch(() => undefined),
+    ),
+  );
+}
+
 /** @deprecated Import `db` instead -- this returns the shared instance. */
 export function createDb() {
   return db;

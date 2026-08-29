@@ -8,6 +8,7 @@ import {
 } from "@propertyos/ui/components/breadcrumb";
 import { Link, useRouterState } from "@tanstack/react-router";
 import { settingsNavGroups } from "@/features/settings/lib/nav";
+import { useBreadcrumbLabels } from "@/shared/lib/breadcrumb-label";
 import { navMainGroups } from "./nav-data";
 
 const TITLE_BY_URL = new Map(
@@ -26,7 +27,11 @@ type Crumb = {
   url: string;
 };
 
-function buildCrumbs(pathname: string, hqLabel: string): Crumb[] {
+function buildCrumbs(
+  pathname: string,
+  hqLabel: string,
+  dynamicLabels: Record<string, string>,
+): Crumb[] {
   const crumbs: Crumb[] = [{ label: hqLabel, url: "/" }];
 
   if (pathname === "/") {
@@ -37,7 +42,10 @@ function buildCrumbs(pathname: string, hqLabel: string): Crumb[] {
   let url = "";
   for (const segment of segments) {
     url += `/${segment}`;
-    const label = TITLE_BY_URL.get(url) ?? toTitleCase(segment);
+    // A dynamic segment carries an id, which is meaningless to read -- prefer
+    // the name the page registered for it.
+    const label =
+      TITLE_BY_URL.get(url) ?? dynamicLabels[segment] ?? toTitleCase(segment);
     crumbs.push({ label, url });
   }
 
@@ -53,7 +61,8 @@ function toTitleCase(segment: string) {
 
 export function HeaderBreadcrumb({ hqLabel }: { hqLabel: string }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const crumbs = buildCrumbs(pathname, hqLabel);
+  const dynamicLabels = useBreadcrumbLabels();
+  const crumbs = buildCrumbs(pathname, hqLabel, dynamicLabels);
 
   return (
     <Breadcrumb>

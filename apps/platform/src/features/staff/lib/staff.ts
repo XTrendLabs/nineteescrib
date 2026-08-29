@@ -64,6 +64,8 @@ export type Staff = {
   joinedAt: string;
   createdAt: string;
   updatedAt: string;
+  /** True when the member has a login account for the platform. */
+  hasPlatformAccess: boolean;
   properties: StaffProperty[];
 };
 

@@ -43,7 +43,7 @@ export const navMainGroups: NavMainGroup[] = [
   {
     label: "Management",
     items: [
-      { title: "Staff", url: "/staff", icon: UsersIcon, soon: true },
+      { title: "Staff", url: "/staff", icon: UsersIcon },
       {
         title: "Properties",
         url: "/properties",

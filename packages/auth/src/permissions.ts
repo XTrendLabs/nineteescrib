@@ -42,14 +42,17 @@ export const owner = ac.newRole({
 });
 
 /**
- * Runs the day-to-day operation of a property: rooms, rates, bookings and
- * staff. Cannot delete the property itself or change its financial setup.
+ * Runs the day-to-day operation of a property: rooms, rates and bookings.
+ * Cannot delete the property itself or change its financial setup.
+ *
+ * Managing staff -- hiring, editing, assigning properties -- is the owner's
+ * alone, so this role only reads the directory.
  */
 export const propertyManager = ac.newRole({
   ...adminAc.statements,
   property: ["read", "update"],
   room: ["create", "read", "update", "delete"],
-  staff: ["create", "read", "update"],
+  staff: ["read"],
   booking: ["create", "read", "update", "cancel"],
   rate: ["read", "update"],
   finance: ["read"],

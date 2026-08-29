@@ -14,6 +14,11 @@ export const propertyService = {
     return propertyRepo.listSelf(organizationId);
   },
 
+  /** Properties the user may switch into; see `propertyRepo.listAccessible`. */
+  listAccessible(userId: string) {
+    return propertyRepo.listAccessible(userId);
+  },
+
   findBySlug(slug: string) {
     return propertyRepo.findBySlug(slug);
   },

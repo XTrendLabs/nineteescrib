@@ -43,6 +43,29 @@ function organizationKind(org: { kind?: string | null }): OrganizationKind {
 }
 
 /**
+ * Onboarding creates an HQ and its first property, so it only applies to a
+ * user who has no organization at all, or an HQ that never finished setup.
+ *
+ * A staff member invited into an existing property must skip it: they own no
+ * HQ, and completing onboarding would create a second, unrelated one.
+ */
+export function needsOnboarding(
+  organizations:
+    | { kind?: string | null; phoneNumberVerifiedAt?: unknown }[]
+    | null
+    | undefined,
+) {
+  if (!organizations || organizations.length === 0) return true;
+
+  const hqs = organizations.filter((org) => organizationKind(org) === "hq");
+
+  // Belongs only to properties -- an invited member, nothing to set up.
+  if (hqs.length === 0) return false;
+
+  return hqs.every((hq) => !hq.phoneNumberVerifiedAt);
+}
+
+/**
  * The user's HQ organizations. `organization.list()` returns every membership,
  * which under this model mixes HQs and individual properties together.
  */

@@ -61,22 +61,31 @@ export const permissionRepo = {
     return Boolean(row);
   },
 
+  /**
+   * The HQ a staff member belongs to, together with its parent, so a scope
+   * check needs one round-trip instead of a resolve followed by `isChildOf`.
+   * Every round-trip to a remote database costs ~300ms, so the count matters
+   * far more than the cost of any individual query.
+   */
+  async findStaffScope(staffId: string) {
+    const [row] = await db
+      .select({
+        organizationId: staff.hqOrganizationId,
+        parentOrganizationId: organization.parentOrganizationId,
+      })
+      .from(staff)
+      .innerJoin(organization, eq(organization.id, staff.hqOrganizationId))
+      .where(eq(staff.id, staffId))
+      .limit(1);
+    return row;
+  },
+
   /** The organization (property) a room belongs to. */
   async findOrganizationIdByRoom(roomId: string) {
     const [row] = await db
       .select({ organizationId: room.organizationId })
       .from(room)
       .where(eq(room.id, roomId))
-      .limit(1);
-    return row?.organizationId;
-  },
-
-  /** The HQ a staff member is hired at. */
-  async findOrganizationIdByStaff(staffId: string) {
-    const [row] = await db
-      .select({ organizationId: staff.hqOrganizationId })
-      .from(staff)
-      .where(eq(staff.id, staffId))
       .limit(1);
     return row?.organizationId;
   },

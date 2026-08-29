@@ -7,7 +7,11 @@ import {
   requirePermissionTo,
 } from "../permission/permission.middleware";
 import { requireSubscription } from "../subscription/subscription.middleware";
-import { createStaffSchema, updateStaffSchema } from "./staff.schema";
+import {
+  createStaffSchema,
+  updateStaffPropertiesSchema,
+  updateStaffSchema,
+} from "./staff.schema";
 import { staffService } from "./staff.service";
 
 export const staffRoutes = createRouter()
@@ -56,6 +60,24 @@ export const staffRoutes = createRouter()
       const result = await staffService.update(
         c.req.param("id"),
         c.req.valid("json"),
+      );
+      if (!result) {
+        throw AppError.notFound("Staff member not found");
+      }
+
+      return c.json(ok(result));
+    },
+  )
+  .put(
+    "/:id/properties",
+    requirePermissionTo("staff", "update"),
+    zValidator("json", updateStaffPropertiesSchema),
+    async (c) => {
+      await assertStaffInScope(c, c.req.param("id"));
+
+      const result = await staffService.setProperties(
+        c.req.param("id"),
+        c.req.valid("json").propertyIds,
       );
       if (!result) {
         throw AppError.notFound("Staff member not found");

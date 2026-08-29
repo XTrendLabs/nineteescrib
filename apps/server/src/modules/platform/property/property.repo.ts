@@ -1,8 +1,8 @@
 import { createDb } from "@propertyos/db";
-import { organization } from "@propertyos/db/schema/organization";
+import { member, organization } from "@propertyos/db/schema/organization";
 import { propertyDetails, propertyRule } from "@propertyos/db/schema/property";
 import { room } from "@propertyos/db/schema/room";
-import { and, eq, like, sql } from "drizzle-orm";
+import { and, eq, inArray, like, or, sql } from "drizzle-orm";
 import slugify from "slugify";
 
 const db = createDb();
@@ -93,6 +93,49 @@ export const propertyRepo = {
         eq(organization.id, propertyDetails.organizationId),
       )
       .where(eq(organization.parentOrganizationId, hqOrganizationId))
+      .orderBy(propertyDetails.createdAt);
+  },
+
+  /**
+   * Every property the user can switch into, for the workspace switcher.
+   *
+   * This is a *navigation* list, deliberately independent of the active
+   * organization: it stays the same whether the user is scoped to their HQ or
+   * to one property, so switching away from HQ does not strand them. A
+   * property qualifies when the user is a direct member of it, or when it sits
+   * under an HQ the user belongs to (an HQ membership covers its properties).
+   * Authorization for actions still comes from the active scope, not this.
+   */
+  async listAccessible(userId: string) {
+    const memberships = await db
+      .select({ organizationId: member.organizationId })
+      .from(member)
+      .where(eq(member.userId, userId));
+
+    const organizationIds = memberships.map((m) => m.organizationId);
+    if (organizationIds.length === 0) return [];
+
+    return db
+      .select({
+        id: organization.id,
+        name: organization.name,
+        slug: organization.slug,
+        parentOrganizationId: organization.parentOrganizationId,
+        propertyType: propertyDetails.propertyType,
+        city: propertyDetails.city,
+        status: propertyDetails.status,
+      })
+      .from(propertyDetails)
+      .innerJoin(
+        organization,
+        eq(organization.id, propertyDetails.organizationId),
+      )
+      .where(
+        or(
+          inArray(organization.id, organizationIds),
+          inArray(organization.parentOrganizationId, organizationIds),
+        ),
+      )
       .orderBy(propertyDetails.createdAt);
   },
 

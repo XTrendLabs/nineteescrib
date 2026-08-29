@@ -123,10 +123,10 @@ export function StaffDirectory({
             ))}
           </SelectContent>
         </Select>
-        <Button onClick={onAddClick}>
+        {/* <Button onClick={onAddClick}>
           <PlusIcon />
           Add Staff
-        </Button>
+        </Button> */}
       </div>
 
       {isLoading ? (

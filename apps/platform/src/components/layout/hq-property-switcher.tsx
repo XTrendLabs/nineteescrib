@@ -19,8 +19,11 @@ import {
   LayoutGridIcon,
   PlusIcon,
 } from "lucide-react";
-import { useActiveHq } from "@/features/auth/api/use-cached-organizations";
-import { useProperties } from "@/features/properties/api/use-properties";
+import {
+  useActiveHq,
+  useCachedActiveOrganization,
+} from "@/features/auth/api/use-cached-organizations";
+import { useAccessibleProperties } from "@/features/properties/api/use-accessible-properties";
 
 export function HqPropertySwitcher({
   activeView,
@@ -30,25 +33,26 @@ export function HqPropertySwitcher({
 }: {
   activeView: { type: "hq" } | { type: "property"; propertyId: string };
   onSelectHq: (hqId: string) => void;
-  onSelectProperty: (propertyId: string, name: string) => void;
+  onSelectProperty: (propertyId: string) => void;
   onAddProperty: () => void;
 }) {
   const { isMobile } = useSidebar();
-  // Properties always come from the HQ in scope: the active organization
-  // becomes the property itself once one is selected, and a property has no
-  // children of its own to list.
-  const { hqs, activeHqId, activeScopeId, activeHq } = useActiveHq();
-  const { data: properties } = useProperties(activeScopeId);
-
-  const activeProperty =
-    activeView.type === "property"
-      ? properties?.data?.find((p) => p.id === activeView.propertyId)
-      : undefined;
+  // The switcher lists what the user can switch *into*, so it is keyed to
+  // their memberships rather than the active organization -- scoping it to the
+  // active org made the list collapse to a single entry once a property was
+  // selected, stranding the user there.
+  const { hqs, activeHqId, activeHq } = useActiveHq();
+  const { data: properties, isPending: isLoadingProperties } =
+    useAccessibleProperties();
+  // The active organization carries its own name, so the label is right on the
+  // first paint -- looking it up in the property list would read "Property"
+  // until that request lands, and stay wrong for a member who cannot list it.
+  const { data: activeOrganization } = useCachedActiveOrganization();
 
   const label =
     activeView.type === "hq"
       ? (activeHq?.name ?? "HQ")
-      : (activeProperty?.name ?? "Property");
+      : (activeOrganization?.name ?? "Property");
   const description =
     activeView.type === "hq"
       ? "All properties"
@@ -126,7 +130,7 @@ export function HqPropertySwitcher({
                         activeView.propertyId === property.id &&
                         "bg-white/90 text-black",
                     )}
-                    onClick={() => onSelectProperty(property.id, property.name)}
+                    onClick={() => onSelectProperty(property.id)}
                   >
                     <div className="flex size-6 items-center justify-center rounded-md border">
                       <Building2Icon className="size-3.5" />
@@ -134,6 +138,10 @@ export function HqPropertySwitcher({
                     <div className="truncate">{property.name}</div>
                   </DropdownMenuItem>
                 ))
+              ) : isLoadingProperties ? (
+                <div className="px-4 py-2 text-muted-foreground text-xs">
+                  Loading properties...
+                </div>
               ) : (
                 <div className="px-4 py-2 text-muted-foreground text-xs">
                   No properties yet

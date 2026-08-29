@@ -7,6 +7,7 @@ import {
   timestamp,
 } from "drizzle-orm/pg-core";
 
+import { user } from "./auth";
 import { organization } from "./organization";
 
 export const staffRoleValues = [
@@ -33,6 +34,9 @@ export const staff = pgTable(
     hqOrganizationId: text("hq_organization_id")
       .notNull()
       .references(() => organization.id, { onDelete: "cascade" }),
+    // Set when the staff member is given platform access: the login account
+    // created for them. Null for staff who only exist as a record.
+    userId: text("user_id").references(() => user.id, { onDelete: "set null" }),
     fullName: text("full_name").notNull(),
     phone: text("phone").notNull(),
     email: text("email"),

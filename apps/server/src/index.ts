@@ -1,4 +1,5 @@
 import { auth } from "@propertyos/auth";
+import { warmPool } from "@propertyos/db";
 import { env } from "@propertyos/env/server";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
@@ -35,6 +36,9 @@ app.get("/", (c) => {
 export type AppType = typeof routes;
 
 const port = process.env.PORT || 3000;
+
+// Open connections before the first request instead of during it.
+void warmPool();
 
 console.log(`Server is running on http://0.0.0.0:${port}`);
 
