@@ -1,14 +1,14 @@
 /**
  * Structured mock data for the Staff Management feature.
  *
- * No staff_profiles/attendance/roles tables exist in the schema yet (per
- * docs/staff_design.md — this page is a pure UI shell), so staff members,
- * attendance history, roles, and permissions are all generated here.
+ * Staff and attendance are now backed by real tables; what remains here is
+ * the demo roster the Attendance preview runs on, plus the role and permission
+ * definitions, which have no tables yet.
  * Determinism follows calendar/hq-dashboard's seeded-hash approach — no
  * Math.random anywhere, so re-renders never cause data to jump around.
  */
 
-import { addDays, startOfMonth } from "date-fns";
+import { addDays } from "date-fns";
 
 /** Deterministic pseudo-random in [0, 1) seeded by a string. */
 function seededRandom(seed: string): () => number {
@@ -34,18 +34,21 @@ export const ROLE_LABELS: Record<StaffRole, string> = {
 
 export type AttendanceStatus = "present" | "absent" | "on_leave" | "half_day";
 
-export const ATTENDANCE_LABELS: Record<AttendanceStatus, string> = {
+export const ATTENDANCE_LABELS: Record<AttendanceCellStatus, string> = {
   present: "Present",
   absent: "Absent",
   on_leave: "On Leave",
   half_day: "Half Day",
+  unmarked: "Not Marked",
 };
 
-export const ATTENDANCE_CYCLE: AttendanceStatus[] = [
+/** Legend order: the storable statuses, then the empty state. */
+export const ATTENDANCE_CYCLE: AttendanceCellStatus[] = [
   "present",
   "absent",
   "on_leave",
   "half_day",
+  "unmarked",
 ];
 
 export type MockProperty = {
@@ -353,51 +356,22 @@ export function buildStaffMembers(): StaffMember[] {
   });
 }
 
+/** One stored attendance exception, as returned by the API. */
 export type AttendanceRecord = {
   staffId: string;
   date: string; // yyyy-MM-dd
   status: AttendanceStatus;
-  reason?: string;
+  reason?: string | null;
+  organizationId?: string | null;
 };
 
-/** Generates a deterministic attendance grid for every staff member across a month. */
-export function buildAttendanceForMonth(
-  staff: StaffMember[],
-  monthAnchor: Date,
-): AttendanceRecord[] {
-  const records: AttendanceRecord[] = [];
-  const monthStart = startOfMonth(monthAnchor);
-  const daysInMonth = new Date(
-    monthAnchor.getFullYear(),
-    monthAnchor.getMonth() + 1,
-    0,
-  ).getDate();
-
-  for (const member of staff) {
-    const rand = seededRandom(
-      `attendance-${member.id}-${monthAnchor.getFullYear()}-${monthAnchor.getMonth()}`,
-    );
-    for (let d = 0; d < daysInMonth; d++) {
-      const date = addDays(monthStart, d);
-      const roll = rand();
-      let status: AttendanceStatus = "present";
-      if (roll < 0.08) {
-        status = "absent";
-      } else if (roll < 0.14) {
-        status = "on_leave";
-      } else if (roll < 0.2) {
-        status = "half_day";
-      }
-      records.push({
-        staffId: member.id,
-        date: date.toISOString().slice(0, 10),
-        status,
-      });
-    }
-  }
-
-  return records;
-}
+/**
+ * What a matrix cell can show. Attendance is stored as exceptions, so a cell
+ * with no record is "present" on a day that was taken and "unmarked" on a day
+ * that was not -- the latter is not a storable status, only a rendering of
+ * absent data.
+ */
+export type AttendanceCellStatus = AttendanceStatus | "unmarked";
 
 export type PermissionModule =
   | "calendar"

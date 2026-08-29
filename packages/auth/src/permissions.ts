@@ -17,6 +17,7 @@ export const statement = {
   property: ["create", "read", "update", "delete"],
   room: ["create", "read", "update", "delete"],
   staff: ["create", "read", "update", "delete"],
+  attendance: ["create", "read", "update"],
   booking: ["create", "read", "update", "cancel"],
   rate: ["read", "update"],
   finance: ["read", "update"],
@@ -35,6 +36,7 @@ export const owner = ac.newRole({
   property: ["create", "read", "update", "delete"],
   room: ["create", "read", "update", "delete"],
   staff: ["create", "read", "update", "delete"],
+  attendance: ["create", "read", "update"],
   booking: ["create", "read", "update", "cancel"],
   rate: ["read", "update"],
   finance: ["read", "update"],
@@ -46,13 +48,16 @@ export const owner = ac.newRole({
  * Cannot delete the property itself or change its financial setup.
  *
  * Managing staff -- hiring, editing, assigning properties -- is the owner's
- * alone, so this role only reads the directory.
+ * alone, so this role only reads the directory. Marking attendance is the
+ * exception: it is a daily operational task, so it sits with whoever runs the
+ * property rather than with the owner.
  */
 export const propertyManager = ac.newRole({
   ...adminAc.statements,
   property: ["read", "update"],
   room: ["create", "read", "update", "delete"],
   staff: ["read"],
+  attendance: ["create", "read", "update"],
   booking: ["create", "read", "update", "cancel"],
   rate: ["read", "update"],
   finance: ["read"],
@@ -67,6 +72,7 @@ export const staffRole = ac.newRole({
   property: ["read"],
   room: ["read", "update"],
   staff: ["read"],
+  attendance: ["read"],
   booking: ["create", "read", "update"],
   rate: ["read"],
   report: [],

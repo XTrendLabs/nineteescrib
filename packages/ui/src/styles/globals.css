@@ -187,7 +187,9 @@
      --content-inset covers the layout's p-4 plus the page's own p-4. */
   .max-w-content {
     max-width: calc(
-      100vw - var(--sidebar-gutter, 0rem) - var(--content-inset, 4rem)
+      100vw -
+      var(--sidebar-gutter, 0rem) -
+      var(--content-inset, 4rem)
     );
   }
 

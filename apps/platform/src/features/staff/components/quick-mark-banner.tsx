@@ -12,15 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@propertyos/ui/components/select";
-import { useFeedback } from "@propertyos/ui/lib/use-feedback";
 import { ChevronDownIcon } from "lucide-react";
 import { useState } from "react";
 import { getInitials } from "../lib/format";
-import {
-  ATTENDANCE_LABELS,
-  type AttendanceStatus,
-  type StaffMember,
-} from "../lib/mock-data";
+import { ATTENDANCE_LABELS, type AttendanceStatus } from "../lib/mock-data";
+
+type QuickMarkStaff = { id: string; fullName: string };
 
 const QUICK_STATUSES: AttendanceStatus[] = [
   "present",
@@ -31,16 +28,35 @@ const QUICK_STATUSES: AttendanceStatus[] = [
 
 export function QuickMarkBanner({
   staff,
+  alreadyMarked,
+  pending,
   onSubmit,
 }: {
-  staff: StaffMember[];
+  staff: QuickMarkStaff[];
+  /** Whether today's roster has already been taken. */
+  alreadyMarked?: boolean;
+  pending?: boolean;
   onSubmit: (marks: Record<string, AttendanceStatus>) => void;
 }) {
-  const feedback = useFeedback();
   const [open, setOpen] = useState(false);
-  const [marks, setMarks] = useState<Record<string, AttendanceStatus>>(() =>
-    Object.fromEntries(staff.map((s) => [s.id, "present" as AttendanceStatus])),
-  );
+  const [marks, setMarks] = useState<Record<string, AttendanceStatus>>({});
+
+  // Staff arrive asynchronously and the property filter changes who is
+  // listed, so the defaults are reconciled rather than seeded once.
+  const staffKey = staff.map((s) => s.id).join(",");
+  const [seededFor, setSeededFor] = useState(staffKey);
+  if (staffKey !== seededFor) {
+    setSeededFor(staffKey);
+    setMarks((prev) =>
+      Object.fromEntries(
+        staff.map((s) => [s.id, prev[s.id] ?? ("present" as AttendanceStatus)]),
+      ),
+    );
+  }
+
+  if (staff.length === 0) {
+    return null;
+  }
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
@@ -56,7 +72,9 @@ export function QuickMarkBanner({
           <div className="flex min-w-0 flex-col gap-0.5">
             <span className="font-medium text-sm">Mark Today's Attendance</span>
             <span className="text-muted-foreground text-xs">
-              Quick-mark all staff for today, defaults to Present.
+              {alreadyMarked
+                ? "Today has been marked. Submitting again updates it."
+                : "Quick-mark all staff for today, defaults to Present."}
             </span>
           </div>
           <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground transition-transform group-aria-expanded:rotate-180" />
@@ -76,7 +94,7 @@ export function QuickMarkBanner({
                     <span className="truncate">{member.fullName}</span>
                   </span>
                   <Select
-                    value={marks[member.id]}
+                    value={marks[member.id] ?? "present"}
                     onValueChange={(value) =>
                       setMarks((prev) => ({
                         ...prev,
@@ -100,16 +118,17 @@ export function QuickMarkBanner({
             </div>
             <Button
               className="self-end"
+              disabled={pending}
               onClick={() => {
-                onSubmit(marks);
-                feedback.success(
-                  "Attendance submitted",
-                  `Recorded today's status for ${staff.length} staff members.`,
+                onSubmit(
+                  Object.fromEntries(
+                    staff.map((s) => [s.id, marks[s.id] ?? "present"]),
+                  ),
                 );
                 setOpen(false);
               }}
             >
-              Submit
+              {pending ? "Submitting…" : "Submit"}
             </Button>
           </CardContent>
         </CollapsibleContent>

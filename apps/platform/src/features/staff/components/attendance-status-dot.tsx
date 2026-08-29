@@ -1,11 +1,14 @@
 import { cn } from "@propertyos/ui/lib/utils";
-import type { AttendanceStatus } from "../lib/mock-data";
+import type { AttendanceCellStatus } from "../lib/mock-data";
 import { ATTENDANCE_LABELS } from "../lib/mock-data";
 
-const SOLID_CLASS: Partial<Record<AttendanceStatus, string>> = {
+const SOLID_CLASS: Partial<Record<AttendanceCellStatus, string>> = {
   present: "bg-emerald-500",
   absent: "bg-red-500",
   on_leave: "bg-amber-500",
+  // A day nobody has taken yet reads as an empty outline, so an unmarked
+  // month is visibly blank instead of looking like perfect attendance.
+  unmarked: "border border-muted-foreground/30 bg-transparent",
 };
 
 export function AttendanceStatusDot({
@@ -13,7 +16,7 @@ export function AttendanceStatusDot({
   className,
   showLabel,
 }: {
-  status: AttendanceStatus;
+  status: AttendanceCellStatus;
   className?: string;
   showLabel?: boolean;
 }) {

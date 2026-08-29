@@ -1,9 +1,23 @@
 import { cn } from "@propertyos/ui/lib/utils";
 import { format, isToday } from "date-fns";
+import { toDateKey } from "../lib/attendance-date";
 import { getInitials } from "../lib/format";
-import type { AttendanceRecord, StaffMember } from "../lib/mock-data";
+import type {
+  AttendanceCellStatus,
+  AttendanceRecord,
+  AttendanceStatus,
+} from "../lib/mock-data";
 import { useAttendanceMark } from "../lib/use-attendance-mark";
 import { AttendanceStatusDot } from "./attendance-status-dot";
+
+export type MarkInput = {
+  staffId: string;
+  date: string;
+  status: AttendanceStatus;
+  reason?: string;
+};
+
+type MatrixStaff = { id: string; fullName: string };
 
 const CELL_WIDTH = 36;
 const LABEL_WIDTH = 176;
@@ -12,12 +26,17 @@ export function AttendanceMatrix({
   staff,
   days,
   records,
-  onRecordsChange,
+  markedDays,
+  isLoading,
+  onMark,
 }: {
-  staff: StaffMember[];
+  staff: MatrixStaff[];
   days: Date[];
   records: AttendanceRecord[];
-  onRecordsChange: (next: AttendanceRecord[]) => void;
+  /** Dates the roster has actually been taken on, as yyyy-MM-dd. */
+  markedDays: Set<string>;
+  isLoading?: boolean;
+  onMark: (input: MarkInput) => void;
 }) {
   const attendanceMark = useAttendanceMark();
 
@@ -26,37 +45,47 @@ export function AttendanceMatrix({
     recordMap.set(`${record.staffId}|${record.date}`, record);
   }
 
-  function handleCellClick(member: StaffMember, dateKey: string) {
+  /**
+   * Only exceptions are stored, so a cell with no record means present on a
+   * day that was taken and unmarked on a day that was not.
+   */
+  function cellStatus(staffId: string, dateKey: string): AttendanceCellStatus {
+    const record = recordMap.get(`${staffId}|${dateKey}`);
+    if (record) return record.status;
+    return markedDays.has(dateKey) ? "present" : "unmarked";
+  }
+
+  function handleCellClick(member: MatrixStaff, dateKey: string) {
     const current = recordMap.get(`${member.id}|${dateKey}`);
     attendanceMark.open({
       staffId: member.id,
       staffName: member.fullName,
       date: dateKey,
       status: current?.status ?? "present",
-      reason: current?.reason,
-      onSave: (status, reason) => {
-        const exists = records.some(
-          (r) => r.staffId === member.id && r.date === dateKey,
-        );
-        if (exists) {
-          onRecordsChange(
-            records.map((r) =>
-              r.staffId === member.id && r.date === dateKey
-                ? { ...r, status, reason }
-                : r,
-            ),
-          );
-        } else {
-          onRecordsChange([
-            ...records,
-            { staffId: member.id, date: dateKey, status, reason },
-          ]);
-        }
-      },
+      reason: current?.reason ?? undefined,
+      onSave: (status, reason) =>
+        onMark({ staffId: member.id, date: dateKey, status, reason }),
     });
   }
 
   const gridTemplateColumns = `${LABEL_WIDTH}px repeat(${days.length}, ${CELL_WIDTH}px)`;
+
+  if (isLoading) {
+    return (
+      <div className="p-6 text-center text-muted-foreground text-sm">
+        Loading attendance…
+      </div>
+    );
+  }
+
+  if (staff.length === 0) {
+    return (
+      <div className="p-6 text-center text-muted-foreground text-sm">
+        No staff to show. Add staff in the Directory tab to start tracking
+        attendance.
+      </div>
+    );
+  }
 
   return (
     <div className="max-h-[60vh] overflow-auto">
@@ -67,17 +96,31 @@ export function AttendanceMatrix({
         <div className="sticky top-0 left-0 z-30 border-r border-b bg-muted/50 px-2 py-2 font-medium text-xs shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]">
           Staff
         </div>
-        {days.map((day) => (
-          <div
-            key={day.toISOString()}
-            className={cn(
-              "sticky top-0 z-20 flex items-center justify-center border-r border-b bg-muted/50 py-2 text-[10px]",
-              isToday(day) && "bg-neutral-100 dark:bg-neutral-800/60",
-            )}
-          >
-            {format(day, "d")}
-          </div>
-        ))}
+        {days.map((day) => {
+          const today = isToday(day);
+          return (
+            <div
+              key={day.toISOString()}
+              className={cn(
+                "sticky top-0 z-20 flex items-center justify-center border-r border-b bg-muted/50 py-2 text-[10px]",
+                // The palette is greyscale, so today is marked with colour
+                // rather than a darker grey that would not read as deliberate.
+                today && "bg-sky-100 font-semibold dark:bg-sky-950/60",
+              )}
+            >
+              {today ? (
+                <span
+                  className="flex size-4 items-center justify-center rounded-full bg-sky-600 text-[9px] text-white"
+                  title={`Today, ${format(day, "d MMM yyyy")}`}
+                >
+                  {format(day, "d")}
+                </span>
+              ) : (
+                format(day, "d")
+              )}
+            </div>
+          );
+        })}
 
         {staff.map((member) => (
           <div key={member.id} className="contents">
@@ -93,9 +136,8 @@ export function AttendanceMatrix({
               </span>
             </div>
             {days.map((day) => {
-              const dateKey = day.toISOString().slice(0, 10);
-              const status =
-                recordMap.get(`${member.id}|${dateKey}`)?.status ?? "present";
+              const dateKey = toDateKey(day);
+              const status = cellStatus(member.id, dateKey);
               return (
                 <button
                   key={dateKey}
@@ -103,7 +145,8 @@ export function AttendanceMatrix({
                   onClick={() => handleCellClick(member, dateKey)}
                   className={cn(
                     "flex items-center justify-center border-r border-b py-1.5 transition-colors hover:bg-muted/60",
-                    isToday(day) && "bg-neutral-50 dark:bg-neutral-900/40",
+                    isToday(day) &&
+                      "bg-sky-50 hover:bg-sky-100 dark:bg-sky-950/40 dark:hover:bg-sky-950/70",
                   )}
                 >
                   <AttendanceStatusDot status={status} />

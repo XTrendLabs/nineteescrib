@@ -1,4 +1,3 @@
-import { Badge } from "@propertyos/ui/components/badge";
 import {
   Tabs,
   TabsList,
@@ -8,18 +7,16 @@ import {
 import { useFeedback } from "@propertyos/ui/lib/use-feedback";
 import { createFileRoute } from "@tanstack/react-router";
 import { motion } from "motion/react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 import { useActiveHq } from "@/features/auth/api/use-cached-organizations";
 import { useDeleteStaff } from "@/features/staff/api/use-delete-staff";
 import { useStaff } from "@/features/staff/api/use-staff";
 import { AttendanceMarkDialog } from "@/features/staff/components/attendance-mark-dialog";
 import { AttendanceTracker } from "@/features/staff/components/attendance-tracker";
-import { DemoNotice } from "@/features/staff/components/demo-notice";
 import { StaffDialog } from "@/features/staff/components/staff-dialog";
 import { StaffDirectory } from "@/features/staff/components/staff-directory";
 import { StaffPageHeader } from "@/features/staff/components/staff-page-header";
-import { buildStaffMembers } from "@/features/staff/lib/mock-data";
 import type { Staff } from "@/features/staff/lib/staff";
 import { ConfirmDialog } from "@/shared/components/confirm-dialog";
 import { api } from "@/shared/lib/api-client";
@@ -44,9 +41,6 @@ function RouteComponent() {
     undefined,
   );
   const deleteStaff = useDeleteStaff();
-
-  // Attendance still runs on generated data — it has no tables yet.
-  const demoStaff = useMemo(() => buildStaffMembers(), []);
 
   function openCreate() {
     setEditingStaff(undefined);
@@ -100,10 +94,7 @@ function RouteComponent() {
       <Tabs className="min-w-0" defaultValue="directory">
         <TabsList className="max-w-full overflow-x-auto">
           <TabsTab value="directory">Directory</TabsTab>
-          <TabsTab value="attendance">
-            Attendance
-            <Badge variant="warning">Demo</Badge>
-          </TabsTab>
+          <TabsTab value="attendance">Attendance</TabsTab>
         </TabsList>
 
         <TabsPanel className="min-w-0" value="directory">
@@ -118,13 +109,10 @@ function RouteComponent() {
         </TabsPanel>
 
         <TabsPanel className="min-w-0" value="attendance">
-          <div className="flex min-w-0 flex-col gap-4">
-            <DemoNotice>
-              Attendance is a preview running on sample staff. Marks are not
-              saved and don't reflect your real directory.
-            </DemoNotice>
-            <AttendanceTracker staff={demoStaff} />
-          </div>
+          <AttendanceTracker
+            staff={staff}
+            hqOrganizationId={hqOrganizationId}
+          />
         </TabsPanel>
       </Tabs>
 
