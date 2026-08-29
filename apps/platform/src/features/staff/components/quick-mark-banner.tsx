@@ -49,17 +49,17 @@ export function QuickMarkBanner({
           render={
             <button
               type="button"
-              className="group flex w-full items-center justify-between px-4 py-3 text-left"
+              className="group flex w-full items-center justify-between gap-3 px-4 py-3 text-left"
             />
           }
         >
-          <div className="flex flex-col gap-0.5">
+          <div className="flex min-w-0 flex-col gap-0.5">
             <span className="font-medium text-sm">Mark Today's Attendance</span>
             <span className="text-muted-foreground text-xs">
               Quick-mark all staff for today, defaults to Present.
             </span>
           </div>
-          <ChevronDownIcon className="size-4 text-muted-foreground transition-transform group-aria-expanded:rotate-180" />
+          <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground transition-transform group-aria-expanded:rotate-180" />
         </CollapsibleTrigger>
         <CollapsibleContent>
           <CardContent className="flex flex-col gap-3 border-t px-4 py-4">
@@ -67,13 +67,13 @@ export function QuickMarkBanner({
               {staff.map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center justify-between gap-3 border-b py-2 last:border-b-0"
+                  className="flex min-w-0 items-center justify-between gap-3 border-b py-2 last:border-b-0"
                 >
-                  <span className="flex items-center gap-2 text-sm">
-                    <span className="flex size-6 items-center justify-center rounded-full bg-muted text-[10px] text-muted-foreground">
+                  <span className="flex min-w-0 items-center gap-2 text-sm">
+                    <span className="flex size-6 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] text-muted-foreground">
                       {getInitials(member.fullName)}
                     </span>
-                    {member.fullName}
+                    <span className="truncate">{member.fullName}</span>
                   </span>
                   <Select
                     value={marks[member.id]}
@@ -84,7 +84,7 @@ export function QuickMarkBanner({
                       }))
                     }
                   >
-                    <SelectTrigger className="w-[140px]">
+                    <SelectTrigger className="w-[120px] shrink-0 sm:w-[140px]">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>

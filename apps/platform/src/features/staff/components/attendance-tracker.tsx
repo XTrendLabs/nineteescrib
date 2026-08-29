@@ -86,14 +86,14 @@ export function AttendanceTracker({ staff }: { staff: StaffMember[] }) {
   }, [records, filteredStaff, todayKey]);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <div className="flex min-w-0 flex-col gap-4">
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
         <MonthNavigator month={month} onChange={setMonth} />
         <Select
           value={propertyFilter}
           onValueChange={(v) => setPropertyFilter(v as string)}
         >
-          <SelectTrigger className="w-[200px]">
+          <SelectTrigger className="w-full sm:w-[200px]">
             <SelectValue placeholder="Filter Property">
               {propertyFilter === "all"
                 ? "All Properties"
@@ -139,14 +139,15 @@ export function AttendanceTracker({ staff }: { staff: StaffMember[] }) {
         avgAttendance={summary.avgAttendance}
       />
 
-      <AttendanceMatrix
-        staff={filteredStaff}
-        days={days}
-        records={records}
-        onRecordsChange={setRecords}
-      />
-
-      <AttendanceLegend />
+      <div className="flex min-w-0 max-w-content flex-col border [--content-inset:4rem]">
+        <AttendanceMatrix
+          staff={filteredStaff}
+          days={days}
+          records={records}
+          onRecordsChange={setRecords}
+        />
+        <AttendanceLegend />
+      </div>
     </div>
   );
 }

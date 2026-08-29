@@ -59,7 +59,7 @@ export function AttendanceMatrix({
   const gridTemplateColumns = `${LABEL_WIDTH}px repeat(${days.length}, ${CELL_WIDTH}px)`;
 
   return (
-    <div className="max-h-[60vh] overflow-auto border">
+    <div className="max-h-[60vh] overflow-auto">
       <div
         className="min-w-max"
         style={{ display: "grid", gridTemplateColumns }}
@@ -82,13 +82,15 @@ export function AttendanceMatrix({
         {staff.map((member) => (
           <div key={member.id} className="contents">
             <div
-              className="sticky left-0 z-10 flex items-center gap-2 border-r border-b bg-background px-2 py-1.5 text-xs shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]"
+              className="sticky left-0 z-10 flex min-w-0 items-center gap-2 border-r border-b bg-background px-2 py-1.5 text-xs shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]"
               style={{ gridColumn: "1 / span 1" }}
             >
               <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-muted text-[9px] text-muted-foreground">
                 {getInitials(member.fullName)}
               </span>
-              <span className="truncate">{member.fullName}</span>
+              <span className="truncate" title={member.fullName}>
+                {member.fullName}
+              </span>
             </div>
             {days.map((day) => {
               const dateKey = day.toISOString().slice(0, 10);

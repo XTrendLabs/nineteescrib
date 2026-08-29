@@ -180,6 +180,17 @@
     letter-spacing: -0.5px;
   }
 
+  /* Width available to page content once the sidebar and page padding are
+     accounted for. --sidebar-gutter is redefined per sidebar state on the
+     inset, so wide grids (calendar timeline, attendance matrix) cap themselves
+     against the real viewport instead of stretching the page.
+     --content-inset covers the layout's p-4 plus the page's own p-4. */
+  .max-w-content {
+    max-width: calc(
+      100vw - var(--sidebar-gutter, 0rem) - var(--content-inset, 4rem)
+    );
+  }
+
   .sidebar-scope {
     --popover: var(--sidebar);
     --popover-foreground: var(--sidebar-foreground);

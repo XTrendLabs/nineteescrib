@@ -304,7 +304,11 @@ function SidebarInset({ className, ...props }: React.ComponentProps<"main">) {
     <main
       data-slot="sidebar-inset"
       className={cn(
-        "relative flex w-full flex-1 flex-col md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2 md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-none md:peer-data-[variant=inset]:shadow-sm",
+        "relative flex w-full min-w-0 flex-1 flex-col md:peer-data-[variant=inset]:peer-data-[state=collapsed]:ml-2 md:peer-data-[variant=inset]:m-2 md:peer-data-[variant=inset]:ml-0 md:peer-data-[variant=inset]:rounded-none md:peer-data-[variant=inset]:shadow-sm",
+        // Track how much width the sidebar actually takes so `max-w-content`
+        // resolves correctly in every state: off-canvas on mobile (0), the icon
+        // rail when collapsed, the full width when expanded.
+        "[--sidebar-gutter:0rem] md:[--sidebar-gutter:var(--sidebar-width)] md:peer-data-[collapsible=icon]:[--sidebar-gutter:var(--sidebar-width-icon)] md:peer-data-[collapsible=offcanvas]:[--sidebar-gutter:0rem]",
         className,
       )}
       {...props}
