@@ -8,8 +8,14 @@ const db = createDb();
 
 type StaffRow = typeof staff.$inferSelect;
 
-/** Fold each member's property assignments in, in one extra query. */
-async function attachProperties(rows: StaffRow[]) {
+/**
+ * Fold each member's property assignments in, in one extra query.
+ *
+ * `viewerUserId` marks the caller's own row. The login id itself stays
+ * server-side -- the client only needs to know which record is theirs, so it
+ * can show edit controls for that one and hide them for everyone else.
+ */
+async function attachProperties(rows: StaffRow[], viewerUserId?: string) {
   if (rows.length === 0) return [];
 
   const staffIds = rows.map((r) => r.id);
@@ -29,6 +35,7 @@ async function attachProperties(rows: StaffRow[]) {
     // The login account id itself is internal; the UI only needs to know
     // whether one exists.
     hasPlatformAccess: userId !== null,
+    isSelf: viewerUserId !== undefined && userId === viewerUserId,
     properties: links
       .filter((l) => l.staffId === row.id)
       .map((l) => ({ id: l.organizationId, name: l.name, slug: l.slug })),
@@ -80,13 +87,43 @@ export const staffRepo = {
     return row;
   },
 
-  async listByHqOrganization(hqOrganizationId: string) {
+  async listByHqOrganization(hqOrganizationId: string, viewerUserId?: string) {
     const rows = await db
       .select()
       .from(staff)
       .where(eq(staff.hqOrganizationId, hqOrganizationId))
       .orderBy(desc(staff.createdAt));
-    return attachProperties(rows);
+    return attachProperties(rows, viewerUserId);
+  },
+
+  /**
+   * The staff assigned to one property.
+   *
+   * Someone scoped to a single property -- a staff member, or a manager of
+   * that property -- can only reach the roster they work alongside, not the
+   * whole HQ.
+   */
+  async listByProperty(organizationId: string, viewerUserId?: string) {
+    const rows = await db
+      .select({ staff })
+      .from(staff)
+      .innerJoin(staffProperty, eq(staffProperty.staffId, staff.id))
+      .where(eq(staffProperty.organizationId, organizationId))
+      .orderBy(desc(staff.createdAt));
+    return attachProperties(
+      rows.map((r) => r.staff),
+      viewerUserId,
+    );
+  },
+
+  /** The staff record belonging to a login, if there is one. */
+  async findIdByUserId(userId: string) {
+    const [row] = await db
+      .select({ id: staff.id })
+      .from(staff)
+      .where(eq(staff.userId, userId))
+      .limit(1);
+    return row?.id;
   },
 
   replaceProperties: replacePropertiesFor,

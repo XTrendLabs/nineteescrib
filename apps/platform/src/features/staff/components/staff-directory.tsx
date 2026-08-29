@@ -7,7 +7,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@propertyos/ui/components/select";
-import { Skeleton } from "@propertyos/ui/components/skeleton";
 import { PlusIcon, SearchIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -20,10 +19,15 @@ import {
   staffRoleValues,
 } from "../lib/staff";
 import { StaffCard } from "./staff-card";
+import { StaffCardSkeleton } from "./staff-card-skeleton";
+
+/** Enough placeholders to fill the first row on a wide screen. */
+const SKELETON_KEYS = ["a", "b", "c"];
 
 export function StaffDirectory({
   staff,
   hqOrganizationId,
+  canManage,
   isLoading,
   onAddClick,
   onEdit,
@@ -31,6 +35,8 @@ export function StaffDirectory({
 }: {
   staff: Staff[];
   hqOrganizationId: string | undefined;
+  /** Whether the viewer may add, edit or remove staff. */
+  canManage: boolean;
   isLoading: boolean;
   onAddClick: () => void;
   onEdit: (member: Staff) => void;
@@ -131,18 +137,20 @@ export function StaffDirectory({
 
       {isLoading ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {["a", "b", "c"].map((key) => (
-            <Skeleton key={key} className="h-48" />
+          {SKELETON_KEYS.map((key) => (
+            <StaffCardSkeleton key={key} />
           ))}
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center gap-3 py-12 text-center">
           <p className="text-muted-foreground text-sm">
-            {staff.length === 0
-              ? "No staff members yet."
-              : "No staff match your filters."}
+            {staff.length !== 0
+              ? "No staff match your filters."
+              : canManage
+                ? "No staff members yet."
+                : "No one else is assigned to this property yet."}
           </p>
-          {staff.length === 0 && (
+          {staff.length === 0 && canManage && (
             <Button onClick={onAddClick}>
               <PlusIcon />
               Add your first staff member
@@ -155,6 +163,7 @@ export function StaffDirectory({
             <StaffCard
               key={member.id}
               staff={member}
+              canManage={canManage}
               onEdit={() => onEdit(member)}
               onDelete={() => onDelete(member)}
             />

@@ -14,8 +14,16 @@ const ORGANIZATION_ROLE = {
 } as const satisfies Record<string, AppRole>;
 
 export const staffService = {
-  listByHqOrganization(hqOrganizationId: string) {
-    return staffRepo.listByHqOrganization(hqOrganizationId);
+  listByHqOrganization(hqOrganizationId: string, viewerUserId?: string) {
+    return staffRepo.listByHqOrganization(hqOrganizationId, viewerUserId);
+  },
+
+  listByProperty(organizationId: string, viewerUserId?: string) {
+    return staffRepo.listByProperty(organizationId, viewerUserId);
+  },
+
+  findIdByUserId(userId: string) {
+    return staffRepo.findIdByUserId(userId);
   },
 
   findById(id: string) {

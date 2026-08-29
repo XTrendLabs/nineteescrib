@@ -66,6 +66,8 @@ export type Staff = {
   updatedAt: string;
   /** True when the member has a login account for the platform. */
   hasPlatformAccess: boolean;
+  /** True when this record belongs to the signed-in user. */
+  isSelf?: boolean;
   properties: StaffProperty[];
 };
 

@@ -32,6 +32,7 @@ import {
   type Staff,
   type StaffGender,
 } from "@/features/staff/lib/staff";
+import { useCanManageStaff } from "@/features/staff/lib/use-can-manage-staff";
 import { useBreadcrumbLabel } from "@/shared/lib/breadcrumb-label";
 
 export const Route = createFileRoute("/(protected)/staff/$staffId")({
@@ -50,8 +51,14 @@ function DetailRow({ label, value }: { label: string; value?: string | null }) {
 function RouteComponent() {
   const { staffId } = Route.useParams();
   const { activeHqId } = useActiveHq();
-  const { data: response, isLoading, isError } = useStaffMember(staffId);
+  const { data: response, isLoading, isError, error } = useStaffMember(staffId);
   const member = response?.data as unknown as Staff | undefined;
+  const canManage = useCanManageStaff();
+
+  // The server refuses another person's profile at property scope, so a 403
+  // here means "not yours" rather than "missing" -- worth saying plainly
+  // instead of claiming the record does not exist.
+  const isForbidden = (error as { status?: number } | null)?.status === 403;
 
   const [dialogOpen, setDialogOpen] = useState(false);
 
@@ -71,7 +78,9 @@ function RouteComponent() {
     return (
       <div className="flex flex-col items-center gap-3 p-10 text-center">
         <p className="text-muted-foreground text-sm">
-          This staff member could not be found.
+          {isForbidden
+            ? "You can only view your own staff profile."
+            : "This staff member could not be found."}
         </p>
         <Link to="/staff" className="text-foreground text-sm underline">
           Back to Directory
@@ -79,6 +88,10 @@ function RouteComponent() {
       </div>
     );
   }
+
+  // Property-scoped viewers only ever reach their own record, but the profile
+  // is also linked directly, so the check is repeated rather than assumed.
+  const canEdit = canManage || member.isSelf === true;
 
   const address = [
     member.addressLine1,
@@ -117,21 +130,25 @@ function RouteComponent() {
             </div>
           </div>
         </div>
-        <Button variant="outline" onClick={() => setDialogOpen(true)}>
-          <PencilIcon />
-          Edit
-        </Button>
+        {canEdit && (
+          <Button variant="outline" onClick={() => setDialogOpen(true)}>
+            <PencilIcon />
+            Edit
+          </Button>
+        )}
       </div>
 
       <Tabs defaultValue="details">
         <TabsList>
           <TabsTab value="details">Details</TabsTab>
-          <TabsTab value="properties">
-            Properties
-            <span className="text-muted-foreground">
-              ({member.properties.length})
-            </span>
-          </TabsTab>
+          {canManage && (
+            <TabsTab value="properties">
+              Properties
+              <span className="text-muted-foreground">
+                ({member.properties.length})
+              </span>
+            </TabsTab>
+          )}
         </TabsList>
 
         <TabsPanel value="details">
@@ -170,7 +187,7 @@ function RouteComponent() {
         <TabsPanel value="properties">
           <Card>
             <CardContent className="p-4">
-              {activeHqId ? (
+              {activeHqId && canManage ? (
                 <StaffPropertiesTab
                   staff={member}
                   hqOrganizationId={activeHqId}
@@ -185,7 +202,7 @@ function RouteComponent() {
         </TabsPanel>
       </Tabs>
 
-      {activeHqId && (
+      {activeHqId && canEdit && (
         <StaffDialog
           open={dialogOpen}
           onOpenChange={setDialogOpen}

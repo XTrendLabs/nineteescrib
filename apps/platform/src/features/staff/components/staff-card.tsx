@@ -22,13 +22,20 @@ import { normalizeStaffRole, STAFF_ROLE_LABEL, type Staff } from "../lib/staff";
 
 export function StaffCard({
   staff,
+  canManage,
   onEdit,
   onDelete,
 }: {
   staff: Staff;
+  /** Whether the viewer may edit or remove anyone in the directory. */
+  canManage: boolean;
   onEdit: () => void;
   onDelete: () => void;
 }) {
+  // Without management rights a viewer still sees who they work with, but
+  // only their own record is theirs to open or change.
+  const canEdit = canManage || staff.isSelf === true;
+  const canOpenProfile = canEdit;
   const propertyLabel =
     staff.properties.length === 0
       ? "No properties assigned"
@@ -68,24 +75,32 @@ export function StaffCard({
               </div>
             </div>
           </div>
-          <div className="flex shrink-0 gap-1">
-            <Button
-              size="icon-sm"
-              variant="outline"
-              className="size-7"
-              onClick={onEdit}
-            >
-              <PencilIcon className="size-3.5" />
-            </Button>
-            <Button
-              size="icon-sm"
-              variant="outline"
-              className="size-7"
-              onClick={onDelete}
-            >
-              <TrashIcon className="size-3.5" />
-            </Button>
-          </div>
+          {(canEdit || canManage) && (
+            <div className="flex shrink-0 gap-1">
+              {canEdit && (
+                <Button
+                  size="icon-sm"
+                  variant="outline"
+                  className="size-7"
+                  aria-label={`Edit ${staff.fullName}`}
+                  onClick={onEdit}
+                >
+                  <PencilIcon className="size-3.5" />
+                </Button>
+              )}
+              {canManage && (
+                <Button
+                  size="icon-sm"
+                  variant="outline"
+                  className="size-7"
+                  aria-label={`Remove ${staff.fullName}`}
+                  onClick={onDelete}
+                >
+                  <TrashIcon className="size-3.5" />
+                </Button>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex flex-col gap-1.5 text-muted-foreground text-xs">
@@ -110,15 +125,19 @@ export function StaffCard({
           )}
         </div>
 
-        <Button
-          variant="outline"
-          size="sm"
-          className="justify-between"
-          render={<Link to="/staff/$staffId" params={{ staffId: staff.id }} />}
-        >
-          View Profile
-          <ArrowRightIcon />
-        </Button>
+        {canOpenProfile && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="justify-between"
+            render={
+              <Link to="/staff/$staffId" params={{ staffId: staff.id }} />
+            }
+          >
+            {staff.isSelf && !canManage ? "View My Profile" : "View Profile"}
+            <ArrowRightIcon />
+          </Button>
+        )}
       </CardContent>
     </Card>
   );

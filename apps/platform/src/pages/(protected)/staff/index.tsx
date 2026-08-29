@@ -18,6 +18,7 @@ import { StaffDialog } from "@/features/staff/components/staff-dialog";
 import { StaffDirectory } from "@/features/staff/components/staff-directory";
 import { StaffPageHeader } from "@/features/staff/components/staff-page-header";
 import type { Staff } from "@/features/staff/lib/staff";
+import { useCanManageStaff } from "@/features/staff/lib/use-can-manage-staff";
 import { ConfirmDialog } from "@/shared/components/confirm-dialog";
 import { api } from "@/shared/lib/api-client";
 import { getApiErrorMessage } from "@/shared/lib/api-error";
@@ -28,9 +29,14 @@ export const Route = createFileRoute("/(protected)/staff/")({
 
 function RouteComponent() {
   const feedback = useFeedback();
-  const { activeHqId: hqOrganizationId } = useActiveHq();
+  const { activeHqId: hqOrganizationId, activeScopeId } = useActiveHq();
 
-  const { data: response, isLoading } = useStaff(hqOrganizationId);
+  const {
+    data: response,
+    isLoading,
+    isFetching,
+  } = useStaff(hqOrganizationId, activeScopeId);
+  const canManage = useCanManageStaff();
   const staff = (response?.data ?? []) as unknown as Staff[];
 
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -89,7 +95,7 @@ function RouteComponent() {
       transition={{ type: "spring", stiffness: 220, damping: 26 }}
       className="flex min-w-0 flex-col gap-6 p-4"
     >
-      <StaffPageHeader onInviteClick={openCreate} />
+      <StaffPageHeader canManage={canManage} onInviteClick={openCreate} />
 
       <Tabs className="min-w-0" defaultValue="directory">
         <TabsList className="max-w-full overflow-x-auto">
@@ -101,7 +107,8 @@ function RouteComponent() {
           <StaffDirectory
             staff={staff}
             hqOrganizationId={hqOrganizationId}
-            isLoading={isLoading}
+            canManage={canManage}
+            isLoading={isLoading || isFetching}
             onAddClick={openCreate}
             onEdit={openEdit}
             onDelete={setStaffToDelete}
