@@ -1,5 +1,8 @@
 import { Card, CardContent } from "@propertyos/ui/components/card";
-
+import {
+  DataTable,
+  DataTableContainer,
+} from "@propertyos/ui/components/data-table";
 import { formatInr } from "../lib/format";
 import type { AdvancedSection, ReportRow } from "../lib/mock-data";
 import { CURRENCY_COLUMNS } from "../lib/mock-data";
@@ -51,8 +54,8 @@ function FlatTableSectionView({
   return (
     <div className="flex flex-col gap-3">
       <p className="font-medium text-sm">{section.title}</p>
-      <div className="overflow-x-auto border">
-        <table className="w-full border-collapse text-left text-xs">
+      <DataTableContainer>
+        <DataTable>
           <thead>
             <tr className="border-b bg-muted/40">
               {section.columns.map((column) => (
@@ -83,8 +86,8 @@ function FlatTableSectionView({
               </tr>
             ))}
           </tbody>
-        </table>
-      </div>
+        </DataTable>
+      </DataTableContainer>
     </div>
   );
 }
@@ -103,7 +106,7 @@ function NestedTableSectionView({
             <div className="border-b bg-muted/50 px-3 py-2 font-medium text-xs">
               {group.group}
             </div>
-            <table className="w-full border-collapse text-left text-xs">
+            <DataTable>
               <thead>
                 <tr className="border-b bg-muted/20">
                   {section.columns.map((column) => (
@@ -151,7 +154,7 @@ function NestedTableSectionView({
                   </tr>
                 )}
               </tbody>
-            </table>
+            </DataTable>
           </div>
         ))}
       </div>

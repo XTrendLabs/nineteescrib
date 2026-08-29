@@ -1,5 +1,9 @@
 import { Card, CardContent } from "@propertyos/ui/components/card";
 import {
+  DataTable,
+  DataTableContainer,
+} from "@propertyos/ui/components/data-table";
+import {
   Bar,
   BarChart,
   CartesianGrid,
@@ -38,8 +42,8 @@ function BuilderTable({
   groups: ReturnType<typeof buildBuilderPreviewRows>;
 }) {
   return (
-    <div className="overflow-x-auto border">
-      <table className="w-full border-collapse text-left text-xs">
+    <DataTableContainer>
+      <DataTable>
         <thead>
           <tr className="border-b bg-muted/40">
             <th className="px-3 py-2.5 font-medium text-muted-foreground">
@@ -90,8 +94,8 @@ function BuilderTable({
             </>
           ))}
         </tbody>
-      </table>
-    </div>
+      </DataTable>
+    </DataTableContainer>
   );
 }
 

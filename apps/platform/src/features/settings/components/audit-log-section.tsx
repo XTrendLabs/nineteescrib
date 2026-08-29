@@ -1,7 +1,7 @@
 import { Button } from "@propertyos/ui/components/button";
+import { DataTableContainer } from "@propertyos/ui/components/data-table";
 import { useFeedback } from "@propertyos/ui/lib/use-feedback";
 import { DownloadIcon } from "lucide-react";
-
 import { MOCK_AUDIT_LOG } from "@/features/settings/lib/mock-data";
 
 export function AuditLogSection() {
@@ -30,7 +30,7 @@ export function AuditLogSection() {
         </Button>
       </div>
 
-      <div className="overflow-x-auto border">
+      <DataTableContainer className="sm:[--content-inset:17.5rem]">
         <table className="w-full text-left text-xs">
           <thead className="border-b bg-muted/50 text-muted-foreground">
             <tr>
@@ -55,7 +55,7 @@ export function AuditLogSection() {
             ))}
           </tbody>
         </table>
-      </div>
+      </DataTableContainer>
 
       <div className="flex justify-center">
         <Button

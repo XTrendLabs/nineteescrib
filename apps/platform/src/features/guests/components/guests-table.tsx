@@ -2,6 +2,10 @@ import { Avatar, AvatarFallback } from "@propertyos/ui/components/avatar";
 import { Button } from "@propertyos/ui/components/button";
 import { Checkbox } from "@propertyos/ui/components/checkbox";
 import {
+  DataTable,
+  DataTableContainer,
+} from "@propertyos/ui/components/data-table";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -9,7 +13,6 @@ import {
 } from "@propertyos/ui/components/dropdown-menu";
 import { cn } from "@propertyos/ui/lib/utils";
 import { MoreHorizontalIcon } from "lucide-react";
-
 import { formatInr, formatLastStay, initials } from "../lib/format";
 import type { Guest } from "../lib/mock-data";
 import { TagPill } from "./tag-pill";
@@ -43,8 +46,8 @@ export function GuestsTable({
   }
 
   return (
-    <div className="overflow-x-auto border">
-      <table className="w-full border-collapse text-left text-xs">
+    <DataTableContainer>
+      <DataTable>
         <thead>
           <tr className="border-b bg-muted/40">
             <th className="w-10 px-3 py-2.5">
@@ -150,7 +153,7 @@ export function GuestsTable({
             );
           })}
         </tbody>
-      </table>
-    </div>
+      </DataTable>
+    </DataTableContainer>
   );
 }

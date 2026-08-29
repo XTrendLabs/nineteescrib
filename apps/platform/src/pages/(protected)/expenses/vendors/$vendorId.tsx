@@ -1,9 +1,12 @@
 import { Card, CardContent } from "@propertyos/ui/components/card";
+import {
+  DataTable,
+  DataTableContainer,
+} from "@propertyos/ui/components/data-table";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronLeftIcon, MailIcon, PhoneIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useMemo } from "react";
-
 import { CategoryBadge } from "@/features/expenses/components/category-badge";
 import { StatusPill } from "@/features/expenses/components/status-pill";
 import { formatDate, formatInrFromPaise } from "@/features/expenses/lib/format";
@@ -126,8 +129,8 @@ function RouteComponent() {
             <p className="text-sm">No expenses logged for this vendor yet</p>
           </div>
         ) : (
-          <div className="overflow-x-auto border">
-            <table className="w-full min-w-[640px] border-collapse text-left text-xs">
+          <DataTableContainer>
+            <DataTable minWidth={640}>
               <thead>
                 <tr className="border-b bg-muted/40 text-muted-foreground">
                   <th className="whitespace-nowrap px-3 py-2 font-medium">
@@ -170,8 +173,8 @@ function RouteComponent() {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+            </DataTable>
+          </DataTableContainer>
         )}
       </div>
     </motion.div>

@@ -1,5 +1,6 @@
 import { Badge } from "@propertyos/ui/components/badge";
 import { Button } from "@propertyos/ui/components/button";
+import { DataTableContainer } from "@propertyos/ui/components/data-table";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +10,6 @@ import {
 import { useFeedback } from "@propertyos/ui/lib/use-feedback";
 import { MoreVerticalIcon, PlusIcon } from "lucide-react";
 import { useState } from "react";
-
 import { ConfirmDestructiveDialog } from "@/features/settings/components/confirm-destructive-dialog";
 import { InviteMemberDialog } from "@/features/settings/components/invite-member-dialog";
 import {
@@ -80,7 +80,7 @@ export function MembersSection() {
         <h3 className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
           Active Members
         </h3>
-        <div className="overflow-x-auto border">
+        <DataTableContainer className="sm:[--content-inset:17.5rem]">
           <table className="w-full text-left text-xs">
             <thead className="border-b bg-muted/50 text-muted-foreground">
               <tr>
@@ -142,7 +142,7 @@ export function MembersSection() {
               ))}
             </tbody>
           </table>
-        </div>
+        </DataTableContainer>
       </section>
 
       <section className="flex flex-col gap-2">
@@ -154,7 +154,7 @@ export function MembersSection() {
             No pending invitations.
           </p>
         ) : (
-          <div className="overflow-x-auto border">
+          <DataTableContainer className="sm:[--content-inset:17.5rem]">
             <table className="w-full text-left text-xs">
               <thead className="border-b bg-muted/50 text-muted-foreground">
                 <tr>
@@ -198,7 +198,7 @@ export function MembersSection() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </DataTableContainer>
         )}
       </section>
 

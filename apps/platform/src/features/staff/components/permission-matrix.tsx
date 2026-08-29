@@ -1,3 +1,4 @@
+import { DataTableContainer } from "@propertyos/ui/components/data-table";
 import { cn } from "@propertyos/ui/lib/utils";
 import { CheckIcon, XIcon } from "lucide-react";
 import {
@@ -8,7 +9,7 @@ import {
 
 export function PermissionMatrix({ role }: { role: RoleDefinition }) {
   return (
-    <div className="overflow-x-auto border-t">
+    <DataTableContainer className="border-0 border-t">
       <table className="w-full min-w-max border-collapse text-xs">
         <thead>
           <tr className="border-b bg-muted/40">
@@ -49,6 +50,6 @@ export function PermissionMatrix({ role }: { role: RoleDefinition }) {
           ))}
         </tbody>
       </table>
-    </div>
+    </DataTableContainer>
   );
 }

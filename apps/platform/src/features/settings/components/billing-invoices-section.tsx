@@ -1,9 +1,9 @@
 import { Badge } from "@propertyos/ui/components/badge";
 import { Button } from "@propertyos/ui/components/button";
 import { Card, CardContent } from "@propertyos/ui/components/card";
+import { DataTableContainer } from "@propertyos/ui/components/data-table";
 import { useFeedback } from "@propertyos/ui/lib/use-feedback";
 import { CreditCardIcon, DownloadIcon } from "lucide-react";
-
 import {
   type Invoice,
   MOCK_INVOICES,
@@ -62,7 +62,7 @@ export function BillingInvoicesSection() {
         <h3 className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
           Invoice History
         </h3>
-        <div className="overflow-x-auto border">
+        <DataTableContainer className="sm:[--content-inset:17.5rem]">
           <table className="w-full text-left text-xs">
             <thead className="border-b bg-muted/50 text-muted-foreground">
               <tr>
@@ -105,7 +105,7 @@ export function BillingInvoicesSection() {
               ))}
             </tbody>
           </table>
-        </div>
+        </DataTableContainer>
       </section>
     </div>
   );

@@ -1,3 +1,7 @@
+import {
+  DataTable,
+  DataTableContainer,
+} from "@propertyos/ui/components/data-table";
 import { PaperclipIcon } from "lucide-react";
 import { formatDate, formatInrFromPaise } from "../lib/format";
 import { type Expense, HQ_SHARED_ID } from "../lib/mock-data";
@@ -30,8 +34,8 @@ export function ExpensesTable({
   }
 
   return (
-    <div className="overflow-x-auto border">
-      <table className="w-full min-w-[880px] border-collapse text-left text-xs">
+    <DataTableContainer>
+      <DataTable minWidth={880}>
         <thead>
           <tr className="border-b bg-muted/40 text-muted-foreground">
             <th className="whitespace-nowrap px-3 py-2 font-medium">
@@ -134,7 +138,7 @@ export function ExpensesTable({
             </tr>
           ))}
         </tbody>
-      </table>
-    </div>
+      </DataTable>
+    </DataTableContainer>
   );
 }

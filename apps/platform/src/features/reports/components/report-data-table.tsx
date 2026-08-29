@@ -1,3 +1,7 @@
+import {
+  DataTable,
+  DataTableContainer,
+} from "@propertyos/ui/components/data-table";
 import { formatInr } from "../lib/format";
 import { CURRENCY_COLUMNS, type ReportRow } from "../lib/mock-data";
 
@@ -20,8 +24,8 @@ export function ReportDataTable({
   }
 
   return (
-    <div className="overflow-x-auto border">
-      <table className="w-full border-collapse text-left text-xs">
+    <DataTableContainer>
+      <DataTable>
         <thead>
           <tr className="border-b bg-muted/40">
             {columns.map((column) => (
@@ -62,7 +66,7 @@ export function ReportDataTable({
             </tr>
           ))}
         </tbody>
-      </table>
-    </div>
+      </DataTable>
+    </DataTableContainer>
   );
 }

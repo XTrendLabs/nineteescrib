@@ -2,6 +2,7 @@ import { Badge } from "@propertyos/ui/components/badge";
 import { Button } from "@propertyos/ui/components/button";
 import { Card, CardContent } from "@propertyos/ui/components/card";
 import { Checkbox } from "@propertyos/ui/components/checkbox";
+import { DataTableContainer } from "@propertyos/ui/components/data-table";
 import { Field, FieldLabel } from "@propertyos/ui/components/field";
 import { Input } from "@propertyos/ui/components/input";
 import {
@@ -13,7 +14,6 @@ import {
 } from "@propertyos/ui/components/select";
 import { useFeedback } from "@propertyos/ui/lib/use-feedback";
 import { useState } from "react";
-
 import {
   MOCK_GUEST_NOTIFICATIONS,
   MOCK_HOST_NOTIFICATIONS,
@@ -38,7 +38,7 @@ function NotificationMatrix({
       <h3 className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
         {title}
       </h3>
-      <div className="overflow-x-auto border">
+      <DataTableContainer className="sm:[--content-inset:17.5rem]">
         <table className="w-full text-left text-xs">
           <thead className="border-b bg-muted/50 text-muted-foreground">
             <tr>
@@ -69,7 +69,7 @@ function NotificationMatrix({
             ))}
           </tbody>
         </table>
-      </div>
+      </DataTableContainer>
     </section>
   );
 }

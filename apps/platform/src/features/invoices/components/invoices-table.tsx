@@ -1,3 +1,7 @@
+import {
+  DataTable,
+  DataTableContainer,
+} from "@propertyos/ui/components/data-table";
 import { formatDate, formatInrFromPaise } from "../lib/format";
 import type { Invoice } from "../lib/mock-data";
 import { InvoiceRowActions } from "./invoice-row-actions";
@@ -30,8 +34,8 @@ export function InvoicesTable({
   }
 
   return (
-    <div className="overflow-x-auto border">
-      <table className="w-full min-w-[860px] border-collapse text-left text-xs">
+    <DataTableContainer>
+      <DataTable minWidth={860}>
         <thead>
           <tr className="border-b bg-muted/40 text-muted-foreground">
             <th className="whitespace-nowrap px-3 py-2 font-medium">
@@ -107,7 +111,7 @@ export function InvoicesTable({
             </tr>
           ))}
         </tbody>
-      </table>
-    </div>
+      </DataTable>
+    </DataTableContainer>
   );
 }

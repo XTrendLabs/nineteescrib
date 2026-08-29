@@ -125,7 +125,7 @@ function RouteComponent() {
         }}
       />
 
-      <div className="flex min-w-0 max-w-content flex-col border [--content-inset:4rem]">
+      <div className="flex min-w-0 max-w-content flex-col border [--content-inset:6rem]">
         <TimelineGrid
           inventory={inventory}
           bookings={bookings}

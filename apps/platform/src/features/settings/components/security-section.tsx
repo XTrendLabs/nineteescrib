@@ -1,6 +1,7 @@
 import { Button } from "@propertyos/ui/components/button";
 import { Card, CardContent } from "@propertyos/ui/components/card";
 import { Checkbox } from "@propertyos/ui/components/checkbox";
+import { DataTableContainer } from "@propertyos/ui/components/data-table";
 import { Field, FieldLabel } from "@propertyos/ui/components/field";
 import { Label } from "@propertyos/ui/components/label";
 import {
@@ -12,7 +13,6 @@ import {
 } from "@propertyos/ui/components/select";
 import { useFeedback } from "@propertyos/ui/lib/use-feedback";
 import { useState } from "react";
-
 import { ConfirmDestructiveDialog } from "@/features/settings/components/confirm-destructive-dialog";
 import {
   MOCK_ACTIVE_SESSIONS,
@@ -174,7 +174,7 @@ export function SecuritySection() {
         <h3 className="font-medium text-[11px] text-muted-foreground uppercase tracking-wide">
           Active Sessions
         </h3>
-        <div className="overflow-x-auto border">
+        <DataTableContainer className="sm:[--content-inset:17.5rem]">
           <table className="w-full text-left text-xs">
             <thead className="border-b bg-muted/50 text-muted-foreground">
               <tr>
@@ -213,7 +213,7 @@ export function SecuritySection() {
               ))}
             </tbody>
           </table>
-        </div>
+        </DataTableContainer>
       </section>
 
       <ConfirmDestructiveDialog
