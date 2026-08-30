@@ -22,7 +22,7 @@ export function AppSidebar({
   activeView: { type: "hq" } | { type: "property"; propertyId: string };
   onSelectHq: (hqId?: string) => void;
   onSelectProperty: (propertyId: string) => void;
-  onAddProperty: () => void;
+  onAddProperty?: () => void;
 }) {
   return (
     <Sidebar collapsible="icon" className="sidebar-scope" {...props}>

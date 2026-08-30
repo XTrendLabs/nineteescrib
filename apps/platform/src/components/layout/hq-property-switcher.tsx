@@ -34,7 +34,7 @@ export function HqPropertySwitcher({
   activeView: { type: "hq" } | { type: "property"; propertyId: string };
   onSelectHq: (hqId: string) => void;
   onSelectProperty: (propertyId: string) => void;
-  onAddProperty: () => void;
+  onAddProperty?: () => void;
 }) {
   const { isMobile } = useSidebar();
   // The switcher lists what the user can switch *into*, so it is keyed to
@@ -148,20 +148,24 @@ export function HqPropertySwitcher({
                 </div>
               )}
             </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem
-                className="gap-2 px-4 py-2 hover:bg-white/90 hover:text-black"
-                onClick={onAddProperty}
-              >
-                <div className="flex size-6 items-center justify-center rounded-md border border-dashed">
-                  <PlusIcon className="size-3.5" />
-                </div>
-                <div className="font-medium text-muted-foreground">
-                  Add property
-                </div>
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
+            {onAddProperty && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem
+                    className="gap-2 px-4 py-2 hover:bg-white/90 hover:text-black"
+                    onClick={onAddProperty}
+                  >
+                    <div className="flex size-6 items-center justify-center rounded-md border border-dashed">
+                      <PlusIcon className="size-3.5" />
+                    </div>
+                    <div className="font-medium text-muted-foreground">
+                      Add property
+                    </div>
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+              </>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>

@@ -7,6 +7,7 @@ import { useMemo, useState } from "react";
 import type { DateRange } from "react-day-picker";
 
 import { useActiveHq } from "@/features/auth/api/use-cached-organizations";
+import { useHasPermission } from "@/features/auth/api/use-permission";
 import { ChannelSyncCard } from "@/features/hq-dashboard/components/channel-sync-card";
 import { CheckinCockpitCard } from "@/features/hq-dashboard/components/checkin-cockpit-card";
 import { DateRangePicker } from "@/features/hq-dashboard/components/date-range-picker";
@@ -41,6 +42,7 @@ function RouteComponent() {
     to: new Date(),
   });
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const canCreateProperty = useHasPermission("property", "create");
 
   // Only claim "no properties" once a response for the *current* scope has
   // actually landed. Switching properties re-fetches, and an undefined/stale
@@ -100,7 +102,7 @@ function RouteComponent() {
         )}
       </motion.div>
 
-      {hasNoProperties && (
+      {hasNoProperties && canCreateProperty && (
         <div className="flex flex-wrap items-center justify-between gap-3 border-2 border-warning bg-warning/10 p-4">
           <div className="flex items-start gap-2.5">
             <AlertTriangleIcon className="mt-0.5 size-5 shrink-0 text-warning" />
@@ -135,17 +137,19 @@ function RouteComponent() {
         <ChannelSyncCard properties={activeProperties} />
       </div>
 
-      <CreatePropertyDialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-        organizationId={activeHqId}
-        onCreated={(slug) =>
-          navigate({
-            to: "/properties/$propertySlug",
-            params: { propertySlug: slug },
-          })
-        }
-      />
+      {canCreateProperty && (
+        <CreatePropertyDialog
+          open={createDialogOpen}
+          onOpenChange={setCreateDialogOpen}
+          organizationId={activeHqId}
+          onCreated={(slug) =>
+            navigate({
+              to: "/properties/$propertySlug",
+              params: { propertySlug: slug },
+            })
+          }
+        />
+      )}
     </div>
   );
 }

@@ -14,6 +14,7 @@ import {
   fetchSession,
   SESSION_STALE_TIME,
 } from "@/features/auth/api/use-cached-session";
+import { useHasPermission } from "@/features/auth/api/use-permission";
 import { useProperties } from "@/features/properties/api/use-properties";
 import { CreatePropertyDialog } from "@/features/properties/components/create-property-dialog";
 import {
@@ -84,6 +85,7 @@ function RouteComponent() {
 
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const canCreateProperty = useHasPermission("property", "create");
 
   const filtered = useMemo(() => {
     const search = filters.search.trim().toLowerCase();
@@ -121,10 +123,12 @@ function RouteComponent() {
             Configure locations, room inventories, pricing, and booking links
           </p>
         </div>
-        <Button onClick={() => setCreateDialogOpen(true)}>
-          <PlusIcon />
-          Add Property
-        </Button>
+        {canCreateProperty && (
+          <Button onClick={() => setCreateDialogOpen(true)}>
+            <PlusIcon />
+            Add Property
+          </Button>
+        )}
       </motion.div>
 
       <FilterToolbar filters={filters} onChange={setFilters} />
@@ -133,17 +137,20 @@ function RouteComponent() {
         <div className="flex flex-col items-center justify-center gap-2 border border-dashed py-16 text-center">
           <p className="text-sm">No properties yet</p>
           <p className="text-muted-foreground text-xs">
-            Add your first property to start managing rooms, pricing, and
-            bookings.
+            {canCreateProperty
+              ? "Add your first property to start managing rooms, pricing, and bookings."
+              : "You have not been assigned to any properties yet."}
           </p>
-          <Button
-            size="sm"
-            className="mt-2"
-            onClick={() => setCreateDialogOpen(true)}
-          >
-            <PlusIcon />
-            Add Property
-          </Button>
+          {canCreateProperty && (
+            <Button
+              size="sm"
+              className="mt-2"
+              onClick={() => setCreateDialogOpen(true)}
+            >
+              <PlusIcon />
+              Add Property
+            </Button>
+          )}
         </div>
       ) : filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-1 border py-16 text-center">
@@ -158,39 +165,43 @@ function RouteComponent() {
             <PropertyCard key={property.id} property={property} index={index} />
           ))}
 
-          <motion.button
-            type="button"
-            onClick={() => setCreateDialogOpen(true)}
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{
-              delay: filtered.length * 0.06,
-              type: "spring",
-              stiffness: 220,
-              damping: 26,
-            }}
-            className="flex min-h-48 flex-col items-center justify-center gap-1 border border-dashed p-6 text-center text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
-          >
-            <PlusIcon className="size-5" />
-            <span className="font-medium text-sm">Add New Property</span>
-            <span className="text-xs">
-              Set up a new location in your portfolio.
-            </span>
-          </motion.button>
+          {canCreateProperty && (
+            <motion.button
+              type="button"
+              onClick={() => setCreateDialogOpen(true)}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                delay: filtered.length * 0.06,
+                type: "spring",
+                stiffness: 220,
+                damping: 26,
+              }}
+              className="flex min-h-48 flex-col items-center justify-center gap-1 border border-dashed p-6 text-center text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
+            >
+              <PlusIcon className="size-5" />
+              <span className="font-medium text-sm">Add New Property</span>
+              <span className="text-xs">
+                Set up a new location in your portfolio.
+              </span>
+            </motion.button>
+          )}
         </div>
       )}
 
-      <CreatePropertyDialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-        organizationId={activeHqId}
-        onCreated={(slug) =>
-          navigate({
-            to: "/properties/$propertySlug",
-            params: { propertySlug: slug },
-          })
-        }
-      />
+      {canCreateProperty && (
+        <CreatePropertyDialog
+          open={createDialogOpen}
+          onOpenChange={setCreateDialogOpen}
+          organizationId={activeHqId}
+          onCreated={(slug) =>
+            navigate({
+              to: "/properties/$propertySlug",
+              params: { propertySlug: slug },
+            })
+          }
+        />
+      )}
     </div>
   );
 }

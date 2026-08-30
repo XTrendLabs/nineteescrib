@@ -15,7 +15,8 @@ export function SiteHeader({
   title: string;
   onSelectHq: (hqId?: string) => void;
   onSelectProperty: (propertyId: string) => void;
-  onAddProperty: () => void;
+  /** Omitted when the viewer may not create properties. */
+  onAddProperty?: () => void;
 }) {
   return (
     <header className="flex h-16 shrink-0 items-center justify-between gap-2 border-border border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
@@ -32,10 +33,12 @@ export function SiteHeader({
           onSelectHq={onSelectHq}
           onSelectProperty={onSelectProperty}
         />
-        <Button size="sm" onClick={onAddProperty}>
-          <PlusIcon />
-          Add Property
-        </Button>
+        {onAddProperty && (
+          <Button size="sm" onClick={onAddProperty}>
+            <PlusIcon />
+            Add Property
+          </Button>
+        )}
       </div>
     </header>
   );

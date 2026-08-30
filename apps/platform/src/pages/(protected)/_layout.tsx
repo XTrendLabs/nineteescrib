@@ -24,6 +24,7 @@ import {
   fetchSession,
   SESSION_STALE_TIME,
 } from "@/features/auth/api/use-cached-session";
+import { useHasPermission } from "@/features/auth/api/use-permission";
 import { CreatePropertyDialog } from "@/features/properties/components/create-property-dialog";
 import { WorkspaceSwitchOverlay } from "@/shared/components/workspace-switch-overlay";
 import { useActiveView } from "@/shared/lib/use-active-view";
@@ -77,6 +78,13 @@ function ProtectedLayout() {
   // property happens to be active.
   const { activeHqId, activeHq } = useActiveHq();
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  // Staff cannot create properties, so they are never offered the option --
+  // the server refuses it either way.
+  const canCreateProperty = useHasPermission("property", "create");
+
+  const openCreateDialog = canCreateProperty
+    ? () => setCreateDialogOpen(true)
+    : undefined;
 
   const title =
     activeView.type === "hq"
@@ -89,14 +97,14 @@ function ProtectedLayout() {
         activeView={activeView}
         onSelectHq={selectHq}
         onSelectProperty={selectProperty}
-        onAddProperty={() => setCreateDialogOpen(true)}
+        onAddProperty={openCreateDialog}
       />
       <SidebarInset className="min-h-0">
         <SiteHeader
           title={title}
           onSelectHq={selectHq}
           onSelectProperty={selectProperty}
-          onAddProperty={() => setCreateDialogOpen(true)}
+          onAddProperty={openCreateDialog}
         />
         <div className="flex min-h-0 flex-1 flex-col gap-4 p-4 pt-0 dark:bg-sidebar-accent">
           <Outlet />
@@ -105,17 +113,19 @@ function ProtectedLayout() {
 
       <WorkspaceSwitchOverlay />
 
-      <CreatePropertyDialog
-        open={createDialogOpen}
-        onOpenChange={setCreateDialogOpen}
-        organizationId={activeHqId}
-        onCreated={(slug) =>
-          navigate({
-            to: "/properties/$propertySlug",
-            params: { propertySlug: slug },
-          })
-        }
-      />
+      {canCreateProperty && (
+        <CreatePropertyDialog
+          open={createDialogOpen}
+          onOpenChange={setCreateDialogOpen}
+          organizationId={activeHqId}
+          onCreated={(slug) =>
+            navigate({
+              to: "/properties/$propertySlug",
+              params: { propertySlug: slug },
+            })
+          }
+        />
+      )}
     </SidebarProvider>
   );
 }
