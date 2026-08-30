@@ -186,6 +186,33 @@ export const expensePayment = pgTable(
   (table) => [index("expense_payment_expenseId_idx").on(table.expenseId)],
 );
 
+/**
+ * A receipt or invoice backing an expense.
+ *
+ * Its own table rather than a column on `expense`: a single cost often has
+ * more than one document -- the vendor's invoice and the payment slip -- and
+ * each has to be removable on its own.
+ */
+export const expenseReceipt = pgTable(
+  "expense_receipt",
+  {
+    id: text("id").primaryKey(),
+    expenseId: text("expense_id")
+      .notNull()
+      .references(() => expense.id, { onDelete: "cascade" }),
+    /** Public URL of the stored object. */
+    url: text("url").notNull(),
+    /** The name as uploaded, so the UI can show something readable. */
+    fileName: text("file_name").notNull(),
+    contentType: text("content_type").notNull(),
+    uploadedByUserId: text("uploaded_by_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [index("expense_receipt_expenseId_idx").on(table.expenseId)],
+);
+
 export const expenseRelations = relations(expense, ({ one, many }) => ({
   hqOrganization: one(organization, {
     fields: [expense.hqOrganizationId],
@@ -200,6 +227,14 @@ export const expenseRelations = relations(expense, ({ one, many }) => ({
     references: [vendor.id],
   }),
   payments: many(expensePayment),
+  receipts: many(expenseReceipt),
+}));
+
+export const expenseReceiptRelations = relations(expenseReceipt, ({ one }) => ({
+  expense: one(expense, {
+    fields: [expenseReceipt.expenseId],
+    references: [expense.id],
+  }),
 }));
 
 export const expensePaymentRelations = relations(expensePayment, ({ one }) => ({

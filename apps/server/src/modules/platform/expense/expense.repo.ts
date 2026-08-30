@@ -4,6 +4,7 @@ import {
   expense,
   expenseCounter,
   expensePayment,
+  expenseReceipt,
 } from "@propertyos/db/schema/expense";
 import { organization } from "@propertyos/db/schema/organization";
 import { vendor } from "@propertyos/db/schema/vendor";
@@ -97,14 +98,20 @@ function selectPayments() {
 async function attachPayments(rows: ExpenseRow[]) {
   if (rows.length === 0) return [];
 
-  const payments = await selectPayments()
-    .where(
-      inArray(
-        expensePayment.expenseId,
-        rows.map((r) => r.id),
-      ),
-    )
-    .orderBy(expensePayment.paidAt, expensePayment.createdAt);
+  const ids = rows.map((r) => r.id);
+
+  // Independent reads against a database ~300ms away, so they overlap rather
+  // than run back to back.
+  const [payments, receipts] = await Promise.all([
+    selectPayments()
+      .where(inArray(expensePayment.expenseId, ids))
+      .orderBy(expensePayment.paidAt, expensePayment.createdAt),
+    db
+      .select()
+      .from(expenseReceipt)
+      .where(inArray(expenseReceipt.expenseId, ids))
+      .orderBy(expenseReceipt.createdAt),
+  ]);
 
   return rows.map((row) => {
     const mine = payments.filter((p) => p.expenseId === row.id);
@@ -119,6 +126,7 @@ async function attachPayments(rows: ExpenseRow[]) {
       amountPaidPaise,
       status: deriveStatus(row.totalAmountPaise, amountPaidPaise),
       payments: mine,
+      receipts: receipts.filter((r) => r.expenseId === row.id),
     };
   });
 }
@@ -269,6 +277,40 @@ export const expenseRepo = {
       .insert(expensePayment)
       .values({ ...input, id: crypto.randomUUID(), expenseId });
     return expenseRepo.findById(expenseId);
+  },
+
+  async addReceipt(input: Omit<typeof expenseReceipt.$inferInsert, "id">) {
+    const [row] = await db
+      .insert(expenseReceipt)
+      .values({ ...input, id: crypto.randomUUID() })
+      .returning();
+    return row;
+  },
+
+  async findReceiptById(receiptId: string) {
+    const [row] = await db
+      .select()
+      .from(expenseReceipt)
+      .where(eq(expenseReceipt.id, receiptId))
+      .limit(1);
+    return row;
+  },
+
+  /** Receipt URLs for an expense, so stored files can be cleaned up on delete. */
+  listReceiptUrls(expenseId: string) {
+    return db
+      .select({ url: expenseReceipt.url })
+      .from(expenseReceipt)
+      .where(eq(expenseReceipt.expenseId, expenseId))
+      .then((rows) => rows.map((r) => r.url));
+  },
+
+  async removeReceipt(receiptId: string) {
+    const rows = await db
+      .delete(expenseReceipt)
+      .where(eq(expenseReceipt.id, receiptId))
+      .returning();
+    return rows[0];
   },
 
   async removePayment(paymentId: string) {

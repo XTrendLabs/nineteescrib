@@ -2,6 +2,7 @@ import {
   DataTable,
   DataTableContainer,
 } from "@propertyos/ui/components/data-table";
+import { PaperclipIcon } from "lucide-react";
 import { type Expense, HQ_SHARED_ID, normalizeCategory } from "../lib/expense";
 import { formatDate, formatInrFromPaise } from "../lib/format";
 import { CategoryBadge } from "./category-badge";
@@ -54,7 +55,7 @@ export function ExpensesTable({
 
   return (
     <DataTableContainer>
-      <DataTable minWidth={820}>
+      <DataTable minWidth={880}>
         <thead>
           <tr className="border-b bg-muted/40 text-muted-foreground">
             <th className="whitespace-nowrap px-3 py-2 font-medium">
@@ -72,6 +73,9 @@ export function ExpensesTable({
             <th className="whitespace-nowrap px-3 py-2 font-medium">Status</th>
             <th className="whitespace-nowrap px-3 py-2 text-right font-medium">
               Amount
+            </th>
+            <th className="whitespace-nowrap px-3 py-2 text-center font-medium">
+              Receipt
             </th>
             <th className="whitespace-nowrap px-3 py-2 text-right font-medium">
               Actions
@@ -125,6 +129,22 @@ export function ExpensesTable({
               </td>
               <td className="whitespace-nowrap px-3 py-2.5 text-right align-middle font-medium">
                 {formatInrFromPaise(expense.totalAmountPaise)}
+              </td>
+              <td className="px-3 py-2.5 align-middle">
+                {expense.receipts.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => onViewHistory(expense)}
+                    className="mx-auto flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground hover:underline"
+                  >
+                    <PaperclipIcon className="size-3.5" />
+                    {expense.receipts.length}
+                  </button>
+                ) : (
+                  <span className="block text-center text-muted-foreground">
+                    —
+                  </span>
+                )}
               </td>
               <td className="px-3 py-2.5 text-right align-middle">
                 <ExpenseRowActions

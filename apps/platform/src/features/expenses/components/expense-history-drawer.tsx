@@ -4,10 +4,11 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@propertyos/ui/components/sheet";
-import { CheckCircle2Icon } from "lucide-react";
+import { CheckCircle2Icon, FileTextIcon, ImageIcon } from "lucide-react";
 import {
   type Expense,
   HQ_SHARED_ID,
+  isPdfReceipt,
   normalizeCategory,
   normalizePaymentMethod,
   parseDateOnly,
@@ -96,6 +97,33 @@ export function ExpenseHistoryDrawer({
                 )}
               </div>
             </div>
+
+            {expense.receipts.length > 0 && (
+              <div className="flex flex-col gap-2">
+                <p className="font-medium text-xs">Receipts</p>
+                <ul className="flex flex-col gap-1">
+                  {expense.receipts.map((receipt) => (
+                    <li key={receipt.id}>
+                      <a
+                        href={receipt.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex items-center gap-2 border px-2 py-1.5 text-xs hover:bg-muted/40"
+                      >
+                        {isPdfReceipt(receipt) ? (
+                          <FileTextIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                        ) : (
+                          <ImageIcon className="size-3.5 shrink-0 text-muted-foreground" />
+                        )}
+                        <span className="min-w-0 flex-1 truncate">
+                          {receipt.fileName}
+                        </span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             <div className="flex flex-col gap-3">
               <p className="font-medium text-xs">Payment Installments</p>

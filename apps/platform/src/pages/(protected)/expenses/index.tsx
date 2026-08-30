@@ -32,11 +32,13 @@ import {
   type FormState,
   LogExpenseDialog,
 } from "@/features/expenses/components/log-expense-dialog";
+import { uploadReceiptFile } from "@/features/expenses/components/receipt-manager";
 import { RecordPaymentDialog } from "@/features/expenses/components/record-payment-dialog";
 import { SummaryBand } from "@/features/expenses/components/summary-band";
 import { VendorDirectory } from "@/features/expenses/components/vendor-directory";
 import {
   type Expense,
+  type HeldReceipt,
   HQ_SHARED_ID,
   normalizeCategory,
 } from "@/features/expenses/lib/expense";
@@ -187,7 +189,35 @@ function RouteComponent() {
     };
   }
 
-  function handleSaveExpense(form: FormState, editing: Expense | null) {
+  /**
+   * Uploads the receipts held while the expense was being created.
+   *
+   * Failures are reported but do not undo the expense: the cost is recorded
+   * either way, and a missing attachment can be added from the edit dialog.
+   */
+  async function uploadHeldReceipts(expenseId: string, held: HeldReceipt[]) {
+    const failed: string[] = [];
+    for (const item of held) {
+      try {
+        await uploadReceiptFile(expenseId, item.file);
+      } catch {
+        failed.push(item.file.name);
+      }
+    }
+
+    if (failed.length > 0) {
+      feedback.error(
+        "Expense saved, but some receipts failed",
+        `Couldn't upload ${failed.join(", ")}. Add them by editing the expense.`,
+      );
+    }
+  }
+
+  function handleSaveExpense(
+    form: FormState,
+    editing: Expense | null,
+    receipts: HeldReceipt[] = [],
+  ) {
     if (editing) {
       updateExpense.mutate(
         { param: { id: editing.id }, json: detailsFromForm(form) },
@@ -238,7 +268,15 @@ function RouteComponent() {
         },
       },
       {
-        onSuccess: () => {
+        onSuccess: async (response) => {
+          // The receipts were held back until there was an id to attach them
+          // to, so they go up now, before the list is refetched.
+          const created = (response as { data?: { id?: string } } | undefined)
+            ?.data;
+          if (created?.id && receipts.length > 0) {
+            await uploadHeldReceipts(created.id, receipts);
+          }
+
           invalidateExpenses();
           setLogDrawerOpen(false);
           feedback.success(
@@ -340,12 +378,20 @@ function RouteComponent() {
 
       <LogExpenseDialog
         open={logDrawerOpen}
-        expense={editingExpense}
+        // Re-read from the list so an uploaded receipt shows immediately;
+        // `editingExpense` is a snapshot taken when the dialog opened.
+        expense={
+          editingExpense
+            ? (expenses.find((e) => e.id === editingExpense.id) ??
+              editingExpense)
+            : null
+        }
         vendors={vendors}
         properties={properties}
         isPending={createExpense.isPending || updateExpense.isPending}
         onOpenChange={setLogDrawerOpen}
         onSave={handleSaveExpense}
+        onReceiptsChanged={invalidateExpenses}
       />
 
       <RecordPaymentDialog

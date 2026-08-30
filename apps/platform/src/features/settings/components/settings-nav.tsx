@@ -20,14 +20,21 @@ export function SettingsNav() {
                 key={item.url}
                 to={item.url}
                 className={cn(
-                  "flex items-center gap-2 px-2 py-1.5 text-xs transition-colors",
+                  "flex items-center justify-between gap-2 px-2 py-1.5 text-xs transition-colors",
                   isActive
                     ? "bg-muted font-semibold text-foreground"
                     : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
                 )}
               >
-                <item.icon className="size-3.5" />
-                {item.title}
+                <div className="flex min-w-0 items-center gap-2">
+                  <item.icon className="size-3.5 shrink-0" />
+                  <span className="truncate">{item.title}</span>
+                </div>
+                {item.soon && (
+                  <span className="shrink-0 font-medium text-[9px] text-muted-foreground/50 uppercase tracking-wider">
+                    SOON
+                  </span>
+                )}
               </Link>
             );
           })}

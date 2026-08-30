@@ -1,4 +1,5 @@
 import { AppError } from "../../../core";
+import { storageService } from "../storage/storage.service";
 import { expenseRepo, HQ_SHARED_ID } from "./expense.repo";
 import type {
   CreateExpenseInput,
@@ -103,7 +104,57 @@ export const expenseService = {
     return expenseRepo.removePayment(paymentId);
   },
 
-  remove(id: string) {
-    return expenseRepo.remove(id);
+  /** Stores the file, then records it against the expense. */
+  async addReceipt(expenseId: string, uploadedByUserId: string, file: File) {
+    const { url } = await storageService.uploadDocument(file, [
+      "expenses",
+      expenseId,
+      "receipts",
+    ]);
+
+    return expenseRepo.addReceipt({
+      expenseId,
+      url,
+      fileName: file.name,
+      contentType: file.type,
+      uploadedByUserId,
+    });
+  },
+
+  findReceiptById(receiptId: string) {
+    return expenseRepo.findReceiptById(receiptId);
+  },
+
+  async removeReceipt(receiptId: string) {
+    const receipt = await expenseRepo.findReceiptById(receiptId);
+    if (!receipt) return undefined;
+
+    await storageService.deleteByUrl(receipt.url);
+    return expenseRepo.removeReceipt(receiptId);
+  },
+
+  /**
+   * Deletes the expense and the receipt files behind it.
+   *
+   * The rows cascade, but the stored objects do not -- without this they would
+   * linger in the bucket with nothing left pointing at them.
+   */
+  async remove(id: string) {
+    const urls = await expenseRepo.listReceiptUrls(id);
+
+    const removed = await expenseRepo.remove(id);
+    if (!removed) return undefined;
+
+    await Promise.all(
+      urls.map((url) =>
+        storageService.deleteByUrl(url).catch((error) => {
+          // The expense is already gone; a failed cleanup must not turn a
+          // successful delete into an error for the caller.
+          console.error("[expense] failed to delete receipt", url, error);
+        }),
+      ),
+    );
+
+    return removed;
   },
 };

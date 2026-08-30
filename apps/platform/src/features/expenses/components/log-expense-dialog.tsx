@@ -16,10 +16,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@propertyos/ui/components/select";
-import { UploadIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import {
   type Expense,
+  type HeldReceipt,
   HQ_SHARED_ID,
   normalizeCategory,
   normalizePaymentMethod,
@@ -42,6 +42,7 @@ import {
   type PaymentMethod,
 } from "../lib/mock-data";
 import type { Vendor } from "../lib/vendor";
+import { ReceiptManager } from "./receipt-manager";
 
 /** Just enough of a property to offer it in the picker. */
 export type DialogProperty = { id: string; name: string };
@@ -135,6 +136,7 @@ export function LogExpenseDialog({
   isPending = false,
   onOpenChange,
   onSave,
+  onReceiptsChanged,
 }: {
   open: boolean;
   expense: Expense | null;
@@ -144,7 +146,13 @@ export function LogExpenseDialog({
   properties: DialogProperty[];
   isPending?: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (form: FormState, editing: Expense | null) => void;
+  onSave: (
+    form: FormState,
+    editing: Expense | null,
+    receipts: HeldReceipt[],
+  ) => void;
+  /** Refetches after a receipt is added or removed while editing. */
+  onReceiptsChanged?: () => void;
 }) {
   // A caller scoped to one property should not have to pick it every time;
   // with several, no default is assumed and the cost starts HQ-shared.
@@ -153,15 +161,28 @@ export function LogExpenseDialog({
   const [form, setForm] = useState<FormState>(() =>
     emptyForm(defaultPropertyId),
   );
+  // Receipts picked before the expense exists; uploaded once it has an id.
+  const [heldReceipts, setHeldReceipts] = useState<HeldReceipt[]>([]);
 
-  useEffect(() => {
-    if (open) {
-      setForm(
-        expense ? formFromExpense(expense) : emptyForm(defaultPropertyId),
-      );
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, expense?.id, expense, defaultPropertyId]);
+  /**
+   * Loads the form when the dialog opens on a different record.
+   *
+   * Deliberately keyed on the expense's *id* rather than the object: the row
+   * is re-read from the list so an uploaded receipt appears straight away, and
+   * depending on the object itself would make every refetch reset the form and
+   * discard whatever the user was part-way through typing.
+   */
+  const loadedKey = `${open}:${expense?.id ?? "new"}`;
+  const loadedRef = useRef<string | undefined>(undefined);
+  if (open && loadedRef.current !== loadedKey) {
+    loadedRef.current = loadedKey;
+    setForm(expense ? formFromExpense(expense) : emptyForm(defaultPropertyId));
+    // Never carry a previous expense's pending files into the next one.
+    setHeldReceipts([]);
+  }
+  if (!open && loadedRef.current !== undefined) {
+    loadedRef.current = undefined;
+  }
 
   const isEditing = expense !== null;
   const showPaymentFields =
@@ -589,14 +610,15 @@ export function LogExpenseDialog({
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <span className="text-muted-foreground text-xs">
-                Receipt Upload
-              </span>
-              <div className="flex flex-col items-center gap-1.5 border border-dashed py-4 text-center text-muted-foreground">
-                <UploadIcon className="size-4" />
-                <p className="text-[11px]">Drag & drop or click to upload</p>
-                <p className="text-[10px]">Images or PDF, up to 10MB</p>
-              </div>
+              <span className="text-muted-foreground text-xs">Receipts</span>
+              <ReceiptManager
+                expenseId={expense?.id}
+                receipts={expense?.receipts ?? []}
+                heldFiles={heldReceipts}
+                onHeldFilesChange={setHeldReceipts}
+                onUploaded={onReceiptsChanged}
+                disabled={isPending}
+              />
             </div>
 
             <div className="flex flex-col gap-2 border-t pt-3">
@@ -635,7 +657,7 @@ export function LogExpenseDialog({
             onClick={() => {
               // The toast and the close belong to the caller, which is the
               // only side that learns whether the write succeeded.
-              onSave(form, expense);
+              onSave(form, expense, heldReceipts);
             }}
           >
             {isPending

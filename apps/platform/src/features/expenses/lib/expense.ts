@@ -19,6 +19,39 @@ export type PaymentEntry = {
   createdAt: string;
 };
 
+/** A receipt or invoice attached to an expense. */
+export type ExpenseReceipt = {
+  id: string;
+  expenseId: string;
+  url: string;
+  fileName: string;
+  contentType: string;
+  uploadedByUserId: string | null;
+  createdAt: string;
+};
+
+/**
+ * A receipt chosen before the expense exists.
+ *
+ * Carries an id of its own: two files picked at once can share a name and
+ * modified time, so neither those nor the array index identify a row stably.
+ */
+export type HeldReceipt = {
+  id: string;
+  file: File;
+};
+
+/** File types the receipt upload accepts, matching the server's allow-list. */
+export const RECEIPT_ACCEPT =
+  "image/jpeg,image/png,image/webp,image/avif,application/pdf";
+
+/** Matches the server's cap; checked client-side to fail fast with a clear message. */
+export const MAX_RECEIPT_BYTES = 10 * 1024 * 1024;
+
+export function isPdfReceipt(receipt: { contentType: string }): boolean {
+  return receipt.contentType === "application/pdf";
+}
+
 /**
  * An expense as the API returns it.
  *
@@ -54,6 +87,7 @@ export type Expense = {
   createdAt: string;
   updatedAt: string;
   payments: PaymentEntry[];
+  receipts: ExpenseReceipt[];
 };
 
 const CATEGORY_VALUES = [
