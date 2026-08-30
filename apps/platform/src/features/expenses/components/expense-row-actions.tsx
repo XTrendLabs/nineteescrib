@@ -12,7 +12,7 @@ import {
   TrashIcon,
   WalletIcon,
 } from "lucide-react";
-import type { Expense } from "../lib/mock-data";
+import type { Expense } from "../lib/expense";
 
 export function ExpenseRowActions({
   expense,

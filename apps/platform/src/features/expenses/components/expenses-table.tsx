@@ -2,40 +2,59 @@ import {
   DataTable,
   DataTableContainer,
 } from "@propertyos/ui/components/data-table";
-import { PaperclipIcon } from "lucide-react";
+import { type Expense, HQ_SHARED_ID, normalizeCategory } from "../lib/expense";
 import { formatDate, formatInrFromPaise } from "../lib/format";
-import { type Expense, HQ_SHARED_ID } from "../lib/mock-data";
 import { CategoryBadge } from "./category-badge";
 import { ExpenseRowActions } from "./expense-row-actions";
 import { StatusPill } from "./status-pill";
 
 export function ExpensesTable({
   expenses,
+  isLoading = false,
+  hasAny = true,
   onRecordPayment,
   onViewHistory,
   onEdit,
   onDelete,
 }: {
   expenses: Expense[];
+  isLoading?: boolean;
+  /** Whether any expense exists at all, before filtering. */
+  hasAny?: boolean;
   onRecordPayment: (expense: Expense) => void;
   onViewHistory: (expense: Expense) => void;
   onEdit: (expense: Expense) => void;
   onDelete: (expense: Expense) => void;
 }) {
+  // An empty page mid-fetch is not the same as a filter that matched nothing,
+  // and neither is an account that has logged no expenses yet.
   if (expenses.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center gap-1 border py-16 text-center">
-        <p className="text-sm">No expenses match your filters</p>
-        <p className="text-muted-foreground text-xs">
-          Try adjusting search or filter criteria
-        </p>
+        {isLoading && !hasAny ? (
+          <p className="text-muted-foreground text-sm">Loading expenses...</p>
+        ) : hasAny ? (
+          <>
+            <p className="text-sm">No expenses match your filters</p>
+            <p className="text-muted-foreground text-xs">
+              Try adjusting search or filter criteria
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="text-sm">No expenses logged yet</p>
+            <p className="text-muted-foreground text-xs">
+              Log your first expense to start tracking spend
+            </p>
+          </>
+        )}
       </div>
     );
   }
 
   return (
     <DataTableContainer>
-      <DataTable minWidth={880}>
+      <DataTable minWidth={820}>
         <thead>
           <tr className="border-b bg-muted/40 text-muted-foreground">
             <th className="whitespace-nowrap px-3 py-2 font-medium">
@@ -54,9 +73,6 @@ export function ExpensesTable({
             <th className="whitespace-nowrap px-3 py-2 text-right font-medium">
               Amount
             </th>
-            <th className="whitespace-nowrap px-3 py-2 text-center font-medium">
-              Receipt
-            </th>
             <th className="whitespace-nowrap px-3 py-2 text-right font-medium">
               Actions
             </th>
@@ -72,7 +88,7 @@ export function ExpensesTable({
                 <div className="flex flex-col">
                   <span className="font-medium">{expense.ref}</span>
                   <span className="text-muted-foreground">
-                    {formatDate(expense.createdAt)}
+                    {formatDate(new Date(expense.createdAt))}
                   </span>
                 </div>
               </td>
@@ -86,7 +102,7 @@ export function ExpensesTable({
                     {expense.title}
                   </button>
                   <span className="text-muted-foreground">
-                    {expense.vendorName}
+                    {expense.vendorName ?? "—"}
                   </span>
                 </div>
               </td>
@@ -102,29 +118,13 @@ export function ExpensesTable({
                 </span>
               </td>
               <td className="whitespace-nowrap px-3 py-2.5 align-middle">
-                <CategoryBadge category={expense.category} />
+                <CategoryBadge category={normalizeCategory(expense.category)} />
               </td>
               <td className="px-3 py-2.5 align-middle">
                 <StatusPill expense={expense} />
               </td>
               <td className="whitespace-nowrap px-3 py-2.5 text-right align-middle font-medium">
                 {formatInrFromPaise(expense.totalAmountPaise)}
-              </td>
-              <td className="px-3 py-2.5 align-middle">
-                {expense.hasReceipt ? (
-                  <button
-                    type="button"
-                    onClick={() => onViewHistory(expense)}
-                    className="mx-auto flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground hover:underline"
-                  >
-                    <PaperclipIcon className="size-3.5" />
-                    View
-                  </button>
-                ) : (
-                  <span className="block text-center text-muted-foreground">
-                    —
-                  </span>
-                )}
               </td>
               <td className="px-3 py-2.5 text-right align-middle">
                 <ExpenseRowActions

@@ -2,7 +2,7 @@ import { Card, CardContent } from "@propertyos/ui/components/card";
 import { Link } from "@tanstack/react-router";
 import { MailIcon, PhoneIcon } from "lucide-react";
 import { formatInrFromPaise } from "../lib/format";
-import type { Vendor } from "../lib/mock-data";
+import { normalizeVendorCategory, type Vendor } from "../lib/vendor";
 import { CategoryBadge } from "./category-badge";
 
 export function VendorCard({
@@ -29,7 +29,9 @@ export function VendorCard({
                 </p>
               )}
             </div>
-            <CategoryBadge category={vendor.category} />
+            <CategoryBadge
+              category={normalizeVendorCategory(vendor.category)}
+            />
           </div>
 
           <div className="flex flex-col gap-1 text-muted-foreground text-xs">

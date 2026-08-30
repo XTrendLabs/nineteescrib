@@ -16,11 +16,14 @@ import {
 } from "@propertyos/ui/components/select";
 import { useFeedback } from "@propertyos/ui/lib/use-feedback";
 import { useState } from "react";
+
+import { api } from "@/shared/lib/api-client";
+import { getApiErrorMessage } from "@/shared/lib/api-error";
+import { useCreateVendor } from "../api/use-create-vendor";
 import {
   CATEGORY_LABELS,
   CATEGORY_OPTIONS,
   type ExpenseCategory,
-  type Vendor,
 } from "../lib/mock-data";
 
 const EMPTY_FORM = {
@@ -35,23 +38,66 @@ const EMPTY_FORM = {
 export function AddVendorDialog({
   open,
   onOpenChange,
-  onSave,
+  activeOrganizationId,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: (vendor: Vendor) => void;
+  /** Keys the list query this dialog invalidates; see `useVendors`. */
+  activeOrganizationId: string | undefined;
 }) {
   const feedback = useFeedback();
   const [form, setForm] = useState(EMPTY_FORM);
+  const createVendor = useCreateVendor();
 
   function handleOpenChange(next: boolean) {
+    // The form is only reset once the dialog is closed for good -- discarding
+    // what someone typed while the request is still in flight would lose it if
+    // the server rejects the vendor.
     if (!next) {
       setForm(EMPTY_FORM);
     }
     onOpenChange(next);
   }
 
-  const canSave = form.name.trim().length > 0;
+  const canSave = form.name.trim().length > 0 && !createVendor.isPending;
+
+  function handleSave() {
+    if (!canSave) return;
+
+    createVendor.mutate(
+      {
+        json: {
+          name: form.name.trim(),
+          contactPerson: form.contactPerson.trim(),
+          phone: form.phone.trim(),
+          email: form.email.trim(),
+          category: form.category,
+          gstin: form.gstin.trim(),
+        },
+      },
+      {
+        onSuccess: () => {
+          api.api.platform.vendors.$get.invalidate({
+            query: { activeOrganizationId: activeOrganizationId ?? "" },
+          });
+          feedback.success(
+            "Vendor added",
+            `${form.name.trim()} has been added to your directory.`,
+          );
+          handleOpenChange(false);
+        },
+        onError: (error) => {
+          feedback.error(
+            "Couldn't add vendor",
+            getApiErrorMessage(
+              error,
+              "Something went wrong. Please try again.",
+            ),
+          );
+        },
+      },
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -137,30 +183,15 @@ export function AddVendorDialog({
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)}>
+          <Button
+            variant="outline"
+            disabled={createVendor.isPending}
+            onClick={() => handleOpenChange(false)}
+          >
             Cancel
           </Button>
-          <Button
-            disabled={!canSave}
-            onClick={() => {
-              const vendor: Vendor = {
-                id: `vendor-${Date.now()}`,
-                name: form.name.trim(),
-                contactPerson: form.contactPerson.trim() || undefined,
-                phone: form.phone.trim() || undefined,
-                email: form.email.trim() || undefined,
-                category: form.category,
-                gstin: form.gstin.trim() || undefined,
-              };
-              onSave(vendor);
-              feedback.success(
-                "Vendor added",
-                `${vendor.name} has been added to your directory.`,
-              );
-              handleOpenChange(false);
-            }}
-          >
-            Add Vendor
+          <Button disabled={!canSave} onClick={handleSave}>
+            {createVendor.isPending ? "Adding..." : "Add Vendor"}
           </Button>
         </DialogFooter>
       </DialogContent>

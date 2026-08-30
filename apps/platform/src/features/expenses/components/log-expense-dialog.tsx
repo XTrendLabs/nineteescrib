@@ -16,30 +16,43 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@propertyos/ui/components/select";
-import { useFeedback } from "@propertyos/ui/lib/use-feedback";
 import { UploadIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
+  type Expense,
+  HQ_SHARED_ID,
+  normalizeCategory,
+  normalizePaymentMethod,
+} from "../lib/expense";
+import { formatInrFromPaise } from "../lib/format";
+import {
+  amountFromStored,
+  bpsToPercentLabel,
+  computeGst,
+  GST_RATE_OPTIONS,
+  type GstMode,
+  percentToBps,
+} from "../lib/gst";
+import {
   CATEGORY_LABELS,
   CATEGORY_OPTIONS,
-  type Expense,
   type ExpenseCategory,
-  HQ_SHARED_ID,
-  MOCK_PROPERTIES,
-  MOCK_VENDORS,
   PAYMENT_METHOD_LABELS,
   PAYMENT_METHOD_OPTIONS,
   type PaymentMethod,
 } from "../lib/mock-data";
+import type { Vendor } from "../lib/vendor";
+
+/** Just enough of a property to offer it in the picker. */
+export type DialogProperty = { id: string; name: string };
 
 type InitialPaymentStatus = "unpaid" | "partial" | "paid";
 
-type FormState = {
+export type FormState = {
   title: string;
   category: ExpenseCategory;
   propertyId: string;
   vendorId: string;
-  totalAmount: string;
   initialStatus: InitialPaymentStatus;
   initialAmountPaid: string;
   paymentMethod: PaymentMethod;
@@ -47,19 +60,25 @@ type FormState = {
   paymentDate: string;
   dueDate: string;
   isOwnerDeductible: boolean;
-  taxAmount: string;
+  /** The pre-tax base when adding GST on top, or the gross when it is included. */
+  amount: string;
+  /** GST rate as a percent string, e.g. "18". */
+  gstRate: string;
+  gstMode: GstMode;
   vendorGstin: string;
   itcClaimable: boolean;
   notes: string;
 };
 
-function emptyForm(): FormState {
+function emptyForm(defaultPropertyId: string = HQ_SHARED_ID): FormState {
   return {
     title: "",
     category: "maintenance",
-    propertyId: MOCK_PROPERTIES[0]?.id ?? HQ_SHARED_ID,
+    propertyId: defaultPropertyId,
     vendorId: "",
-    totalAmount: "",
+    amount: "",
+    gstRate: "0",
+    gstMode: "exclusive",
     initialStatus: "unpaid",
     initialAmountPaid: "",
     paymentMethod: "upi",
@@ -67,7 +86,6 @@ function emptyForm(): FormState {
     paymentDate: new Date().toISOString().slice(0, 10),
     dueDate: "",
     isOwnerDeductible: false,
-    taxAmount: "",
     vendorGstin: "",
     itcClaimable: false,
     notes: "",
@@ -75,22 +93,34 @@ function emptyForm(): FormState {
 }
 
 function formFromExpense(expense: Expense): FormState {
+  const last = expense.payments.at(-1);
+  const gstMode: GstMode =
+    expense.gstMode === "inclusive" ? "inclusive" : "exclusive";
+
   return {
     title: expense.title,
-    category: expense.category,
+    category: normalizeCategory(expense.category),
     propertyId: expense.propertyId,
     vendorId: expense.vendorId ?? "",
-    totalAmount: (expense.totalAmountPaise / 100).toString(),
+    // The box holds whichever figure was typed -- base or gross -- so the
+    // breakdown reopens exactly as it was saved.
+    amount: (
+      amountFromStored(
+        expense.totalAmountPaise,
+        expense.taxAmountPaise,
+        gstMode,
+      ) / 100
+    ).toString(),
+    gstRate: bpsToPercentLabel(expense.gstRateBps),
+    gstMode,
     initialStatus: expense.status,
     initialAmountPaid: (expense.amountPaidPaise / 100).toString(),
-    paymentMethod: expense.payments.at(-1)?.method ?? "upi",
-    referenceId: expense.payments.at(-1)?.referenceId ?? "",
+    paymentMethod: last ? normalizePaymentMethod(last.method) : "upi",
+    referenceId: last?.referenceId ?? "",
     paymentDate: new Date().toISOString().slice(0, 10),
-    dueDate: expense.dueDate ? expense.dueDate.toISOString().slice(0, 10) : "",
+    // Already a calendar day (YYYY-MM-DD), which is what the input expects.
+    dueDate: expense.dueDate ?? "",
     isOwnerDeductible: expense.isOwnerDeductible,
-    taxAmount: expense.taxAmountPaise
-      ? (expense.taxAmountPaise / 100).toString()
-      : "",
     vendorGstin: expense.vendorGstin ?? "",
     itcClaimable: expense.itcClaimable,
     notes: expense.notes ?? "",
@@ -100,39 +130,75 @@ function formFromExpense(expense: Expense): FormState {
 export function LogExpenseDialog({
   open,
   expense,
+  vendors,
+  properties,
+  isPending = false,
   onOpenChange,
   onSave,
 }: {
   open: boolean;
   expense: Expense | null;
+  /** The real vendor directory, so the picker offers what was actually saved. */
+  vendors: Vendor[];
+  /** The properties in scope, for charging the expense to one of them. */
+  properties: DialogProperty[];
+  isPending?: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (form: FormState, editing: Expense | null) => void;
 }) {
-  const feedback = useFeedback();
-  const [form, setForm] = useState<FormState>(emptyForm);
+  // A caller scoped to one property should not have to pick it every time;
+  // with several, no default is assumed and the cost starts HQ-shared.
+  const defaultPropertyId =
+    properties.length === 1 ? properties[0].id : HQ_SHARED_ID;
+  const [form, setForm] = useState<FormState>(() =>
+    emptyForm(defaultPropertyId),
+  );
 
   useEffect(() => {
     if (open) {
-      setForm(expense ? formFromExpense(expense) : emptyForm());
+      setForm(
+        expense ? formFromExpense(expense) : emptyForm(defaultPropertyId),
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, expense?.id, expense]);
+  }, [open, expense?.id, expense, defaultPropertyId]);
 
   const isEditing = expense !== null;
   const showPaymentFields =
     form.initialStatus === "partial" || form.initialStatus === "paid";
   const showDueDate =
     form.initialStatus === "unpaid" || form.initialStatus === "partial";
-  const canSave = form.title.trim().length > 0 && Number(form.totalAmount) > 0;
+
+  // The single source of truth for what this expense costs. Everything the
+  // section shows -- and what is saved -- comes from this one calculation.
+  const gst = computeGst(
+    Math.round((Number(form.amount) || 0) * 100),
+    percentToBps(form.gstRate),
+    form.gstMode,
+  );
+  const hasGst = gst.gstPaise > 0;
+
+  // A part payment cannot exceed what is owed; the server refuses it anyway.
+  const initialPaidPaise = Math.round(
+    (Number(form.initialAmountPaid) || 0) * 100,
+  );
+  const partialExceedsTotal =
+    form.initialStatus === "partial" && initialPaidPaise > gst.totalPaise;
+
+  const canSave =
+    form.title.trim().length > 0 &&
+    gst.totalPaise > 0 &&
+    !partialExceedsTotal &&
+    !isPending;
 
   const propertyLabel =
     form.propertyId === HQ_SHARED_ID
       ? "HQ / Shared Expense"
-      : (MOCK_PROPERTIES.find((p) => p.id === form.propertyId)?.name ??
+      : (properties.find((p) => p.id === form.propertyId)?.name ??
         "Select property");
 
   const vendorLabel =
-    MOCK_VENDORS.find((v) => v.id === form.vendorId)?.name ?? "Select vendor";
+    vendors.find((v) => v.id === form.vendorId)?.name ?? "Select vendor";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -143,107 +209,131 @@ export function LogExpenseDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 gap-6 px-4 pb-4 lg:grid-cols-3">
-          {/* Section: Basic Info */}
+        <div className="grid max-h-[70vh] grid-cols-1 gap-6 overflow-y-auto px-4 pb-4 lg:grid-cols-2">
+          {/* ---------------- Amount & Payment ---------------- */}
           <div className="flex flex-col gap-3">
-            <p className="font-medium text-xs">Basic Info</p>
-            <div className="flex flex-col gap-1.5">
-              <span className="text-muted-foreground text-xs">Title *</span>
-              <Input
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder="e.g. Pool Cleaning Services"
-              />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <span className="text-muted-foreground text-xs">Category *</span>
-              <Select
-                value={form.category}
-                onValueChange={(v) =>
-                  setForm({ ...form, category: v as ExpenseCategory })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Category">
-                    {CATEGORY_LABELS[form.category]}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {CATEGORY_OPTIONS.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {CATEGORY_LABELS[category]}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <p className="font-medium text-xs">Amount & Payment</p>
+
             <div className="flex flex-col gap-1.5">
               <span className="text-muted-foreground text-xs">
-                Property Scope *
-              </span>
-              <Select
-                value={form.propertyId}
-                onValueChange={(v) =>
-                  setForm({ ...form, propertyId: v as string })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Property">
-                    {propertyLabel}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={HQ_SHARED_ID}>
-                    HQ / Shared Expense
-                  </SelectItem>
-                  {MOCK_PROPERTIES.map((property) => (
-                    <SelectItem key={property.id} value={property.id}>
-                      {property.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <span className="text-muted-foreground text-xs">
-                Total Amount *
+                {form.gstMode === "inclusive"
+                  ? "Amount (incl. GST) *"
+                  : "Amount (before GST) *"}
               </span>
               <Input
                 type="number"
-                value={form.totalAmount}
-                onChange={(e) =>
-                  setForm({ ...form, totalAmount: e.target.value })
-                }
+                value={form.amount}
+                onChange={(e) => setForm({ ...form, amount: e.target.value })}
                 placeholder="e.g. 10000"
               />
             </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1.5">
+                <span className="text-muted-foreground text-xs">GST Rate</span>
+                <Select
+                  value={
+                    GST_RATE_OPTIONS.includes(
+                      percentToBps(
+                        form.gstRate,
+                      ) as (typeof GST_RATE_OPTIONS)[number],
+                    )
+                      ? String(percentToBps(form.gstRate))
+                      : "custom"
+                  }
+                  onValueChange={(v) =>
+                    setForm({
+                      ...form,
+                      // "Custom" keeps whatever is typed and just reveals the
+                      // free field, so switching to it never wipes a rate.
+                      gstRate:
+                        v === "custom"
+                          ? form.gstRate
+                          : bpsToPercentLabel(Number(v)),
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="GST">
+                      {GST_RATE_OPTIONS.includes(
+                        percentToBps(
+                          form.gstRate,
+                        ) as (typeof GST_RATE_OPTIONS)[number],
+                      )
+                        ? `${form.gstRate}%`
+                        : "Custom"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {GST_RATE_OPTIONS.map((bps) => (
+                      <SelectItem key={bps} value={String(bps)}>
+                        {bps === 0
+                          ? "0% (exempt)"
+                          : `${bpsToPercentLabel(bps)}%`}
+                      </SelectItem>
+                    ))}
+                    <SelectItem value="custom">Custom…</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <span className="text-muted-foreground text-xs">
+                  Custom Rate (%)
+                </span>
+                <Input
+                  type="number"
+                  value={form.gstRate}
+                  onChange={(e) =>
+                    setForm({ ...form, gstRate: e.target.value })
+                  }
+                  placeholder="e.g. 18"
+                />
+              </div>
+            </div>
+
             <div className="flex flex-col gap-1.5">
-              <span className="text-muted-foreground text-xs">Vendor</span>
+              <span className="text-muted-foreground text-xs">
+                How is GST applied?
+              </span>
               <Select
-                value={form.vendorId}
+                value={form.gstMode}
                 onValueChange={(v) =>
-                  setForm({ ...form, vendorId: v as string })
+                  setForm({ ...form, gstMode: v as GstMode })
                 }
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select vendor">
-                    {form.vendorId ? vendorLabel : "Select vendor (optional)"}
+                  <SelectValue placeholder="GST mode">
+                    {form.gstMode === "inclusive"
+                      ? "Amount includes GST"
+                      : "Add GST on top"}
                   </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
-                  {MOCK_VENDORS.map((vendor) => (
-                    <SelectItem key={vendor.id} value={vendor.id}>
-                      {vendor.name}
-                    </SelectItem>
-                  ))}
+                  <SelectItem value="exclusive">Add GST on top</SelectItem>
+                  <SelectItem value="inclusive">Amount includes GST</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
-          {/* Section: Payment */}
-          <div className="flex flex-col gap-3">
-            <p className="font-medium text-xs">Payment</p>
+            {/* The three figures, so which number is payable is never in doubt. */}
+            <div className="flex flex-col gap-1 border bg-muted/30 p-3 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">Base</span>
+                <span>{formatInrFromPaise(gst.basePaise)}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-muted-foreground">
+                  GST{hasGst ? ` @ ${form.gstRate}%` : ""}
+                </span>
+                <span>{formatInrFromPaise(gst.gstPaise)}</span>
+              </div>
+              <div className="mt-1 flex items-center justify-between border-t pt-1.5 font-medium">
+                <span>Total Payable</span>
+                <span>{formatInrFromPaise(gst.totalPaise)}</span>
+              </div>
+            </div>
+
             <div className="flex flex-col gap-1.5">
               <span className="text-muted-foreground text-xs">
                 Initial Payment Status *
@@ -274,59 +364,78 @@ export function LogExpenseDialog({
               </Select>
             </div>
 
+            {form.initialStatus === "partial" && (
+              <div className="flex flex-col gap-1.5">
+                <span className="text-muted-foreground text-xs">
+                  Amount Paid Now
+                </span>
+                <Input
+                  type="number"
+                  value={form.initialAmountPaid}
+                  onChange={(e) =>
+                    setForm({ ...form, initialAmountPaid: e.target.value })
+                  }
+                  placeholder="e.g. 5000"
+                />
+                <span className="text-[11px] text-muted-foreground">
+                  {partialExceedsTotal
+                    ? `Cannot exceed the ${formatInrFromPaise(gst.totalPaise)} total`
+                    : `Leaves ${formatInrFromPaise(
+                        Math.max(0, gst.totalPaise - initialPaidPaise),
+                      )} outstanding`}
+                </span>
+              </div>
+            )}
+
+            {form.initialStatus === "paid" && (
+              <p className="text-[11px] text-muted-foreground">
+                Records a payment of {formatInrFromPaise(gst.totalPaise)} — the
+                full amount.
+              </p>
+            )}
+
             {showPaymentFields && (
               <>
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-muted-foreground text-xs">
-                    Initial Amount Paid
-                  </span>
-                  <Input
-                    type="number"
-                    value={form.initialAmountPaid}
-                    onChange={(e) =>
-                      setForm({ ...form, initialAmountPaid: e.target.value })
-                    }
-                    placeholder="e.g. 5000"
-                  />
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-muted-foreground text-xs">
-                    Payment Method
-                  </span>
-                  <Select
-                    value={form.paymentMethod}
-                    onValueChange={(v) =>
-                      setForm({
-                        ...form,
-                        paymentMethod: v as PaymentMethod,
-                      })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Method">
-                        {PAYMENT_METHOD_LABELS[form.paymentMethod]}
-                      </SelectValue>
-                    </SelectTrigger>
-                    <SelectContent>
-                      {PAYMENT_METHOD_OPTIONS.map((option) => (
-                        <SelectItem key={option} value={option}>
-                          {PAYMENT_METHOD_LABELS[option]}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-muted-foreground text-xs">
-                    Payment Date
-                  </span>
-                  <Input
-                    type="date"
-                    value={form.paymentDate}
-                    onChange={(e) =>
-                      setForm({ ...form, paymentDate: e.target.value })
-                    }
-                  />
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-muted-foreground text-xs">
+                      Payment Method
+                    </span>
+                    <Select
+                      value={form.paymentMethod}
+                      onValueChange={(v) =>
+                        setForm({
+                          ...form,
+                          paymentMethod: v as PaymentMethod,
+                        })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Method">
+                          {PAYMENT_METHOD_LABELS[form.paymentMethod]}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PAYMENT_METHOD_OPTIONS.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {PAYMENT_METHOD_LABELS[option]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-muted-foreground text-xs">
+                      Payment Date
+                    </span>
+                    <Input
+                      type="date"
+                      value={form.paymentDate}
+                      onChange={(e) =>
+                        setForm({ ...form, paymentDate: e.target.value })
+                      }
+                    />
+                  </div>
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <span className="text-muted-foreground text-xs">
@@ -355,34 +464,104 @@ export function LogExpenseDialog({
                 />
               </div>
             )}
-
-            <Label className="border-t pt-3">
-              <Checkbox
-                checked={form.isOwnerDeductible}
-                onCheckedChange={(checked) =>
-                  setForm({ ...form, isOwnerDeductible: checked === true })
-                }
-              />
-              Deduct from Property Owner Payout Statement
-            </Label>
           </div>
 
-          {/* Section: Tax & Extras */}
+          {/* ---------------- Details ---------------- */}
           <div className="flex flex-col gap-3">
-            <p className="font-medium text-xs">Tax & Extras</p>
+            <p className="font-medium text-xs">Details</p>
+
             <div className="flex flex-col gap-1.5">
-              <span className="text-muted-foreground text-xs">
-                Tax / GST Amount
-              </span>
+              <span className="text-muted-foreground text-xs">Title *</span>
               <Input
-                type="number"
-                value={form.taxAmount}
-                onChange={(e) =>
-                  setForm({ ...form, taxAmount: e.target.value })
-                }
-                placeholder="e.g. 450"
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                placeholder="e.g. Pool Cleaning Services"
               />
             </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1.5">
+                <span className="text-muted-foreground text-xs">
+                  Category *
+                </span>
+                <Select
+                  value={form.category}
+                  onValueChange={(v) =>
+                    setForm({ ...form, category: v as ExpenseCategory })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Category">
+                      {CATEGORY_LABELS[form.category]}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CATEGORY_OPTIONS.map((category) => (
+                      <SelectItem key={category} value={category}>
+                        {CATEGORY_LABELS[category]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <span className="text-muted-foreground text-xs">Vendor</span>
+                <Select
+                  value={form.vendorId}
+                  onValueChange={(v) =>
+                    setForm({ ...form, vendorId: v as string })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select vendor">
+                      {form.vendorId ? vendorLabel : "Optional"}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {vendors.length === 0 ? (
+                      <div className="px-2 py-1.5 text-muted-foreground text-xs">
+                        No vendors yet
+                      </div>
+                    ) : (
+                      vendors.map((vendor) => (
+                        <SelectItem key={vendor.id} value={vendor.id}>
+                          {vendor.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <span className="text-muted-foreground text-xs">
+                Property Scope *
+              </span>
+              <Select
+                value={form.propertyId}
+                onValueChange={(v) =>
+                  setForm({ ...form, propertyId: v as string })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Property">
+                    {propertyLabel}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={HQ_SHARED_ID}>
+                    HQ / Shared Expense
+                  </SelectItem>
+                  {properties.map((property) => (
+                    <SelectItem key={property.id} value={property.id}>
+                      {property.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="flex flex-col gap-1.5">
               <span className="text-muted-foreground text-xs">
                 Vendor GSTIN
@@ -394,26 +573,6 @@ export function LogExpenseDialog({
                 }
                 placeholder="Optional"
               />
-            </div>
-            <Label>
-              <Checkbox
-                checked={form.itcClaimable}
-                onCheckedChange={(checked) =>
-                  setForm({ ...form, itcClaimable: checked === true })
-                }
-              />
-              Input Tax Credit (ITC) claimable
-            </Label>
-
-            <div className="flex flex-col gap-1.5 border-t pt-3">
-              <span className="text-muted-foreground text-xs">
-                Receipt Upload
-              </span>
-              <div className="flex flex-col items-center gap-1.5 border border-dashed py-4 text-center text-muted-foreground">
-                <UploadIcon className="size-4" />
-                <p className="text-[11px]">Drag & drop or click to upload</p>
-                <p className="text-[10px]">Images or PDF, up to 10MB</p>
-              </div>
             </div>
 
             <div className="flex flex-col gap-1.5">
@@ -428,25 +587,64 @@ export function LogExpenseDialog({
                 className="w-full min-w-0 resize-none rounded-none border border-input bg-transparent px-2.5 py-1.5 text-xs outline-none transition-colors placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-1 focus-visible:ring-ring/50"
               />
             </div>
+
+            <div className="flex flex-col gap-1.5">
+              <span className="text-muted-foreground text-xs">
+                Receipt Upload
+              </span>
+              <div className="flex flex-col items-center gap-1.5 border border-dashed py-4 text-center text-muted-foreground">
+                <UploadIcon className="size-4" />
+                <p className="text-[11px]">Drag & drop or click to upload</p>
+                <p className="text-[10px]">Images or PDF, up to 10MB</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 border-t pt-3">
+              <Label>
+                <Checkbox
+                  checked={form.isOwnerDeductible}
+                  onCheckedChange={(checked) =>
+                    setForm({ ...form, isOwnerDeductible: checked === true })
+                  }
+                />
+                Deduct from Property Owner Payout Statement
+              </Label>
+              <Label>
+                <Checkbox
+                  checked={form.itcClaimable}
+                  onCheckedChange={(checked) =>
+                    setForm({ ...form, itcClaimable: checked === true })
+                  }
+                />
+                Input Tax Credit (ITC) claimable
+              </Label>
+            </div>
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="outline"
+            disabled={isPending}
+            onClick={() => onOpenChange(false)}
+          >
             Cancel
           </Button>
           <Button
             disabled={!canSave}
             onClick={() => {
+              // The toast and the close belong to the caller, which is the
+              // only side that learns whether the write succeeded.
               onSave(form, expense);
-              feedback.success(
-                isEditing ? "Expense updated" : "Expense logged",
-                `${form.title} has been ${isEditing ? "updated" : "added"}.`,
-              );
-              onOpenChange(false);
             }}
           >
-            {isEditing ? "Save Changes" : "Log Expense"}
+            {isPending
+              ? isEditing
+                ? "Saving..."
+                : "Logging..."
+              : isEditing
+                ? "Save Changes"
+                : "Log Expense"}
           </Button>
         </DialogFooter>
       </DialogContent>

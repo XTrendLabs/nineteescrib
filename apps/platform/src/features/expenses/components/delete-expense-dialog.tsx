@@ -7,20 +7,19 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@propertyos/ui/components/dialog";
-import { useFeedback } from "@propertyos/ui/lib/use-feedback";
-import type { Expense } from "../lib/mock-data";
+import type { Expense } from "../lib/expense";
 
 export function DeleteExpenseDialog({
   expense,
+  isPending = false,
   onOpenChange,
   onConfirm,
 }: {
   expense: Expense | null;
+  isPending?: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: (expense: Expense) => void;
 }) {
-  const feedback = useFeedback();
-
   return (
     <Dialog open={expense !== null} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -34,24 +33,26 @@ export function DeleteExpenseDialog({
         </DialogHeader>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="outline"
+            disabled={isPending}
+            onClick={() => onOpenChange(false)}
+          >
             Cancel
           </Button>
           <Button
             variant="destructive"
+            disabled={isPending}
             onClick={() => {
               if (!expense) {
                 return;
               }
+              // The toast and the close now belong to the caller: it is the
+              // one that knows whether the delete actually succeeded.
               onConfirm(expense);
-              feedback.success(
-                "Expense deleted",
-                `${expense.ref} has been removed.`,
-              );
-              onOpenChange(false);
             }}
           >
-            Delete Expense
+            {isPending ? "Deleting..." : "Delete Expense"}
           </Button>
         </DialogFooter>
       </DialogContent>

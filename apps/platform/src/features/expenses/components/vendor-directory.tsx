@@ -9,23 +9,27 @@ import {
 import { SearchIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import {
-  CATEGORY_LABELS,
-  CATEGORY_OPTIONS,
   type Expense,
-  type ExpenseCategory,
-  type Vendor,
   vendorActiveExpenseCount,
   vendorTotalPaid,
   vendorTotalPending,
+} from "../lib/expense";
+import {
+  CATEGORY_LABELS,
+  CATEGORY_OPTIONS,
+  type ExpenseCategory,
 } from "../lib/mock-data";
+import type { Vendor } from "../lib/vendor";
 import { VendorCard } from "./vendor-card";
 
 export function VendorDirectory({
   vendors,
   expenses,
+  isLoading = false,
 }: {
   vendors: Vendor[];
   expenses: Expense[];
+  isLoading?: boolean;
 }) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<ExpenseCategory | "all">("all");
@@ -80,11 +84,21 @@ export function VendorDirectory({
         </Select>
       </div>
 
-      {filtered.length === 0 ? (
+      {isLoading && vendors.length === 0 ? (
         <div className="flex flex-col items-center justify-center gap-1 border py-16 text-center">
-          <p className="text-sm">No vendors match your filters</p>
+          <p className="text-muted-foreground text-sm">Loading vendors...</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center gap-1 border py-16 text-center">
+          <p className="text-sm">
+            {vendors.length === 0
+              ? "No vendors yet"
+              : "No vendors match your filters"}
+          </p>
           <p className="text-muted-foreground text-xs">
-            Try adjusting search or filter criteria
+            {vendors.length === 0
+              ? "Add your first vendor to start tracking who you buy from"
+              : "Try adjusting search or filter criteria"}
           </p>
         </div>
       ) : (

@@ -5,12 +5,21 @@ import {
   TabsPanel,
   TabsTab,
 } from "@propertyos/ui/components/tabs";
+import { useFeedback } from "@propertyos/ui/lib/use-feedback";
 import { createFileRoute } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 
+import { useActiveHq } from "@/features/auth/api/use-cached-organizations";
+import { useHasPermission } from "@/features/auth/lib/use-permission";
 import { TablePagination } from "@/features/bookings/components/table-pagination";
+import { useCreateExpense } from "@/features/expenses/api/use-create-expense";
+import { useDeleteExpense } from "@/features/expenses/api/use-delete-expense";
+import { useExpenses } from "@/features/expenses/api/use-expenses";
+import { useRecordPayment } from "@/features/expenses/api/use-record-payment";
+import { useUpdateExpense } from "@/features/expenses/api/use-update-expense";
+import { useVendors } from "@/features/expenses/api/use-vendors";
 import { AddVendorDialog } from "@/features/expenses/components/add-vendor-dialog";
 import { DeleteExpenseDialog } from "@/features/expenses/components/delete-expense-dialog";
 import { ExpenseHistoryDrawer } from "@/features/expenses/components/expense-history-drawer";
@@ -19,26 +28,68 @@ import {
   DEFAULT_EXPENSE_FILTERS,
   FilterToolbar,
 } from "@/features/expenses/components/filter-toolbar";
-import { LogExpenseDialog } from "@/features/expenses/components/log-expense-dialog";
+import {
+  type FormState,
+  LogExpenseDialog,
+} from "@/features/expenses/components/log-expense-dialog";
 import { RecordPaymentDialog } from "@/features/expenses/components/record-payment-dialog";
 import { SummaryBand } from "@/features/expenses/components/summary-band";
 import { VendorDirectory } from "@/features/expenses/components/vendor-directory";
 import {
-  buildExpenses,
   type Expense,
   HQ_SHARED_ID,
-  MOCK_PROPERTIES,
-  MOCK_VENDORS,
-  type Vendor,
-} from "@/features/expenses/lib/mock-data";
+  normalizeCategory,
+} from "@/features/expenses/lib/expense";
+import { computeGst, percentToBps } from "@/features/expenses/lib/gst";
+import type { Vendor } from "@/features/expenses/lib/vendor";
+import { useProperties } from "@/features/properties/api/use-properties";
+import { api } from "@/shared/lib/api-client";
+import { getApiErrorMessage } from "@/shared/lib/api-error";
 
 export const Route = createFileRoute("/(protected)/expenses/")({
   component: RouteComponent,
 });
 
+/** Rupees as typed into a form, to whole paise. */
+function toPaise(value: string): number {
+  return Math.round((Number(value) || 0) * 100);
+}
+
 function RouteComponent() {
-  const [expenses, setExpenses] = useState<Expense[]>(() => buildExpenses());
-  const [vendors, setVendors] = useState<Vendor[]>(() => MOCK_VENDORS);
+  const feedback = useFeedback();
+  const { activeScopeId } = useActiveHq();
+
+  const {
+    data: expenseResponse,
+    isLoading: expensesLoading,
+    isFetching: expensesFetching,
+  } = useExpenses(activeScopeId);
+  const expenses = (expenseResponse?.data ?? []) as unknown as Expense[];
+
+  const { data: vendorResponse, isLoading: vendorsLoading } =
+    useVendors(activeScopeId);
+  const vendors = (vendorResponse?.data ?? []) as unknown as Vendor[];
+
+  const { data: propertyResponse } = useProperties(activeScopeId);
+  const properties = useMemo(
+    () =>
+      (
+        (propertyResponse?.data ?? []) as unknown as Array<{
+          id: string;
+          name: string;
+        }>
+      ).map((p) => ({ id: p.id, name: p.name })),
+    [propertyResponse],
+  );
+
+  // Curating vendors is a management call; logging spend is open to everyone.
+  const canManageVendors = useHasPermission("vendor", "create");
+
+  const createExpense = useCreateExpense();
+  const updateExpense = useUpdateExpense();
+  const deleteExpense = useDeleteExpense();
+  const recordPayment = useRecordPayment();
+
   const [filters, setFilters] = useState(DEFAULT_EXPENSE_FILTERS);
   const [tab, setTab] = useState("expenses");
   const [page, setPage] = useState(1);
@@ -48,8 +99,15 @@ function RouteComponent() {
   const [logDrawerOpen, setLogDrawerOpen] = useState(false);
   const [paymentExpense, setPaymentExpense] = useState<Expense | null>(null);
   const [historyExpense, setHistoryExpense] = useState<Expense | null>(null);
-  const [deleteExpense, setDeleteExpense] = useState<Expense | null>(null);
+  const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
   const [addVendorOpen, setAddVendorOpen] = useState(false);
+
+  /** Refetches the list every mutation invalidates. */
+  function invalidateExpenses() {
+    api.api.platform.expenses.$get.invalidate({
+      query: { activeOrganizationId: activeScopeId ?? "" },
+    });
+  }
 
   const filtered = useMemo(() => {
     const search = filters.search.trim().toLowerCase();
@@ -60,7 +118,10 @@ function RouteComponent() {
       ) {
         return false;
       }
-      if (filters.category !== "all" && expense.category !== filters.category) {
+      if (
+        filters.category !== "all" &&
+        normalizeCategory(expense.category) !== filters.category
+      ) {
         return false;
       }
       if (filters.status !== "all" && expense.status !== filters.status) {
@@ -69,7 +130,7 @@ function RouteComponent() {
       if (
         search &&
         !expense.title.toLowerCase().includes(search) &&
-        !expense.vendorName.toLowerCase().includes(search) &&
+        !(expense.vendorName?.toLowerCase().includes(search) ?? false) &&
         !expense.ref.toLowerCase().includes(search)
       ) {
         return false;
@@ -96,6 +157,103 @@ function RouteComponent() {
   function openLogDrawer(expense: Expense | null) {
     setEditingExpense(expense);
     setLogDrawerOpen(true);
+  }
+
+  /**
+   * The fields shared by create and update, mapped out of the form.
+   *
+   * The amount box holds the base or the gross depending on the GST mode, so
+   * the payable total is always the computed one -- never the raw input.
+   */
+  function detailsFromForm(form: FormState) {
+    const gstRateBps = percentToBps(form.gstRate);
+    const gst = computeGst(toPaise(form.amount), gstRateBps, form.gstMode);
+
+    return {
+      title: form.title.trim(),
+      category: form.category,
+      // The picker's sentinel means "no property"; the API takes null.
+      organizationId: form.propertyId === HQ_SHARED_ID ? null : form.propertyId,
+      vendorId: form.vendorId || null,
+      totalAmountPaise: gst.totalPaise,
+      dueDate: form.dueDate,
+      isOwnerDeductible: form.isOwnerDeductible,
+      taxAmountPaise: gst.gstPaise,
+      gstRateBps,
+      gstMode: form.gstMode,
+      vendorGstin: form.vendorGstin,
+      itcClaimable: form.itcClaimable,
+      notes: form.notes,
+    };
+  }
+
+  function handleSaveExpense(form: FormState, editing: Expense | null) {
+    if (editing) {
+      updateExpense.mutate(
+        { param: { id: editing.id }, json: detailsFromForm(form) },
+        {
+          onSuccess: () => {
+            invalidateExpenses();
+            setLogDrawerOpen(false);
+            feedback.success(
+              "Expense updated",
+              `${form.title.trim()} has been updated.`,
+            );
+          },
+          onError: (error) => {
+            feedback.error(
+              "Couldn't update expense",
+              getApiErrorMessage(error, "Something went wrong. Try again."),
+            );
+          },
+        },
+      );
+      return;
+    }
+
+    // "paid" settles the whole amount; "partial" takes what was entered. Both
+    // travel with the expense so settling costs no second round-trip.
+    const details = detailsFromForm(form);
+    const initialAmountPaise =
+      form.initialStatus === "paid"
+        ? // The payable total including GST, not the base that was typed.
+          details.totalAmountPaise
+        : form.initialStatus === "partial"
+          ? toPaise(form.initialAmountPaid)
+          : 0;
+
+    createExpense.mutate(
+      {
+        json: {
+          ...details,
+          initialPayment:
+            initialAmountPaise > 0
+              ? {
+                  amountPaise: initialAmountPaise,
+                  method: form.paymentMethod,
+                  paidAt: form.paymentDate,
+                  referenceId: form.referenceId,
+                }
+              : undefined,
+        },
+      },
+      {
+        onSuccess: () => {
+          invalidateExpenses();
+          setLogDrawerOpen(false);
+          feedback.success(
+            "Expense logged",
+            `${form.title.trim()} has been added.`,
+          );
+        },
+        onError: (error) => {
+          feedback.error(
+            "Couldn't log expense",
+            getApiErrorMessage(error, "Something went wrong. Try again."),
+          );
+        },
+      },
+    );
   }
 
   return (
@@ -131,18 +289,19 @@ function RouteComponent() {
               <PlusIcon />
               Log Expense
             </Button>
-          ) : (
+          ) : canManageVendors ? (
             <Button onClick={() => setAddVendorOpen(true)}>
               <PlusIcon />
               Add Vendor
             </Button>
-          )}
+          ) : null}
         </div>
 
         <TabsPanel value="expenses">
           <div className="flex flex-col gap-4">
             <FilterToolbar
               filters={filters}
+              properties={properties}
               onChange={(next) => {
                 setFilters(next);
                 setPage(1);
@@ -150,10 +309,12 @@ function RouteComponent() {
             />
             <ExpensesTable
               expenses={paginated}
+              isLoading={expensesLoading || expensesFetching}
+              hasAny={expenses.length > 0}
               onRecordPayment={setPaymentExpense}
               onViewHistory={setHistoryExpense}
               onEdit={openLogDrawer}
-              onDelete={setDeleteExpense}
+              onDelete={setExpenseToDelete}
             />
             <TablePagination
               page={page}
@@ -169,141 +330,47 @@ function RouteComponent() {
         </TabsPanel>
 
         <TabsPanel value="vendors">
-          <VendorDirectory vendors={vendors} expenses={expenses} />
+          <VendorDirectory
+            vendors={vendors}
+            expenses={expenses}
+            isLoading={vendorsLoading}
+          />
         </TabsPanel>
       </Tabs>
 
       <LogExpenseDialog
         open={logDrawerOpen}
         expense={editingExpense}
+        vendors={vendors}
+        properties={properties}
+        isPending={createExpense.isPending || updateExpense.isPending}
         onOpenChange={setLogDrawerOpen}
-        onSave={(form, editing) => {
-          const totalAmountPaise = Math.round(Number(form.totalAmount) * 100);
-          const amountPaidPaise =
-            form.initialStatus === "paid"
-              ? totalAmountPaise
-              : form.initialStatus === "partial"
-                ? Math.round(Number(form.initialAmountPaid) * 100)
-                : 0;
-          const vendor = MOCK_VENDORS.find((v) => v.id === form.vendorId);
-          const propertyName =
-            form.propertyId === HQ_SHARED_ID
-              ? "HQ / Shared"
-              : (MOCK_PROPERTIES.find((p) => p.id === form.propertyId)?.name ??
-                "Property");
-
-          if (editing) {
-            setExpenses((prev) =>
-              prev.map((expense) =>
-                expense.id === editing.id
-                  ? {
-                      ...expense,
-                      title: form.title,
-                      category: form.category,
-                      propertyId: form.propertyId,
-                      propertyName,
-                      vendorId: form.vendorId || undefined,
-                      vendorName: vendor?.name ?? "—",
-                      totalAmountPaise,
-                      amountPaidPaise,
-                      status:
-                        amountPaidPaise <= 0
-                          ? "unpaid"
-                          : amountPaidPaise >= totalAmountPaise
-                            ? "paid"
-                            : "partial",
-                      dueDate: form.dueDate
-                        ? new Date(form.dueDate)
-                        : undefined,
-                      isOwnerDeductible: form.isOwnerDeductible,
-                      taxAmountPaise: Math.round(
-                        (Number(form.taxAmount) || 0) * 100,
-                      ),
-                      vendorGstin: form.vendorGstin || undefined,
-                      itcClaimable: form.itcClaimable,
-                      notes: form.notes || undefined,
-                    }
-                  : expense,
-              ),
-            );
-            return;
-          }
-
-          const id = `expense-${Date.now()}`;
-          const newExpense: Expense = {
-            id,
-            ref: `EXP-${100 + expenses.length + 1}`,
-            title: form.title,
-            category: form.category,
-            propertyId: form.propertyId,
-            propertyName,
-            vendorId: form.vendorId || undefined,
-            vendorName: vendor?.name ?? "—",
-            totalAmountPaise,
-            amountPaidPaise,
-            status:
-              amountPaidPaise <= 0
-                ? "unpaid"
-                : amountPaidPaise >= totalAmountPaise
-                  ? "paid"
-                  : "partial",
-            dueDate: form.dueDate ? new Date(form.dueDate) : undefined,
-            isOwnerDeductible: form.isOwnerDeductible,
-            taxAmountPaise: Math.round((Number(form.taxAmount) || 0) * 100),
-            vendorGstin: form.vendorGstin || undefined,
-            itcClaimable: form.itcClaimable,
-            hasReceipt: false,
-            notes: form.notes || undefined,
-            createdAt: new Date(),
-            createdBy: "You",
-            payments:
-              amountPaidPaise > 0
-                ? [
-                    {
-                      id: `${id}-pay-1`,
-                      amountPaise: amountPaidPaise,
-                      method: form.paymentMethod,
-                      date: new Date(form.paymentDate),
-                      referenceId: form.referenceId || undefined,
-                      recordedBy: "You",
-                    },
-                  ]
-                : [],
-            ownerPayoutStatus: "not_compiled",
-          };
-          setExpenses((prev) => [newExpense, ...prev]);
-        }}
+        onSave={handleSaveExpense}
       />
 
       <RecordPaymentDialog
         expense={paymentExpense}
+        isPending={recordPayment.isPending}
         onOpenChange={(open) => !open && setPaymentExpense(null)}
         onSave={(expense, payment) => {
-          setExpenses((prev) =>
-            prev.map((e) => {
-              if (e.id !== expense.id) {
-                return e;
-              }
-              const amountPaidPaise = e.amountPaidPaise + payment.amountPaise;
-              return {
-                ...e,
-                amountPaidPaise,
-                status:
-                  amountPaidPaise >= e.totalAmountPaise ? "paid" : "partial",
-                payments: [
-                  ...e.payments,
-                  {
-                    id: `${e.id}-pay-${e.payments.length + 1}`,
-                    amountPaise: payment.amountPaise,
-                    method: payment.method,
-                    date: payment.date,
-                    referenceId: payment.referenceId,
-                    notes: payment.notes,
-                    recordedBy: "You",
-                  },
-                ],
-              };
-            }),
+          recordPayment.mutate(
+            { param: { id: expense.id }, json: payment },
+            {
+              onSuccess: () => {
+                invalidateExpenses();
+                setPaymentExpense(null);
+                feedback.success(
+                  "Payment recorded",
+                  `Payment recorded for ${expense.ref}.`,
+                );
+              },
+              onError: (error) => {
+                feedback.error(
+                  "Couldn't record payment",
+                  getApiErrorMessage(error, "Something went wrong. Try again."),
+                );
+              },
+            },
           );
         }}
       />
@@ -314,17 +381,36 @@ function RouteComponent() {
       />
 
       <DeleteExpenseDialog
-        expense={deleteExpense}
-        onOpenChange={(open) => !open && setDeleteExpense(null)}
-        onConfirm={(expense) =>
-          setExpenses((prev) => prev.filter((e) => e.id !== expense.id))
-        }
+        expense={expenseToDelete}
+        isPending={deleteExpense.isPending}
+        onOpenChange={(open) => !open && setExpenseToDelete(null)}
+        onConfirm={(expense) => {
+          deleteExpense.mutate(
+            { param: { id: expense.id } },
+            {
+              onSuccess: () => {
+                invalidateExpenses();
+                setExpenseToDelete(null);
+                feedback.success(
+                  "Expense deleted",
+                  `${expense.ref} has been removed.`,
+                );
+              },
+              onError: (error) => {
+                feedback.error(
+                  "Couldn't delete expense",
+                  getApiErrorMessage(error, "Something went wrong. Try again."),
+                );
+              },
+            },
+          );
+        }}
       />
 
       <AddVendorDialog
         open={addVendorOpen}
         onOpenChange={setAddVendorOpen}
-        onSave={(vendor) => setVendors((prev) => [vendor, ...prev])}
+        activeOrganizationId={activeScopeId}
       />
     </motion.div>
   );

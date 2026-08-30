@@ -1,6 +1,6 @@
 import { cn } from "@propertyos/ui/lib/utils";
+import { type Expense, parseDateOnly } from "../lib/expense";
 import { formatDueRelative, formatInrFromPaise } from "../lib/format";
-import type { Expense } from "../lib/mock-data";
 
 const STATUS_STYLES = {
   paid: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-400",
@@ -43,7 +43,7 @@ export function StatusPill({
       )}
       {status === "unpaid" && expense.dueDate && (
         <span className="whitespace-nowrap text-[11px] text-muted-foreground">
-          {formatDueRelative(expense.dueDate)}
+          {formatDueRelative(parseDateOnly(expense.dueDate))}
         </span>
       )}
     </div>

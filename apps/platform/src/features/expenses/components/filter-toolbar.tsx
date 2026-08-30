@@ -7,15 +7,16 @@ import {
   SelectValue,
 } from "@propertyos/ui/components/select";
 import { SearchIcon } from "lucide-react";
+import { type ExpenseStatus, HQ_SHARED_ID } from "../lib/expense";
 import {
   CATEGORY_LABELS,
   CATEGORY_OPTIONS,
   type ExpenseCategory,
-  type ExpenseStatus,
-  HQ_SHARED_ID,
-  MOCK_PROPERTIES,
   STATUS_LABELS,
 } from "../lib/mock-data";
+
+/** Just enough of a property to label it in the picker. */
+export type FilterProperty = { id: string; name: string };
 
 export type ExpenseFilters = {
   search: string;
@@ -35,9 +36,11 @@ const STATUS_OPTIONS: ExpenseStatus[] = ["paid", "partial", "unpaid"];
 
 export function FilterToolbar({
   filters,
+  properties,
   onChange,
 }: {
   filters: ExpenseFilters;
+  properties: FilterProperty[];
   onChange: (filters: ExpenseFilters) => void;
 }) {
   const propertyLabel =
@@ -45,7 +48,7 @@ export function FilterToolbar({
       ? "All Properties"
       : filters.propertyId === HQ_SHARED_ID
         ? "HQ / Shared"
-        : (MOCK_PROPERTIES.find((p) => p.id === filters.propertyId)?.name ??
+        : (properties.find((p) => p.id === filters.propertyId)?.name ??
           "All Properties");
 
   const categoryLabel =
@@ -78,7 +81,7 @@ export function FilterToolbar({
         <SelectContent>
           <SelectItem value="all">All Properties</SelectItem>
           <SelectItem value={HQ_SHARED_ID}>HQ / Shared</SelectItem>
-          {MOCK_PROPERTIES.map((property) => (
+          {properties.map((property) => (
             <SelectItem key={property.id} value={property.id}>
               {property.name}
             </SelectItem>

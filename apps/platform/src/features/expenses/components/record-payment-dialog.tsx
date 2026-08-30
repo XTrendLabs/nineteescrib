@@ -14,12 +14,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@propertyos/ui/components/select";
-import { useFeedback } from "@propertyos/ui/lib/use-feedback";
-import { PaperclipIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import type { Expense } from "../lib/expense";
 import { formatInrFromPaise } from "../lib/format";
 import {
-  type Expense,
   PAYMENT_METHOD_LABELS,
   PAYMENT_METHOD_OPTIONS,
   type PaymentMethod,
@@ -27,23 +25,24 @@ import {
 
 export function RecordPaymentDialog({
   expense,
+  isPending = false,
   onOpenChange,
   onSave,
 }: {
   expense: Expense | null;
+  isPending?: boolean;
   onOpenChange: (open: boolean) => void;
   onSave: (
     expense: Expense,
     payment: {
       amountPaise: number;
       method: PaymentMethod;
-      date: Date;
+      paidAt: string;
       referenceId?: string;
       notes?: string;
     },
   ) => void;
 }) {
-  const feedback = useFeedback();
   const remainingPaise = expense
     ? expense.totalAmountPaise - expense.amountPaidPaise
     : 0;
@@ -67,7 +66,13 @@ export function RecordPaymentDialog({
 
   const amountPaise = Math.round((Number(amount) || 0) * 100);
   const newRemainingPaise = Math.max(0, remainingPaise - amountPaise);
-  const canSave = expense !== null && amountPaise > 0;
+  // The server refuses an overpayment outright, so the dialog stops it here
+  // rather than letting someone submit an amount that cannot succeed.
+  const canSave =
+    expense !== null &&
+    amountPaise > 0 &&
+    amountPaise <= remainingPaise &&
+    !isPending;
 
   return (
     <Dialog open={expense !== null} onOpenChange={onOpenChange}>
@@ -81,7 +86,7 @@ export function RecordPaymentDialog({
         {expense && (
           <div className="flex flex-col gap-5 px-4 pb-4">
             <p className="text-muted-foreground text-xs">
-              {expense.title} · {expense.vendorName}
+              {expense.title} · {expense.vendorName ?? "—"}
             </p>
 
             <div className="grid grid-cols-3 gap-3 border bg-muted/30 p-3 text-xs">
@@ -117,9 +122,11 @@ export function RecordPaymentDialog({
                   placeholder="e.g. 2500"
                 />
                 <span className="text-[11px] text-muted-foreground">
-                  {newRemainingPaise > 0
-                    ? `Leaves ${formatInrFromPaise(newRemainingPaise)} remaining balance`
-                    : "Fully settles this expense"}
+                  {amountPaise > remainingPaise
+                    ? `Cannot exceed the ${formatInrFromPaise(remainingPaise)} remaining`
+                    : newRemainingPaise > 0
+                      ? `Leaves ${formatInrFromPaise(newRemainingPaise)} remaining balance`
+                      : "Fully settles this expense"}
                 </span>
               </div>
 
@@ -179,20 +186,16 @@ export function RecordPaymentDialog({
                   placeholder="e.g. Paid 2nd installment"
                 />
               </div>
-
-              <button
-                type="button"
-                className="flex items-center justify-center gap-2 border border-dashed py-2.5 text-muted-foreground text-xs transition-colors hover:border-foreground/40 hover:text-foreground"
-              >
-                <PaperclipIcon className="size-3.5" />
-                Attach Payment Receipt (Optional)
-              </button>
             </div>
           </div>
         )}
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="outline"
+            disabled={isPending}
+            onClick={() => onOpenChange(false)}
+          >
             Cancel
           </Button>
           <Button
@@ -201,21 +204,18 @@ export function RecordPaymentDialog({
               if (!expense) {
                 return;
               }
+              // The toast and the close belong to the caller: only it knows
+              // whether the payment actually landed.
               onSave(expense, {
                 amountPaise,
                 method,
-                date: new Date(date),
+                paidAt: date,
                 referenceId: referenceId.trim() || undefined,
                 notes: notes.trim() || undefined,
               });
-              feedback.success(
-                "Payment recorded",
-                `${formatInrFromPaise(amountPaise)} recorded for ${expense.ref}.`,
-              );
-              onOpenChange(false);
             }}
           >
-            Save Payment
+            {isPending ? "Saving..." : "Save Payment"}
           </Button>
         </DialogFooter>
       </DialogContent>

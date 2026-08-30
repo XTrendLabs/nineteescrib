@@ -21,6 +21,8 @@ export const statement = {
   booking: ["create", "read", "update", "cancel"],
   rate: ["read", "update"],
   finance: ["read", "update"],
+  vendor: ["create", "read", "update", "delete"],
+  expense: ["create", "read", "update", "delete"],
   report: ["read"],
 } as const;
 
@@ -40,6 +42,8 @@ export const owner = ac.newRole({
   booking: ["create", "read", "update", "cancel"],
   rate: ["read", "update"],
   finance: ["read", "update"],
+  vendor: ["create", "read", "update", "delete"],
+  expense: ["create", "read", "update", "delete"],
   report: ["read"],
 });
 
@@ -51,6 +55,11 @@ export const owner = ac.newRole({
  * alone, so this role only reads the directory. Marking attendance is the
  * exception: it is a daily operational task, so it sits with whoever runs the
  * property rather than with the owner.
+ *
+ * The vendor directory is theirs to curate: deciding who the business buys
+ * from is a management call, which is why `vendor` is its own resource rather
+ * than riding on `finance` -- the latter still gates payouts and reporting,
+ * which stay read-only here.
  */
 export const propertyManager = ac.newRole({
   ...adminAc.statements,
@@ -61,12 +70,19 @@ export const propertyManager = ac.newRole({
   booking: ["create", "read", "update", "cancel"],
   rate: ["read", "update"],
   finance: ["read"],
+  vendor: ["create", "read", "update", "delete"],
+  expense: ["create", "read", "update", "delete"],
   report: ["read"],
 });
 
 /**
  * Front-desk and housekeeping. Works bookings and reads what they need to do
  * the job, but changes nothing structural.
+ *
+ * Logging an expense is deliberately open to them: whoever spends the money is
+ * the one who can record it accurately, and a caretaker paying a plumber in
+ * cash should not have to wait on a manager. Choosing *which* vendors the
+ * business deals with is a management call, so vendors stay read-only.
  */
 export const staffRole = ac.newRole({
   property: ["read"],
@@ -77,6 +93,8 @@ export const staffRole = ac.newRole({
   rate: ["read"],
   report: [],
   finance: [],
+  vendor: ["read"],
+  expense: ["create", "read", "update", "delete"],
 });
 
 export const roles = {

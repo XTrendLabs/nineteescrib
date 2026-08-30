@@ -57,6 +57,34 @@
       "when": 1788009219547,
       "tag": "0007_soft_beyonder",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1788065272751,
+      "tag": "0008_tense_shape",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1788065668741,
+      "tag": "0009_wandering_champions",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788066026109,
+      "tag": "0010_omniscient_red_skull",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788067186849,
+      "tag": "0011_hot_kree",
+      "breakpoints": true
     }
   ]
 }

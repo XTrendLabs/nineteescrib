@@ -6,18 +6,21 @@ import {
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ChevronLeftIcon, MailIcon, PhoneIcon } from "lucide-react";
 import { motion } from "motion/react";
-import { useMemo } from "react";
+import { useActiveHq } from "@/features/auth/api/use-cached-organizations";
+import { useExpenses } from "@/features/expenses/api/use-expenses";
+import { useVendor } from "@/features/expenses/api/use-vendor";
 import { CategoryBadge } from "@/features/expenses/components/category-badge";
 import { StatusPill } from "@/features/expenses/components/status-pill";
-import { formatDate, formatInrFromPaise } from "@/features/expenses/lib/format";
 import {
-  buildExpenses,
-  MOCK_VENDORS,
+  type Expense,
   vendorActiveExpenseCount,
   vendorExpenses,
   vendorTotalPaid,
   vendorTotalPending,
-} from "@/features/expenses/lib/mock-data";
+} from "@/features/expenses/lib/expense";
+import { formatDate, formatInrFromPaise } from "@/features/expenses/lib/format";
+import { normalizeVendorCategory } from "@/features/expenses/lib/vendor";
+import { useBreadcrumbLabel } from "@/shared/lib/breadcrumb-label";
 
 export const Route = createFileRoute("/(protected)/expenses/vendors/$vendorId")(
   {
@@ -27,10 +30,28 @@ export const Route = createFileRoute("/(protected)/expenses/vendors/$vendorId")(
 
 function RouteComponent() {
   const { vendorId } = Route.useParams();
-  const expenses = useMemo(() => buildExpenses(), []);
-  const vendor = MOCK_VENDORS.find((v) => v.id === vendorId);
+  const { activeScopeId } = useActiveHq();
+  const { data: expenseResponse } = useExpenses(activeScopeId);
+  const expenses = (expenseResponse?.data ?? []) as unknown as Expense[];
+  const { data: response, isLoading, isError } = useVendor(vendorId);
+  const vendor = response?.data;
 
-  if (!vendor) {
+  // The URL carries an id, so the breadcrumb needs the name from here. This
+  // sits above the early returns: hooks cannot run conditionally.
+  useBreadcrumbLabel(vendorId, vendor?.name);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center gap-3 p-10 text-center">
+        <p className="text-muted-foreground text-sm">Loading vendor...</p>
+      </div>
+    );
+  }
+
+  // A vendor outside the caller's HQ is refused rather than returned, so a
+  // failed request and a missing record land in the same place -- from here
+  // they are the same thing: nothing to show.
+  if (isError || !vendor) {
     return (
       <div className="flex flex-col items-center gap-3 p-10 text-center">
         <p className="text-muted-foreground text-sm">
@@ -65,7 +86,7 @@ function RouteComponent() {
         </Link>
         <div className="mt-2 flex flex-wrap items-center gap-3">
           <h1 className="text-display-md">{vendor.name}</h1>
-          <CategoryBadge category={vendor.category} />
+          <CategoryBadge category={normalizeVendorCategory(vendor.category)} />
         </div>
         <div className="mt-1 flex flex-wrap items-center gap-3 text-muted-foreground text-xs">
           {vendor.contactPerson && <span>{vendor.contactPerson}</span>}
@@ -157,7 +178,7 @@ function RouteComponent() {
                       <div className="flex flex-col">
                         <span className="font-medium">{expense.ref}</span>
                         <span className="text-muted-foreground">
-                          {formatDate(expense.createdAt)}
+                          {formatDate(new Date(expense.createdAt))}
                         </span>
                       </div>
                     </td>
