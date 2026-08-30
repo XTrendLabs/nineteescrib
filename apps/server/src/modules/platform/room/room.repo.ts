@@ -1,4 +1,5 @@
 import { createDb } from "@propertyos/db";
+import { booking } from "@propertyos/db/schema/booking";
 import {
   amenity,
   room,
@@ -133,6 +134,23 @@ export const roomRepo = {
       .from(roomImage)
       .where(eq(roomImage.roomId, roomId))
       .then((rows) => rows.map((row) => row.url));
+  },
+
+  /**
+   * Whether any stay still points at this room.
+   *
+   * `booking.roomId` is `onDelete: restrict`, so deleting a room with history
+   * fails at the database with a raw foreign-key error. Checking first lets the
+   * caller say something useful instead. Cancelled bookings still count: they
+   * are kept as history, and that history has to keep resolving to a room.
+   */
+  async countBookings(roomId: string) {
+    const rows = await db
+      .select({ id: booking.id })
+      .from(booking)
+      .where(eq(booking.roomId, roomId))
+      .limit(1);
+    return rows.length;
   },
 
   async remove(id: string) {

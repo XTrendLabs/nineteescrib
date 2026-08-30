@@ -5,10 +5,9 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@propertyos/ui/components/sheet";
-import { format } from "date-fns";
-
-import { formatInr, formatStayRange } from "../lib/format";
-import { type Booking, buildAuditTrail } from "../lib/mock-data";
+import { useBookingAudit } from "../api/use-booking-audit";
+import type { Booking } from "../lib/booking";
+import { formatInr, formatStayRange, formatTimestamp } from "../lib/format";
 import { SourceBadge } from "./source-badge";
 import { StatusPill } from "./status-pill";
 
@@ -19,7 +18,10 @@ export function AuditDrawer({
   booking: Booking | null;
   onOpenChange: (open: boolean) => void;
 }) {
-  const events = booking ? buildAuditTrail(booking) : [];
+  // Fetched per booking rather than joined onto the list -- only the open
+  // drawer's trail is ever read.
+  const { data, isLoading } = useBookingAudit(booking?.id);
+  const events = data?.data ?? [];
 
   return (
     <Sheet open={booking !== null} onOpenChange={onOpenChange}>
@@ -35,9 +37,11 @@ export function AuditDrawer({
           <div className="flex flex-col gap-4 px-4">
             <div className="flex items-center justify-between border bg-muted/30 p-3">
               <div>
-                <p className="font-medium text-sm">{booking.guestName}</p>
+                <p className="font-medium text-sm">
+                  {booking.guestName ?? "Room block"}
+                </p>
                 <p className="text-muted-foreground text-xs">
-                  {booking.guestPhone}
+                  {booking.guestPhone ?? ""}
                 </p>
               </div>
               <StatusPill status={booking.status} />
@@ -47,7 +51,7 @@ export function AuditDrawer({
               <div>
                 <p className="text-muted-foreground">Property</p>
                 <p className="mt-0.5 font-medium">{booking.propertyName}</p>
-                <p className="text-muted-foreground">{booking.roomType}</p>
+                <p className="text-muted-foreground">{booking.roomName}</p>
               </div>
               <div>
                 <p className="text-muted-foreground">Stay</p>
@@ -64,8 +68,8 @@ export function AuditDrawer({
               <div>
                 <p className="text-muted-foreground">Tariff</p>
                 <p className="mt-0.5 font-medium tabular-nums">
-                  {formatInr(booking.paidPaise)} paid /{" "}
-                  {formatInr(booking.totalPaise - booking.paidPaise)} due
+                  {formatInr(booking.amountPaidPaise)} paid /{" "}
+                  {formatInr(booking.balanceDuePaise)} due
                 </p>
               </div>
             </div>
@@ -73,11 +77,18 @@ export function AuditDrawer({
             <div className="border-t pt-4">
               <p className="mb-3 font-medium text-sm">Timeline</p>
               <div className="flex flex-col gap-4">
+                {isLoading && (
+                  <p className="text-muted-foreground text-xs">
+                    Loading timeline...
+                  </p>
+                )}
+                {!isLoading && events.length === 0 && (
+                  <p className="text-muted-foreground text-xs">
+                    Nothing recorded yet.
+                  </p>
+                )}
                 {events.map((event, i) => (
-                  <div
-                    key={`${event.label}-${event.time.getTime()}`}
-                    className="flex gap-3"
-                  >
+                  <div key={event.id} className="flex gap-3">
                     <div className="flex flex-col items-center">
                       <div className="mt-1 size-1.5 rounded-full bg-primary" />
                       {i < events.length - 1 && (
@@ -86,9 +97,10 @@ export function AuditDrawer({
                     </div>
                     <div className="pb-1">
                       <p className="text-[11px] text-muted-foreground">
-                        {format(event.time, "MMM d, h:mm a")}
+                        {formatTimestamp(event.createdAt)}
+                        {event.actorName ? ` · ${event.actorName}` : ""}
                       </p>
-                      <p className="mt-0.5 text-xs">{event.label}</p>
+                      <p className="mt-0.5 text-xs">{event.description}</p>
                     </div>
                   </div>
                 ))}

@@ -1,14 +1,29 @@
 import { Button } from "@propertyos/ui/components/button";
+import { useFeedback } from "@propertyos/ui/lib/use-feedback";
 import { createFileRoute } from "@tanstack/react-router";
 import { PlusIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 
 import { useActiveHq } from "@/features/auth/api/use-cached-organizations";
+import {
+  invalidateBookings,
+  useBookings,
+} from "@/features/bookings/api/use-bookings";
+import { useCancelBooking } from "@/features/bookings/api/use-cancel-booking";
+import { useChangeBookingStatus } from "@/features/bookings/api/use-change-booking-status";
+import { useCreateBooking } from "@/features/bookings/api/use-create-booking";
+import { useRecordBookingPayment } from "@/features/bookings/api/use-record-booking-payment";
 import { AuditDrawer } from "@/features/bookings/components/audit-drawer";
-import { BookingsTable } from "@/features/bookings/components/bookings-table";
+import {
+  type BookingAction,
+  BookingsTable,
+} from "@/features/bookings/components/bookings-table";
 import { BulkActionsBar } from "@/features/bookings/components/bulk-actions-bar";
-import { CreateBookingBanner } from "@/features/bookings/components/create-booking-banner";
+import {
+  CreateBookingBanner,
+  type NewBookingInput,
+} from "@/features/bookings/components/create-booking-banner";
 import {
   DEFAULT_FILTERS,
   FilterToolbar,
@@ -18,30 +33,53 @@ import { SummaryBand } from "@/features/bookings/components/summary-band";
 import { TablePagination } from "@/features/bookings/components/table-pagination";
 import {
   type Booking,
-  buildBookings,
+  type BookingPaymentMethod,
   buildBookingsSummary,
-  resolveBookingsProperties,
-} from "@/features/bookings/lib/mock-data";
+} from "@/features/bookings/lib/booking";
+import { resolveBookingProperties } from "@/features/bookings/lib/property";
 import { useProperties } from "@/features/properties/api/use-properties";
+import { getApiErrorMessage } from "@/shared/lib/api-error";
 
 export const Route = createFileRoute("/(protected)/bookings")({
   component: RouteComponent,
 });
 
+/** The status each menu action asks the server for. */
+type BookingTransition = "confirmed" | "checked_in" | "checked_out";
+
+const STATUS_BY_ACTION: Partial<Record<BookingAction, BookingTransition>> = {
+  confirm: "confirmed",
+  check_in: "checked_in",
+  check_out: "checked_out",
+};
+
+const ACTION_PAST_TENSE: Record<BookingTransition, string> = {
+  confirmed: "confirmed",
+  checked_in: "checked in",
+  checked_out: "checked out",
+};
+
 function RouteComponent() {
   const { activeScopeId } = useActiveHq();
+  const feedback = useFeedback();
+
   const { data: propertiesResponse } = useProperties(activeScopeId);
+  const { data: bookingsResponse, isLoading } = useBookings(activeScopeId);
 
   const properties = useMemo(
-    () => resolveBookingsProperties(propertiesResponse?.data),
+    () => resolveBookingProperties(propertiesResponse?.data),
     [propertiesResponse?.data],
   );
 
-  const [bookings, setBookings] = useState<Booking[]>([]);
-  useMemo(() => {
-    setBookings(buildBookings(properties));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [properties]);
+  const bookings = useMemo(
+    () => (bookingsResponse?.data ?? []) as Booking[],
+    [bookingsResponse?.data],
+  );
+
+  const createBooking = useCreateBooking();
+  const changeStatus = useChangeBookingStatus();
+  const cancelBooking = useCancelBooking();
+  const recordPayment = useRecordBookingPayment();
 
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [createOpen, setCreateOpen] = useState(false);
@@ -51,12 +89,17 @@ function RouteComponent() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
+  /** Refetches the list every mutation invalidates. */
+  function refresh() {
+    invalidateBookings(activeScopeId);
+  }
+
   const filteredBookings = useMemo(() => {
     const search = filters.search.trim().toLowerCase();
     return bookings.filter((booking) => {
       if (
         filters.propertyId !== "all" &&
-        booking.propertyId !== filters.propertyId
+        booking.organizationId !== filters.propertyId
       ) {
         return false;
       }
@@ -68,8 +111,8 @@ function RouteComponent() {
       }
       if (
         search &&
-        !booking.guestName.toLowerCase().includes(search) &&
-        !booking.guestPhone.toLowerCase().includes(search) &&
+        !(booking.guestName?.toLowerCase().includes(search) ?? false) &&
+        !(booking.guestPhone?.toLowerCase().includes(search) ?? false) &&
         !booking.ref.toLowerCase().includes(search)
       ) {
         return false;
@@ -78,6 +121,8 @@ function RouteComponent() {
     });
   }, [bookings, filters]);
 
+  // Computed over every booking rather than the filtered page: the band
+  // reports the state of the business, not of the current view.
   const summary = useMemo(() => buildBookingsSummary(bookings), [bookings]);
 
   const pageCount = Math.max(1, Math.ceil(filteredBookings.length / pageSize));
@@ -116,6 +161,105 @@ function RouteComponent() {
     );
   }
 
+  function handleCreate(input: NewBookingInput) {
+    createBooking.mutate(
+      { json: input },
+      {
+        onSuccess: () => {
+          refresh();
+          setCreateOpen(false);
+          feedback.success(
+            "Booking created",
+            `${input.guest.name} has been booked in.`,
+          );
+        },
+        onError: (error) => {
+          feedback.error(
+            "Couldn't create booking",
+            getApiErrorMessage(error, "Something went wrong. Try again."),
+          );
+        },
+      },
+    );
+  }
+
+  function handleAction(action: BookingAction, booking: Booking) {
+    if (action === "cancel") {
+      cancelBooking.mutate(
+        { param: { id: booking.id }, json: {} },
+        {
+          onSuccess: () => {
+            refresh();
+            feedback.success(
+              "Booking cancelled",
+              `${booking.ref} is cancelled.`,
+            );
+          },
+          onError: (error) => {
+            feedback.error(
+              "Couldn't cancel booking",
+              getApiErrorMessage(error, "Something went wrong. Try again."),
+            );
+          },
+        },
+      );
+      return;
+    }
+
+    const status = STATUS_BY_ACTION[action];
+    if (!status) return;
+
+    changeStatus.mutate(
+      { param: { id: booking.id }, json: { status } },
+      {
+        onSuccess: () => {
+          refresh();
+          feedback.success(
+            "Booking updated",
+            `${booking.ref} is now ${ACTION_PAST_TENSE[status] ?? status}.`,
+          );
+        },
+        onError: (error) => {
+          feedback.error(
+            "Couldn't update booking",
+            getApiErrorMessage(error, "Something went wrong. Try again."),
+          );
+        },
+      },
+    );
+  }
+
+  function handleSettle(input: {
+    bookingId: string;
+    amountPaise: number;
+    method: BookingPaymentMethod;
+    paidAt: string;
+  }) {
+    recordPayment.mutate(
+      {
+        param: { id: input.bookingId },
+        json: {
+          amountPaise: input.amountPaise,
+          method: input.method,
+          paidAt: input.paidAt,
+        },
+      },
+      {
+        onSuccess: () => {
+          refresh();
+          setSettleBooking(null);
+          feedback.success("Payment recorded", "The ledger has been updated.");
+        },
+        onError: (error) => {
+          feedback.error(
+            "Couldn't record payment",
+            getApiErrorMessage(error, "Something went wrong. Try again."),
+          );
+        },
+      },
+    );
+  }
+
   return (
     <div className="flex flex-col gap-6 p-4">
       <motion.div
@@ -142,7 +286,8 @@ function RouteComponent() {
         open={createOpen}
         properties={properties}
         onClose={() => setCreateOpen(false)}
-        onCreated={() => setCreateOpen(false)}
+        onCreate={handleCreate}
+        isSaving={createBooking.isPending}
       />
 
       <div className="flex flex-col gap-3">
@@ -158,6 +303,8 @@ function RouteComponent() {
           onToggleSelectAll={toggleSelectAll}
           onOpenAudit={setAuditBooking}
           onOpenSettle={setSettleBooking}
+          onAction={handleAction}
+          isLoading={isLoading}
         />
         <TablePagination
           page={currentPage}
@@ -184,22 +331,8 @@ function RouteComponent() {
       <SettlePaymentSheet
         booking={settleBooking}
         onOpenChange={(open) => !open && setSettleBooking(null)}
-        onSettled={(bookingId, amountPaise) => {
-          setBookings((prev) =>
-            prev.map((b) =>
-              b.id === bookingId
-                ? {
-                    ...b,
-                    paidPaise: Math.min(
-                      b.totalPaise,
-                      b.paidPaise + amountPaise,
-                    ),
-                  }
-                : b,
-            ),
-          );
-          setSettleBooking(null);
-        }}
+        onSettled={handleSettle}
+        isSaving={recordPayment.isPending}
       />
     </div>
   );

@@ -7,7 +7,7 @@ import {
 import { motion } from "motion/react";
 
 import { formatPercent } from "@/features/hq-dashboard/lib/format";
-import type { BookingsSummary } from "../lib/mock-data";
+import type { BookingsSummary } from "../lib/booking";
 
 function SummaryCard({
   label,

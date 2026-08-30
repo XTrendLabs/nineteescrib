@@ -14,7 +14,7 @@ import {
 import { cn } from "@propertyos/ui/lib/utils";
 import { MoreHorizontalIcon } from "lucide-react";
 import { formatInr, formatLastStay, initials } from "../lib/format";
-import type { Guest } from "../lib/mock-data";
+import type { Guest, GuestTag } from "../lib/guest";
 import { TagPill } from "./tag-pill";
 
 export function GuestsTable({
@@ -24,6 +24,7 @@ export function GuestsTable({
   onToggleSelectAll,
   onOpenProfile,
   onGenerateOffer,
+  isLoading,
 }: {
   guests: Guest[];
   selectedIds: Set<string>;
@@ -31,8 +32,17 @@ export function GuestsTable({
   onToggleSelectAll: () => void;
   onOpenProfile: (guest: Guest) => void;
   onGenerateOffer: (guest: Guest) => void;
+  isLoading?: boolean;
 }) {
   const allSelected = guests.length > 0 && selectedIds.size === guests.length;
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-1 border py-16 text-center">
+        <p className="text-muted-foreground text-sm">Loading guests...</p>
+      </div>
+    );
+  }
 
   if (guests.length === 0) {
     return (
@@ -109,7 +119,7 @@ export function GuestsTable({
                   </button>
                 </td>
                 <td className="px-3 py-2.5">
-                  <p>{guest.email}</p>
+                  <p>{guest.email ?? "—"}</p>
                   <p className="text-[11px] text-muted-foreground">
                     {guest.phone}
                   </p>
@@ -121,14 +131,16 @@ export function GuestsTable({
                   {formatInr(guest.totalSpentPaise)}
                 </td>
                 <td className="whitespace-nowrap px-3 py-2.5">
-                  {formatLastStay(guest.lastStayProperty, guest.lastStayDate)}
+                  {formatLastStay(guest.lastStayDate)}
                 </td>
                 <td className="px-3 py-2.5">
                   <div className="flex flex-wrap gap-1">
                     {guest.tags.length === 0 ? (
                       <span className="text-muted-foreground">—</span>
                     ) : (
-                      guest.tags.map((tag) => <TagPill key={tag} tag={tag} />)
+                      guest.tags.map((tag) => (
+                        <TagPill key={tag} tag={tag as GuestTag} />
+                      ))
                     )}
                   </div>
                 </td>

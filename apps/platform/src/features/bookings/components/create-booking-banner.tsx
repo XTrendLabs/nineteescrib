@@ -8,41 +8,95 @@ import {
   SelectValue,
 } from "@propertyos/ui/components/select";
 import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import type { MockProperty } from "../lib/mock-data";
+import { useAvailability } from "../api/use-availability";
+import { type BookingSource, toPaise } from "../lib/booking";
+import type { BookingProperty } from "../lib/property";
+
+export type NewBookingInput = {
+  propertyId: string;
+  roomId: string;
+  guest: { name: string; phone: string };
+  checkIn: string;
+  checkOut: string;
+  totalAmountPaise: number;
+  source: BookingSource;
+};
+
+const SOURCE_LABELS: Record<BookingSource, string> = {
+  direct: "Direct",
+  manual: "Manual",
+  airbnb: "Airbnb",
+  booking_com: "Booking.com",
+};
 
 export function CreateBookingBanner({
   open,
   properties,
   onClose,
-  onCreated,
+  onCreate,
+  isSaving,
 }: {
   open: boolean;
-  properties: MockProperty[];
+  properties: BookingProperty[];
   onClose: () => void;
-  onCreated: () => void;
+  onCreate: (input: NewBookingInput) => void;
+  isSaving?: boolean;
 }) {
   const [propertyId, setPropertyId] = useState<string>("");
+  const [roomId, setRoomId] = useState<string>("");
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
   const [checkIn, setCheckIn] = useState("");
   const [checkOut, setCheckOut] = useState("");
   const [tariff, setTariff] = useState("");
-  const [source, setSource] = useState("direct");
+  const [source, setSource] = useState<BookingSource>("direct");
 
-  const canSave = propertyId && guestName && checkIn && checkOut;
+  // Only rooms actually free for these dates are offered, so a booking cannot
+  // be built that the server would have to reject as a double booking.
+  const { data: availability, isLoading: loadingRooms } = useAvailability({
+    propertyId,
+    checkIn,
+    checkOut,
+  });
+  const rooms = availability?.data ?? [];
 
-  function handleSave() {
-    if (!canSave) return;
-    onCreated();
+  // The chosen room may not survive a change of property or dates, so a
+  // selection that is no longer offered is dropped rather than submitted.
+  useEffect(() => {
+    if (roomId && !rooms.some((room) => room.id === roomId)) {
+      setRoomId("");
+    }
+  }, [rooms, roomId]);
+
+  const datesValid = Boolean(checkIn && checkOut && checkOut > checkIn);
+  const canSave =
+    propertyId && roomId && guestName.trim() && guestPhone.trim() && datesValid;
+
+  function reset() {
     setPropertyId("");
+    setRoomId("");
     setGuestName("");
     setGuestPhone("");
     setCheckIn("");
     setCheckOut("");
     setTariff("");
     setSource("direct");
+  }
+
+  function handleSave() {
+    if (!canSave) return;
+    onCreate({
+      propertyId,
+      roomId,
+      guest: { name: guestName.trim(), phone: guestPhone.trim() },
+      checkIn,
+      checkOut,
+      totalAmountPaise: toPaise(tariff),
+      source,
+    });
+    reset();
   }
 
   return (
@@ -63,7 +117,10 @@ export function CreateBookingBanner({
                 </span>
                 <Select
                   value={propertyId}
-                  onValueChange={(v) => setPropertyId(v as string)}
+                  onValueChange={(v) => {
+                    setPropertyId(v as string);
+                    setRoomId("");
+                  }}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select property">
@@ -107,6 +164,34 @@ export function CreateBookingBanner({
                 />
               </div>
 
+              <div className="flex min-w-40 flex-col gap-1">
+                <span className="text-[11px] text-muted-foreground">
+                  {loadingRooms
+                    ? "Checking availability..."
+                    : `Room${rooms.length > 0 ? ` (${rooms.length} free)` : ""}`}
+                </span>
+                <Select
+                  value={roomId}
+                  onValueChange={(v) => setRoomId(v as string)}
+                  disabled={!propertyId || !datesValid || rooms.length === 0}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select room">
+                      {(value: unknown) =>
+                        rooms.find((r) => r.id === value)?.name ?? "Select room"
+                      }
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {rooms.map((room) => (
+                      <SelectItem key={room.id} value={room.id}>
+                        {room.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="flex min-w-36 flex-col gap-1">
                 <span className="text-[11px] text-muted-foreground">
                   Guest name
@@ -135,7 +220,7 @@ export function CreateBookingBanner({
                   type="number"
                   value={tariff}
                   onChange={(e) => setTariff(e.target.value)}
-                  placeholder="Auto"
+                  placeholder="0"
                 />
               </div>
 
@@ -145,23 +230,20 @@ export function CreateBookingBanner({
                 </span>
                 <Select
                   value={source}
-                  onValueChange={(v) => setSource(v as string)}
+                  onValueChange={(v) => setSource(v as BookingSource)}
                 >
                   <SelectTrigger>
                     <SelectValue>
                       {(value: unknown) =>
-                        value === "manual"
-                          ? "Manual"
-                          : value === "agent"
-                            ? "Agent"
-                            : "Direct"
+                        SOURCE_LABELS[value as BookingSource] ?? "Direct"
                       }
                     </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="direct">Direct</SelectItem>
                     <SelectItem value="manual">Manual</SelectItem>
-                    <SelectItem value="agent">Agent</SelectItem>
+                    <SelectItem value="airbnb">Airbnb</SelectItem>
+                    <SelectItem value="booking_com">Booking.com</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -170,11 +252,24 @@ export function CreateBookingBanner({
                 <Button variant="ghost" size="sm" onClick={onClose}>
                   Cancel
                 </Button>
-                <Button size="sm" disabled={!canSave} onClick={handleSave}>
-                  Save Booking
+                <Button
+                  size="sm"
+                  disabled={!canSave || isSaving}
+                  onClick={handleSave}
+                >
+                  {isSaving ? "Saving..." : "Save Booking"}
                 </Button>
               </div>
             </div>
+
+            {propertyId &&
+              datesValid &&
+              !loadingRooms &&
+              rooms.length === 0 && (
+                <p className="mt-2 text-warning text-xs">
+                  No rooms are free for those dates at this property.
+                </p>
+              )}
           </div>
         </motion.div>
       )}

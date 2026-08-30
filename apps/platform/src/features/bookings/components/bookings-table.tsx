@@ -12,37 +12,59 @@ import {
 } from "@propertyos/ui/components/dropdown-menu";
 import { cn } from "@propertyos/ui/lib/utils";
 import { MoreHorizontalIcon } from "lucide-react";
+import type { Booking } from "../lib/booking";
 import { formatInr, formatStayRange } from "../lib/format";
-import type { Booking } from "../lib/mock-data";
 import { SourceBadge } from "./source-badge";
 import { StatusPill } from "./status-pill";
 
-function contextActions(booking: Booking) {
-  const actions: {
-    label: string;
-    onSelect: () => void;
-    destructive?: boolean;
-  }[] = [];
-  if (booking.status === "confirmed") {
-    actions.push({ label: "Check In", onSelect: () => {} });
+export type BookingAction =
+  | "confirm"
+  | "check_in"
+  | "check_out"
+  | "collect"
+  | "timeline"
+  | "cancel";
+
+type MenuAction = {
+  action: BookingAction;
+  label: string;
+  destructive?: boolean;
+};
+
+/**
+ * The actions offered for a booking, mirroring the transitions the server
+ * allows. A block has no guest lifecycle, so it offers none of them.
+ */
+function contextActions(booking: Booking): MenuAction[] {
+  if (booking.kind === "block") {
+    return [{ action: "cancel", label: "Remove Block", destructive: true }];
+  }
+
+  const actions: MenuAction[] = [];
+
+  if (booking.status === "pending") {
+    actions.push({ action: "confirm", label: "Confirm" });
+  }
+  if (booking.status === "pending" || booking.status === "confirmed") {
+    actions.push({ action: "check_in", label: "Check In" });
   }
   if (booking.status === "checked_in") {
-    actions.push({ label: "Check Out", onSelect: () => {} });
+    actions.push({ action: "check_out", label: "Check Out" });
   }
-  if (
-    booking.paidPaise < booking.totalPaise &&
-    booking.status !== "cancelled"
-  ) {
-    actions.push({ label: "Collect Payment", onSelect: () => {} });
+  if (booking.balanceDuePaise > 0 && booking.status !== "cancelled") {
+    actions.push({ action: "collect", label: "Collect Payment" });
   }
-  actions.push({ label: "View Timeline", onSelect: () => {} });
+
+  actions.push({ action: "timeline", label: "View Timeline" });
+
   if (booking.status !== "cancelled" && booking.status !== "checked_out") {
     actions.push({
+      action: "cancel",
       label: "Cancel Booking",
-      onSelect: () => {},
       destructive: true,
     });
   }
+
   return actions;
 }
 
@@ -53,6 +75,8 @@ export function BookingsTable({
   onToggleSelectAll,
   onOpenAudit,
   onOpenSettle,
+  onAction,
+  isLoading,
 }: {
   bookings: Booking[];
   selectedIds: Set<string>;
@@ -60,9 +84,19 @@ export function BookingsTable({
   onToggleSelectAll: () => void;
   onOpenAudit: (booking: Booking) => void;
   onOpenSettle: (booking: Booking) => void;
+  onAction: (action: BookingAction, booking: Booking) => void;
+  isLoading?: boolean;
 }) {
   const allSelected =
     bookings.length > 0 && selectedIds.size === bookings.length;
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-1 border py-16 text-center">
+        <p className="text-muted-foreground text-sm">Loading bookings...</p>
+      </div>
+    );
+  }
 
   if (bookings.length === 0) {
     return (
@@ -112,7 +146,7 @@ export function BookingsTable({
         </thead>
         <tbody>
           {bookings.map((booking) => {
-            const due = booking.totalPaise - booking.paidPaise;
+            const due = booking.balanceDuePaise;
             const isSelected = selectedIds.has(booking.id);
             return (
               <tr
@@ -138,15 +172,23 @@ export function BookingsTable({
                   </button>
                 </td>
                 <td className="px-3 py-2.5">
-                  <p className="font-medium">{booking.guestName}</p>
+                  {/* A block occupies a room on nobody's behalf, so it shows
+                      why the room is out rather than an absent guest. */}
+                  <p className="font-medium">
+                    {booking.kind === "block"
+                      ? (booking.blockReason?.replace("_", " ") ?? "Blocked")
+                      : (booking.guestName ?? "—")}
+                  </p>
                   <p className="text-[11px] text-muted-foreground">
-                    {booking.guestPhone}
+                    {booking.kind === "block"
+                      ? "Room block"
+                      : (booking.guestPhone ?? "")}
                   </p>
                 </td>
                 <td className="px-3 py-2.5">
                   <p>{booking.propertyName}</p>
                   <p className="text-[11px] text-muted-foreground">
-                    {booking.roomType}
+                    {booking.roomName}
                   </p>
                 </td>
                 <td className="whitespace-nowrap px-3 py-2.5 tabular-nums">
@@ -159,7 +201,7 @@ export function BookingsTable({
                   <StatusPill status={booking.status} />
                 </td>
                 <td className="whitespace-nowrap px-3 py-2.5 tabular-nums">
-                  <p>{formatInr(booking.paidPaise)} Paid</p>
+                  <p>{formatInr(booking.amountPaidPaise)} Paid</p>
                   {due > 0 && (
                     <p className="text-[11px] text-warning">
                       {formatInr(due)} Due
@@ -174,23 +216,21 @@ export function BookingsTable({
                       <MoreHorizontalIcon />
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      {contextActions(booking).map((action) => (
+                      {contextActions(booking).map((item) => (
                         <DropdownMenuItem
-                          key={action.label}
-                          variant={
-                            action.destructive ? "destructive" : "default"
-                          }
+                          key={item.action}
+                          variant={item.destructive ? "destructive" : "default"}
                           onClick={() => {
-                            if (action.label === "Collect Payment") {
+                            if (item.action === "collect") {
                               onOpenSettle(booking);
-                            } else if (action.label === "View Timeline") {
+                            } else if (item.action === "timeline") {
                               onOpenAudit(booking);
                             } else {
-                              action.onSelect();
+                              onAction(item.action, booking);
                             }
                           }}
                         >
-                          {action.label}
+                          {item.label}
                         </DropdownMenuItem>
                       ))}
                     </DropdownMenuContent>

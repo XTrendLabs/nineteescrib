@@ -1,10 +1,23 @@
 import { Button } from "@propertyos/ui/components/button";
+import { useFeedback } from "@propertyos/ui/lib/use-feedback";
 import { createFileRoute } from "@tanstack/react-router";
-import { DownloadIcon } from "lucide-react";
+import { DownloadIcon, PlusIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 
+import { useActiveHq } from "@/features/auth/api/use-cached-organizations";
 import { TablePagination } from "@/features/bookings/components/table-pagination";
+import { invalidateGuest } from "@/features/guests/api/use-guest";
+import {
+  useAddGuestNote,
+  useRemoveGuestNote,
+} from "@/features/guests/api/use-guest-notes";
+import {
+  useAddGuestTag,
+  useRemoveGuestTag,
+} from "@/features/guests/api/use-guest-tags";
+import { invalidateGuests, useGuests } from "@/features/guests/api/use-guests";
+import { AddGuestDialog } from "@/features/guests/components/add-guest-dialog";
 import { BulkActionsBar } from "@/features/guests/components/bulk-actions-bar";
 import {
   DEFAULT_FILTERS,
@@ -15,28 +28,60 @@ import { GuestsTable } from "@/features/guests/components/guests-table";
 import { OfferLinkDialog } from "@/features/guests/components/offer-link-dialog";
 import { SummaryBand } from "@/features/guests/components/summary-band";
 import {
-  buildGuests,
   buildGuestsSummary,
   type Guest,
-} from "@/features/guests/lib/mock-data";
+  type GuestTag,
+} from "@/features/guests/lib/guest";
+import { getApiErrorMessage } from "@/shared/lib/api-error";
 
 export const Route = createFileRoute("/(protected)/guests")({
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  const [guests, setGuests] = useState<Guest[]>(() => buildGuests());
+  const { activeScopeId } = useActiveHq();
+  const feedback = useFeedback();
+
+  const { data: guestsResponse, isLoading } = useGuests(activeScopeId);
+  const guests = useMemo(
+    () => (guestsResponse?.data ?? []) as Guest[],
+    [guestsResponse?.data],
+  );
+
+  const addTag = useAddGuestTag();
+  const removeTag = useRemoveGuestTag();
+  const addNote = useAddGuestNote();
+  const removeNote = useRemoveGuestNote();
+
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [addGuestOpen, setAddGuestOpen] = useState(false);
   const [profileGuest, setProfileGuest] = useState<Guest | null>(null);
   const [offerGuest, setOfferGuest] = useState<Guest | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
+  const isSaving =
+    addTag.isPending ||
+    removeTag.isPending ||
+    addNote.isPending ||
+    removeNote.isPending;
+
+  /**
+   * Refetches the directory and the open profile.
+   *
+   * Both are invalidated because a tag or note changes the row in the table
+   * and the drawer above it -- refreshing one would leave the other stale.
+   */
+  function refresh(guestId?: string) {
+    invalidateGuests(activeScopeId);
+    invalidateGuest(guestId);
+  }
+
   const filteredGuests = useMemo(() => {
     const search = filters.search.trim().toLowerCase();
     return guests.filter((guest) => {
-      if (filters.tag !== "all" && !guest.tags.includes(filters.tag as never)) {
+      if (filters.tag !== "all" && !guest.tags.includes(filters.tag)) {
         return false;
       }
       if (filters.spend === "over_50k" && guest.totalSpentPaise <= 5_000_000) {
@@ -54,7 +99,7 @@ function RouteComponent() {
       if (
         search &&
         !guest.name.toLowerCase().includes(search) &&
-        !guest.email.toLowerCase().includes(search) &&
+        !(guest.email?.toLowerCase().includes(search) ?? false) &&
         !guest.phone.toLowerCase().includes(search)
       ) {
         return false;
@@ -101,21 +146,55 @@ function RouteComponent() {
     );
   }
 
-  function handleAddNote(guestId: string, text: string) {
-    const note = {
-      id: `note-${guestId}-${Date.now()}`,
-      text,
-      createdAt: new Date(),
+  function handleToggleTag(guestId: string, tag: GuestTag, hasTag: boolean) {
+    const onError = (error: unknown) => {
+      feedback.error(
+        "Couldn't update tags",
+        getApiErrorMessage(error, "Something went wrong. Try again."),
+      );
     };
-    setGuests((prev) =>
-      prev.map((g) =>
-        g.id === guestId ? { ...g, notes: [note, ...g.notes] } : g,
-      ),
+
+    if (hasTag) {
+      removeTag.mutate(
+        { param: { id: guestId, tag } },
+        { onSuccess: () => refresh(guestId), onError },
+      );
+      return;
+    }
+
+    addTag.mutate(
+      { param: { id: guestId }, json: { tag: tag as "vip" | "needs_care" } },
+      { onSuccess: () => refresh(guestId), onError },
     );
-    setProfileGuest((prev) =>
-      prev && prev.id === guestId
-        ? { ...prev, notes: [note, ...prev.notes] }
-        : prev,
+  }
+
+  function handleAddNote(guestId: string, text: string) {
+    addNote.mutate(
+      { param: { id: guestId }, json: { text } },
+      {
+        onSuccess: () => refresh(guestId),
+        onError: (error) => {
+          feedback.error(
+            "Couldn't add note",
+            getApiErrorMessage(error, "Something went wrong. Try again."),
+          );
+        },
+      },
+    );
+  }
+
+  function handleRemoveNote(noteId: string) {
+    removeNote.mutate(
+      { param: { noteId } },
+      {
+        onSuccess: () => refresh(profileGuest?.id),
+        onError: (error) => {
+          feedback.error(
+            "Couldn't remove note",
+            getApiErrorMessage(error, "Something went wrong. Try again."),
+          );
+        },
+      },
     );
   }
 
@@ -133,10 +212,16 @@ function RouteComponent() {
             Track guest lifetime value and run targeted marketing campaigns
           </p>
         </div>
-        <Button variant="outline">
-          <DownloadIcon />
-          Export CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline">
+            <DownloadIcon />
+            Export CSV
+          </Button>
+          <Button onClick={() => setAddGuestOpen(true)}>
+            <PlusIcon />
+            Add Guest
+          </Button>
+        </div>
       </motion.div>
 
       <SummaryBand summary={summary} />
@@ -150,6 +235,7 @@ function RouteComponent() {
           onToggleSelectAll={toggleSelectAll}
           onOpenProfile={setProfileGuest}
           onGenerateOffer={setOfferGuest}
+          isLoading={isLoading}
         />
         <TablePagination
           page={currentPage}
@@ -172,7 +258,16 @@ function RouteComponent() {
         guest={profileGuest}
         onOpenChange={(open) => !open && setProfileGuest(null)}
         onAddNote={handleAddNote}
+        onRemoveNote={handleRemoveNote}
+        onToggleTag={handleToggleTag}
         onGenerateOffer={(guest) => setOfferGuest(guest)}
+        isSaving={isSaving}
+      />
+
+      <AddGuestDialog
+        open={addGuestOpen}
+        onOpenChange={setAddGuestOpen}
+        onCreated={() => refresh()}
       />
 
       <OfferLinkDialog

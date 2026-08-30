@@ -8,7 +8,7 @@ import { motion } from "motion/react";
 
 import { formatPercent } from "@/features/hq-dashboard/lib/format";
 import { formatInr } from "../lib/format";
-import type { GuestsSummary } from "../lib/mock-data";
+import type { GuestsSummary } from "../lib/guest";
 
 function SummaryCard({
   label,

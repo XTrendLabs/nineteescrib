@@ -1,7 +1,7 @@
 import { Badge } from "@propertyos/ui/components/badge";
 import { GlobeIcon, HomeIcon, UserIcon, ZapIcon } from "lucide-react";
 
-import type { BookingSource } from "../lib/mock-data";
+import type { BookingSource } from "../lib/booking";
 
 const SOURCE_CONFIG: Record<
   BookingSource,

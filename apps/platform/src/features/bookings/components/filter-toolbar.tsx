@@ -9,7 +9,7 @@ import {
 } from "@propertyos/ui/components/select";
 import { SearchIcon, XIcon } from "lucide-react";
 
-import type { MockProperty } from "../lib/mock-data";
+import type { BookingProperty } from "../lib/property";
 
 export type BookingFilters = {
   search: string;
@@ -47,7 +47,7 @@ export function FilterToolbar({
   filters,
   onChange,
 }: {
-  properties: MockProperty[];
+  properties: BookingProperty[];
   filters: BookingFilters;
   onChange: (filters: BookingFilters) => void;
 }) {

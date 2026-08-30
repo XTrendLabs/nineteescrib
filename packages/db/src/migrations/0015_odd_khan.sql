@@ -1,0 +1,1 @@
+ALTER TABLE "guest" DROP COLUMN "notes";

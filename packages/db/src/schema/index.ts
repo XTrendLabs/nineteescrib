@@ -1,5 +1,6 @@
 export * from "./attendance";
 export * from "./auth";
+export * from "./booking";
 export * from "./expense";
 export * from "./onboarding";
 export * from "./organization";

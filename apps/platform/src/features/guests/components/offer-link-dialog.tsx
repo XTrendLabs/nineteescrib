@@ -10,8 +10,7 @@ import {
 } from "@propertyos/ui/components/sheet";
 import { CopyIcon } from "lucide-react";
 import { useState } from "react";
-import type { Guest } from "../lib/mock-data";
-import { buildOfferLink } from "../lib/mock-data";
+import { buildOfferLink, type Guest } from "../lib/guest";
 
 export function OfferLinkDialog({
   guest,
@@ -40,7 +39,7 @@ export function OfferLinkDialog({
         <SheetHeader>
           <SheetTitle>Generate Custom Offer Link</SheetTitle>
           <SheetDescription>
-            {guest && `${guest.name} · ${guest.email}`}
+            {guest && `${guest.name} · ${guest.email ?? guest.phone}`}
           </SheetDescription>
         </SheetHeader>
 

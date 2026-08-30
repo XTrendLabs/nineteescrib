@@ -1,6 +1,6 @@
 import { Badge } from "@propertyos/ui/components/badge";
 
-import type { GuestTag } from "../lib/mock-data";
+import type { GuestTag } from "../lib/guest";
 
 const TAG_CONFIG: Record<
   GuestTag,

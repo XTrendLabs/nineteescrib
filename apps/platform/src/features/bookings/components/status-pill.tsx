@@ -1,6 +1,6 @@
 import { Badge } from "@propertyos/ui/components/badge";
 
-import type { BookingStatus } from "../lib/mock-data";
+import type { BookingStatus } from "../lib/booking";
 
 const STATUS_CONFIG: Record<
   BookingStatus,

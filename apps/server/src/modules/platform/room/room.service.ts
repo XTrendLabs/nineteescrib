@@ -1,3 +1,4 @@
+import { AppError } from "../../../core";
 import { storageService } from "../storage/storage.service";
 import { amenityRepo } from "./amenity.repo";
 import { roomRepo } from "./room.repo";
@@ -45,6 +46,16 @@ export const roomService = {
    * nothing left pointing at them.
    */
   async remove(id: string) {
+    // A room carrying stay history cannot be deleted -- the bookings pointing
+    // at it must keep resolving to a real room. Reported here rather than left
+    // to the foreign key, which would surface as a raw database error.
+    const bookingCount = await roomRepo.countBookings(id);
+    if (bookingCount > 0) {
+      throw AppError.conflict(
+        "This room has bookings against it and cannot be deleted. Unpublish it instead to stop new bookings.",
+      );
+    }
+
     const urls = await roomRepo.listImageUrls(id);
 
     const removed = await roomRepo.remove(id);

@@ -5,7 +5,7 @@
  * gallery, policies, booking links, taxes) has no backing schema yet, so it
  * is generated deterministically (seeded-hash, no Math.random) and layered
  * on top of the real property list returned by useProperties(), following
- * the same pattern as bookings/lib/mock-data.ts and guests/lib/mock-data.ts.
+ * the same pattern as the other feature mocks.
  */
 
 import { addDays } from "date-fns";
