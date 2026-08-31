@@ -31,7 +31,6 @@ import type { QuickCreateSelection } from "@/features/calendar/components/quick-
 import { QuickCreateDialog } from "@/features/calendar/components/quick-create-dialog";
 import type { RangeMode } from "@/features/calendar/components/range-mode-toggle";
 import { TimelineGrid } from "@/features/calendar/components/timeline-grid";
-import type { CalendarView } from "@/features/calendar/components/view-toggle";
 import {
   buildInventory,
   type CalendarBooking,
@@ -39,6 +38,7 @@ import {
 } from "@/features/calendar/lib/calendar";
 import { useProperties } from "@/features/properties/api/use-properties";
 import { getApiErrorMessage } from "@/shared/lib/api-error";
+import { useActiveView } from "@/shared/lib/use-active-view";
 
 export const Route = createFileRoute("/(protected)/calendar")({
   component: RouteComponent,
@@ -46,12 +46,14 @@ export const Route = createFileRoute("/(protected)/calendar")({
 
 function RouteComponent() {
   const { activeScopeId } = useActiveHq();
+  const { activeView } = useActiveView();
   const { data: propertiesResponse } = useProperties(activeScopeId);
 
   const [month, setMonth] = useState(new Date());
-  const [view, setView] = useState<CalendarView>("detailed");
   const [rangeMode, setRangeMode] = useState<RangeMode>("month");
-  const [propertyFilter, setPropertyFilter] = useState("all");
+  // Empty until the properties load, then settled below -- the calendar
+  // always draws exactly one property, so there is no "all" to fall back to.
+  const [propertyFilter, setPropertyFilter] = useState("");
   const [quickSelection, setQuickSelection] =
     useState<QuickCreateSelection | null>(null);
   // Choosing "new booking" hands off to the full create dialog, which already
@@ -75,19 +77,37 @@ function RouteComponent() {
   const cancelBooking = useCancelBooking();
   const recordPayment = useRecordBookingPayment();
 
+  const allProperties = useMemo(
+    () => resolveBookingProperties(propertiesResponse?.data),
+    [propertiesResponse?.data],
+  );
+
+  /**
+   * The property the calendar is drawing.
+   *
+   * Inside a property the scope decides it -- there is nothing to choose, and
+   * offering the rest of the portfolio would name properties the server will
+   * refuse anyway. At HQ it is the member's pick, falling back to the first
+   * property so the grid is never empty for want of a selection.
+   */
+  const isPropertyScope = activeView.type === "property";
+  const selectedProperty = isPropertyScope
+    ? activeView.propertyId
+    : allProperties.some((p) => p.id === propertyFilter)
+      ? propertyFilter
+      : (allProperties[0]?.id ?? "");
+
   /**
    * Jump to the month holding the next stay, once, on first load.
    *
    * Only when today's month is empty -- someone who opened the calendar to
    * check this week should not be thrown forward to next quarter.
    */
-  const { data: nextDate } = useNextBookingDate(activeScopeId, propertyFilter);
-  const [jumped, setJumped] = useState(false);
-
-  const allProperties = useMemo(
-    () => resolveBookingProperties(propertiesResponse?.data),
-    [propertiesResponse?.data],
+  const { data: nextDate } = useNextBookingDate(
+    activeScopeId,
+    selectedProperty,
   );
+  const [jumped, setJumped] = useState(false);
 
   const days = useMemo(() => {
     if (rangeMode === "day") {
@@ -108,7 +128,7 @@ function RouteComponent() {
 
   const { data: inventoryResponse } = useInventory(
     activeScopeId,
-    propertyFilter,
+    selectedProperty,
   );
 
   const inventory = useMemo(
@@ -137,7 +157,7 @@ function RouteComponent() {
     data: bookingsResponse,
     // isLoading: loadingBookings,
     // error: bookingsError,
-  } = useCalendarBookings(activeScopeId, window, propertyFilter);
+  } = useCalendarBookings(activeScopeId, window, selectedProperty);
 
   const apiBookings = useMemo(
     () => (bookingsResponse?.data ?? []) as ApiBooking[],
@@ -278,12 +298,11 @@ function RouteComponent() {
       <CalendarHeader
         month={month}
         onMonthChange={setMonth}
-        view={view}
-        onViewChange={setView}
         rangeMode={rangeMode}
         onRangeModeChange={setRangeMode}
         properties={allProperties}
-        propertyFilter={propertyFilter}
+        propertyFilter={selectedProperty}
+        propertyLocked={isPropertyScope}
         onPropertyFilterChange={setPropertyFilter}
         onAddBlock={() => {
           const firstUnit = allUnits[0];
@@ -311,7 +330,6 @@ function RouteComponent() {
           bookings={bookings}
           onBookingsChange={handleBookingsChange}
           days={days}
-          view={view}
           onRequestCreate={setQuickSelection}
           onBookingAction={handleBookingAction}
         />

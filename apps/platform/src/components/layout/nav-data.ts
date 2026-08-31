@@ -21,7 +21,7 @@ export type NavMainGroup = {
 export const navMainGroups: NavMainGroup[] = [
   {
     items: [
-      { title: "Overview", url: "/", icon: LayoutGridIcon, soon: true },
+      { title: "Overview", url: "/", icon: LayoutGridIcon },
       { title: "Calendar", url: "/calendar", icon: CalendarIcon },
       {
         title: "Bookings",

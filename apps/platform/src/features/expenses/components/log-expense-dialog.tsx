@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@propertyos/ui/components/select";
 import { useRef, useState } from "react";
+import { DatePicker } from "@/shared/components/date-picker";
 import {
   type Expense,
   type HeldReceipt,
@@ -59,6 +60,8 @@ export type FormState = {
   paymentMethod: PaymentMethod;
   referenceId: string;
   paymentDate: string;
+  /** The day the cost was incurred, as YYYY-MM-DD. */
+  expenseDate: string;
   dueDate: string;
   isOwnerDeductible: boolean;
   /** The pre-tax base when adding GST on top, or the gross when it is included. */
@@ -70,6 +73,14 @@ export type FormState = {
   itcClaimable: boolean;
   notes: string;
 };
+
+/** Today as YYYY-MM-DD, the format the date columns and DatePicker share. */
+function today() {
+  const now = new Date();
+  const month = `${now.getMonth() + 1}`.padStart(2, "0");
+  const day = `${now.getDate()}`.padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+}
 
 function emptyForm(defaultPropertyId: string = HQ_SHARED_ID): FormState {
   return {
@@ -84,7 +95,8 @@ function emptyForm(defaultPropertyId: string = HQ_SHARED_ID): FormState {
     initialAmountPaid: "",
     paymentMethod: "upi",
     referenceId: "",
-    paymentDate: new Date().toISOString().slice(0, 10),
+    paymentDate: today(),
+    expenseDate: today(),
     dueDate: "",
     isOwnerDeductible: false,
     vendorGstin: "",
@@ -118,8 +130,11 @@ function formFromExpense(expense: Expense): FormState {
     initialAmountPaid: (expense.amountPaidPaise / 100).toString(),
     paymentMethod: last ? normalizePaymentMethod(last.method) : "upi",
     referenceId: last?.referenceId ?? "",
-    paymentDate: new Date().toISOString().slice(0, 10),
-    // Already a calendar day (YYYY-MM-DD), which is what the input expects.
+    paymentDate: today(),
+    // Both are already calendar days (YYYY-MM-DD), which is what the input
+    // expects. An expense written before the column existed has no date of its
+    // own, so it falls back to the day it was logged.
+    expenseDate: expense.expenseDate ?? expense.createdAt.slice(0, 10),
     dueDate: expense.dueDate ?? "",
     isOwnerDeductible: expense.isOwnerDeductible,
     vendorGstin: expense.vendorGstin ?? "",
@@ -208,6 +223,9 @@ export function LogExpenseDialog({
 
   const canSave =
     form.title.trim().length > 0 &&
+    // An expense has to land on a day: clearing the date would otherwise send
+    // "" and leave the row sorting below everything else.
+    form.expenseDate.length > 0 &&
     gst.totalPaise > 0 &&
     !partialExceedsTotal &&
     !isPending;
@@ -449,12 +467,12 @@ export function LogExpenseDialog({
                     <span className="text-muted-foreground text-xs">
                       Payment Date
                     </span>
-                    <Input
-                      type="date"
+                    <DatePicker
                       value={form.paymentDate}
-                      onChange={(e) =>
-                        setForm({ ...form, paymentDate: e.target.value })
+                      onChange={(value) =>
+                        setForm({ ...form, paymentDate: value })
                       }
+                      toYear={new Date().getFullYear()}
                     />
                   </div>
                 </div>
@@ -476,12 +494,14 @@ export function LogExpenseDialog({
             {showDueDate && (
               <div className="flex flex-col gap-1.5">
                 <span className="text-muted-foreground text-xs">Due Date</span>
-                <Input
-                  type="date"
+                <DatePicker
                   value={form.dueDate}
-                  onChange={(e) =>
-                    setForm({ ...form, dueDate: e.target.value })
-                  }
+                  onChange={(value) => setForm({ ...form, dueDate: value })}
+                  placeholder="Optional"
+                  // A due date is in the future by nature, so the picker needs
+                  // headroom past today rather than the usual past-only range.
+                  fromYear={new Date().getFullYear() - 1}
+                  toYear={new Date().getFullYear() + 5}
                 />
               </div>
             )}
@@ -491,13 +511,28 @@ export function LogExpenseDialog({
           <div className="flex flex-col gap-3">
             <p className="font-medium text-xs">Details</p>
 
-            <div className="flex flex-col gap-1.5">
-              <span className="text-muted-foreground text-xs">Title *</span>
-              <Input
-                value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
-                placeholder="e.g. Pool Cleaning Services"
-              />
+            <div className="grid grid-cols-[1fr_auto] gap-3">
+              <div className="flex flex-col gap-1.5">
+                <span className="text-muted-foreground text-xs">Title *</span>
+                <Input
+                  value={form.title}
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
+                  placeholder="e.g. Pool Cleaning Services"
+                />
+              </div>
+              {/* The day the cost was incurred, which is not necessarily the
+                  day it is being logged -- a receipt entered at the end of the
+                  week still belongs to the day of the purchase. */}
+              <div className="flex flex-col gap-1.5">
+                <span className="text-muted-foreground text-xs">
+                  Expense Date *
+                </span>
+                <DatePicker
+                  value={form.expenseDate}
+                  onChange={(value) => setForm({ ...form, expenseDate: value })}
+                  toYear={new Date().getFullYear()}
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">

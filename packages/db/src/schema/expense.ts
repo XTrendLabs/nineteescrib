@@ -91,6 +91,21 @@ export const expense = pgTable(
       onDelete: "set null",
     }),
     totalAmountPaise: paise("total_amount_paise").notNull(),
+    /**
+     * The day the cost was actually incurred, as opposed to `createdAt`, which
+     * is when the row was written.
+     *
+     * These diverge whenever an expense is logged after the fact -- a receipt
+     * entered at the end of the week belongs to the day of the purchase, and
+     * filing it under the day it was typed would put it in the wrong month for
+     * reporting. A calendar day rather than a timestamp for the same reason
+     * `paidAt` is: an instant would shift the day for anyone east of UTC.
+     *
+     * Nullable only because the column was added to a table that already had
+     * rows; the migration backfills those from `createdAt`, and every new
+     * expense supplies one.
+     */
+    expenseDate: date("expense_date"),
     dueDate: date("due_date"),
     /** Whether this cost is deducted from the property owner's payout. */
     isOwnerDeductible: boolean("is_owner_deductible").default(false).notNull(),
@@ -133,6 +148,12 @@ export const expense = pgTable(
     index("expense_hqOrganizationId_createdAt_idx").on(
       table.hqOrganizationId,
       table.createdAt,
+    ),
+    // The listing orders by the date the cost occurred, which is what the
+    // ledger reads by -- `createdAt` only breaks ties within a day.
+    index("expense_hqOrganizationId_expenseDate_idx").on(
+      table.hqOrganizationId,
+      table.expenseDate,
     ),
     index("expense_organizationId_idx").on(table.organizationId),
     index("expense_vendorId_idx").on(table.vendorId),

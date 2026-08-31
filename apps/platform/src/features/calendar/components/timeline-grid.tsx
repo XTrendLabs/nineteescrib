@@ -24,7 +24,6 @@ import { BookingBlock } from "./booking-block";
 import type { BookingQuickAction } from "./booking-popover";
 import { BookingQuickView } from "./booking-popover";
 import type { QuickCreateSelection } from "./quick-create-dialog";
-import type { CalendarView } from "./view-toggle";
 
 const CELL_WIDTH = 88;
 const ROW_HEIGHT = 36;
@@ -75,7 +74,6 @@ export function TimelineGrid({
   bookings,
   onBookingsChange,
   days,
-  view,
   onRequestCreate,
   onBookingAction,
 }: {
@@ -83,7 +81,6 @@ export function TimelineGrid({
   bookings: Booking[];
   onBookingsChange: (next: Booking[]) => void;
   days: Date[];
-  view: CalendarView;
   onRequestCreate: (selection: QuickCreateSelection) => void;
   /** Raised when the quick view asks for check in, settle, edit or cancel. */
   onBookingAction: (action: BookingQuickAction, booking: Booking) => void;
@@ -271,7 +268,6 @@ export function TimelineGrid({
             key={property.propertyId}
             property={property}
             days={days}
-            view={view}
             bookingsForUnit={bookingsForUnit}
             unitById={unitById}
             dragSelection={dragSelection}
@@ -292,7 +288,6 @@ export function TimelineGrid({
 function PropertyRows({
   property,
   days,
-  view,
   bookingsForUnit,
   unitById,
   dragSelection,
@@ -306,7 +301,6 @@ function PropertyRows({
 }: {
   property: PropertyInventory;
   days: Date[];
-  view: CalendarView;
   bookingsForUnit: (unitId: string) => Booking[];
   unitById: Map<string, Unit>;
   dragSelection: DragSelection | null;
@@ -361,7 +355,6 @@ function PropertyRows({
           key={rt.roomType}
           units={rt.units}
           days={days}
-          view={view}
           bookingsForUnit={bookingsForUnit}
           unitById={unitById}
           dragSelection={dragSelection}
@@ -381,7 +374,6 @@ function PropertyRows({
 function RoomTypeRows({
   units,
   days,
-  view,
   bookingsForUnit,
   unitById,
   dragSelection,
@@ -395,7 +387,6 @@ function RoomTypeRows({
 }: {
   units: Unit[];
   days: Date[];
-  view: CalendarView;
   bookingsForUnit: (unitId: string) => Booking[];
   unitById: Map<string, Unit>;
   dragSelection: DragSelection | null;
@@ -407,21 +398,6 @@ function RoomTypeRows({
   onHoverBooking: (id: string | null) => void;
   onBookingAction: (action: BookingQuickAction, booking: Booking) => void;
 }) {
-  const isCondensed = view === "hq";
-
-  // HQ view answers "how full is this room type", so it draws one occupancy
-  // line per type rather than a row per room. The detailed view keeps a row
-  // for every room.
-  if (isCondensed) {
-    return (
-      <OccupancyRow
-        units={units}
-        days={days}
-        bookingsForUnit={bookingsForUnit}
-      />
-    );
-  }
-
   return (
     <>
       {units.map((unit) => (
@@ -441,79 +417,6 @@ function RoomTypeRows({
           onBookingAction={onBookingAction}
         />
       ))}
-    </>
-  );
-}
-
-/**
- * One line per room type showing how full it is each night.
- *
- * The HQ view is asking a different question from the detailed grid: not
- * "where is this guest" but "how much of this type is left". Drawing every
- * room's bookings on one line would just overlap them illegibly, so each night
- * is summarised as taken-of-total instead.
- */
-function OccupancyRow({
-  units,
-  days,
-  bookingsForUnit,
-}: {
-  units: Unit[];
-  days: Date[];
-  bookingsForUnit: (unitId: string) => Booking[];
-}) {
-  const total = units.length;
-
-  // A room is taken on a night when a booking covers it. Cancelled and
-  // checked-out stays never reach the calendar, so anything here occupies.
-  const takenPerDay = days.map((day) => {
-    const next = addDays(day, 1);
-    return units.filter((unit) =>
-      bookingsForUnit(unit.id).some(
-        (b) => b.checkIn < next && b.checkOut > day,
-      ),
-    ).length;
-  });
-
-  return (
-    <>
-      <div
-        className="sticky left-0 z-10 flex items-center border-r border-b bg-white px-2 py-1 text-[11px] opacity-100 backdrop-blur-3xl dark:bg-black"
-        style={{ gridColumn: "1 / span 1", height: ROW_HEIGHT }}
-      >
-        <span className="flex w-full items-center justify-between gap-2">
-          <span className="truncate text-foreground">
-            {roomTypeLabel(units[0]?.roomType ?? "other")}
-          </span>
-          <span className="shrink-0 text-[10px] text-muted-foreground">
-            {total} {total === 1 ? "room" : "rooms"}
-          </span>
-        </span>
-      </div>
-
-      {days.map((day, i) => {
-        const taken = takenPerDay[i] ?? 0;
-        const free = total - taken;
-        const full = total > 0 && free === 0;
-
-        return (
-          <div
-            key={`occ-${day.toISOString()}`}
-            className={cn(
-              "flex items-center justify-center border-r border-b text-[11px] tabular-nums",
-              isWeekend(day) && "bg-neutral-50 dark:bg-neutral-900/40",
-              full
-                ? "bg-destructive/70 font-medium text-white"
-                : taken > 0
-                  ? "bg-warning/40 text-foreground"
-                  : "text-muted-foreground",
-            )}
-            style={{ height: ROW_HEIGHT }}
-          >
-            {total === 0 ? "—" : `${taken}/${total}`}
-          </div>
-        );
-      })}
     </>
   );
 }

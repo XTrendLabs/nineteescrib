@@ -99,14 +99,14 @@ function ProtectedLayout() {
         onSelectProperty={selectProperty}
         onAddProperty={openCreateDialog}
       />
-      <SidebarInset className="min-h-0">
+      <SidebarInset>
         <SiteHeader
           title={title}
           onSelectHq={selectHq}
           onSelectProperty={selectProperty}
           onAddProperty={openCreateDialog}
         />
-        <div className="flex min-h-0 flex-1 flex-col gap-4 p-4 pt-0 dark:bg-sidebar-accent">
+        <div className="flex flex-1 flex-col gap-4 p-4 pt-0 dark:bg-sidebar-accent">
           <Outlet />
         </div>
       </SidebarInset>

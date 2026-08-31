@@ -15,6 +15,7 @@ import {
   SelectValue,
 } from "@propertyos/ui/components/select";
 import { useEffect, useState } from "react";
+import { DatePicker } from "@/shared/components/date-picker";
 import type { Expense } from "../lib/expense";
 import { formatInrFromPaise } from "../lib/format";
 import {
@@ -157,10 +158,10 @@ export function RecordPaymentDialog({
                   <span className="text-muted-foreground text-xs">
                     Payment Date *
                   </span>
-                  <Input
-                    type="date"
+                  <DatePicker
                     value={date}
-                    onChange={(e) => setDate(e.target.value)}
+                    onChange={setDate}
+                    toYear={new Date().getFullYear()}
                   />
                 </div>
               </div>

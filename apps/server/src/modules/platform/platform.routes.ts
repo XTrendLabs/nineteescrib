@@ -1,6 +1,7 @@
 import { createRouter } from "../../core";
 import { attendanceRoutes } from "./attendance/attendance.routes";
 import { bookingRoutes } from "./booking/booking.routes";
+import { dashboardRoutes } from "./dashboard/dashboard.routes";
 import { expenseRoutes } from "./expense/expense.routes";
 import { hqRoutes } from "./hq/hq.routes";
 import { onboardingRoutes } from "./onboarding/onboarding.routes";
@@ -14,6 +15,7 @@ import { vendorRoutes } from "./vendor/vendor.routes";
 export const platformRoutes = createRouter()
   .route("/attendance", attendanceRoutes)
   .route("/bookings", bookingRoutes)
+  .route("/dashboard", dashboardRoutes)
   .route("/expenses", expenseRoutes)
   .route("/hq", hqRoutes)
   .route("/onboarding", onboardingRoutes)

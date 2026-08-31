@@ -134,6 +134,13 @@
       "when": 1788181456162,
       "tag": "0018_last_bishop",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1788184291278,
+      "tag": "0019_clumsy_jean_grey",
+      "breakpoints": true
     }
   ]
 }

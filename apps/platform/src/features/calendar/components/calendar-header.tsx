@@ -5,30 +5,26 @@ import { MonthNavigator } from "./month-navigator";
 import { PropertyFilter } from "./property-filter";
 import type { RangeMode } from "./range-mode-toggle";
 import { RangeModeToggle } from "./range-mode-toggle";
-import type { CalendarView } from "./view-toggle";
-import { ViewToggle } from "./view-toggle";
 
 export function CalendarHeader({
   month,
   onMonthChange,
-  view,
-  onViewChange,
   rangeMode,
   onRangeModeChange,
   properties,
   propertyFilter,
   onPropertyFilterChange,
+  propertyLocked,
   onAddBlock,
 }: {
   month: Date;
   onMonthChange: (month: Date) => void;
-  view: CalendarView;
-  onViewChange: (view: CalendarView) => void;
   rangeMode: RangeMode;
   onRangeModeChange: (value: RangeMode) => void;
   properties: MockProperty[];
   propertyFilter: string;
   onPropertyFilterChange: (value: string) => void;
+  propertyLocked?: boolean;
   onAddBlock: () => void;
 }) {
   return (
@@ -41,11 +37,11 @@ export function CalendarHeader({
       </div>
       <div className="flex flex-wrap items-center gap-2 overflow-x-auto">
         <MonthNavigator month={month} onChange={onMonthChange} />
-        <ViewToggle value={view} onChange={onViewChange} />
         <PropertyFilter
           properties={properties}
           value={propertyFilter}
           onChange={onPropertyFilterChange}
+          locked={propertyLocked}
         />
         <Button onClick={onAddBlock}>
           <PlusIcon />

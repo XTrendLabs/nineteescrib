@@ -40,7 +40,15 @@ export function StayDateDialog({
   onConfirm,
   isSaving,
 }: {
-  booking: Booking | null;
+  /**
+   * Only the fields this dialog reads, rather than a whole `Booking`, so any
+   * caller holding an equivalent row -- the dashboard's booking card, say --
+   * can open it without inventing the twenty-odd fields it never touches.
+   */
+  booking: Pick<
+    Booking,
+    "id" | "checkIn" | "checkOut" | "actualCheckIn" | "guestName" | "roomName"
+  > | null;
   mode: "checked_in" | "checked_out";
   onOpenChange: (open: boolean) => void;
   onConfirm: (effectiveDate: string) => void;

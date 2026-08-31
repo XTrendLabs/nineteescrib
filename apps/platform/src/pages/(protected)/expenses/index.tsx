@@ -178,6 +178,7 @@ function RouteComponent() {
       organizationId: form.propertyId === HQ_SHARED_ID ? null : form.propertyId,
       vendorId: form.vendorId || null,
       totalAmountPaise: gst.totalPaise,
+      expenseDate: form.expenseDate,
       dueDate: form.dueDate,
       isOwnerDeductible: form.isOwnerDeductible,
       taxAmountPaise: gst.gstPaise,

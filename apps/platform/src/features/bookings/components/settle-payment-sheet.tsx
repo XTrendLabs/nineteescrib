@@ -47,7 +47,12 @@ export function SettlePaymentSheet({
   onSettled,
   isSaving,
 }: {
-  booking: Booking | null;
+  /**
+   * Only the fields this sheet reads, rather than a whole `Booking`, so any
+   * caller holding an equivalent row -- the dashboard's booking card, say --
+   * can open it without inventing the fields it never touches.
+   */
+  booking: Pick<Booking, "id" | "ref" | "guestName" | "balanceDuePaise"> | null;
   onOpenChange: (open: boolean) => void;
   onSettled: (input: {
     bookingId: string;

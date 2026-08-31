@@ -3,7 +3,12 @@ import {
   DataTableContainer,
 } from "@propertyos/ui/components/data-table";
 import { PaperclipIcon } from "lucide-react";
-import { type Expense, HQ_SHARED_ID, normalizeCategory } from "../lib/expense";
+import {
+  type Expense,
+  HQ_SHARED_ID,
+  normalizeCategory,
+  parseDateOnly,
+} from "../lib/expense";
 import { formatDate, formatInrFromPaise } from "../lib/format";
 import { CategoryBadge } from "./category-badge";
 import { ExpenseRowActions } from "./expense-row-actions";
@@ -92,7 +97,15 @@ export function ExpensesTable({
                 <div className="flex flex-col">
                   <span className="font-medium">{expense.ref}</span>
                   <span className="text-muted-foreground">
-                    {formatDate(new Date(expense.createdAt))}
+                    {/* The day the cost was incurred. `parseDateOnly` keeps it
+                        on that day -- `new Date("2026-08-19")` would parse as
+                        UTC midnight and render as the day before for anyone
+                        west of UTC. */}
+                    {formatDate(
+                      expense.expenseDate
+                        ? parseDateOnly(expense.expenseDate)
+                        : new Date(expense.createdAt),
+                    )}
                   </span>
                 </div>
               </td>

@@ -6,12 +6,7 @@ import {
   CardTitle,
 } from "@propertyos/ui/components/card";
 import { cn } from "@propertyos/ui/lib/utils";
-import {
-  AlertTriangleIcon,
-  ClockIcon,
-  RadioIcon,
-  WifiIcon,
-} from "lucide-react";
+import { AlertTriangleIcon, ClockIcon } from "lucide-react";
 import { motion } from "motion/react";
 import { useMemo } from "react";
 
@@ -28,7 +23,7 @@ export function ChannelSyncCard({
   properties: MockProperty[];
 }) {
   const holds = useMemo(() => buildCheckoutHolds(properties), [properties]);
-  const heartbeats = useMemo(
+  const _heartbeats = useMemo(
     () => buildChannelHeartbeats(properties),
     [properties],
   );
@@ -127,7 +122,7 @@ export function ChannelSyncCard({
           )}
         </div>
 
-        <div className="flex flex-col gap-2">
+        {/* <div className="flex flex-col gap-2">
           <p className="flex items-center gap-1.5 font-medium text-muted-foreground text-xs uppercase tracking-wide">
             <RadioIcon className="size-3.5" />
             OTA sync monitor
@@ -176,7 +171,7 @@ export function ChannelSyncCard({
               ))}
             </div>
           )}
-        </div>
+        </div> */}
       </CardContent>
     </Card>
   );

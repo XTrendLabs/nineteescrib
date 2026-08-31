@@ -42,6 +42,7 @@ const expenseColumns = {
   vendorName: vendor.name,
   propertyName: organization.name,
   totalAmountPaise: expense.totalAmountPaise,
+  expenseDate: expense.expenseDate,
   dueDate: expense.dueDate,
   isOwnerDeductible: expense.isOwnerDeductible,
   taxAmountPaise: expense.taxAmountPaise,
@@ -55,6 +56,15 @@ const expenseColumns = {
   createdAt: expense.createdAt,
   updatedAt: expense.updatedAt,
 };
+
+/**
+ * The day an expense is filed under, for ordering.
+ *
+ * Falls back to `createdAt` so a row with no `expenseDate` -- only possible
+ * for data written before the column existed -- still sorts sensibly instead
+ * of collapsing to the bottom as a NULL.
+ */
+const expenseOrderDate = sql`coalesce(${expense.expenseDate}, ${expense.createdAt}::date)`;
 
 function selectExpenses() {
   return db
@@ -135,7 +145,7 @@ export const expenseRepo = {
   async listByHqOrganization(hqOrganizationId: string) {
     const rows = await selectExpenses()
       .where(eq(expense.hqOrganizationId, hqOrganizationId))
-      .orderBy(desc(expense.createdAt));
+      .orderBy(desc(expenseOrderDate), desc(expense.createdAt));
     return attachPayments(rows);
   },
 
@@ -153,7 +163,7 @@ export const expenseRepo = {
           sql`(${expense.organizationId} = ${organizationId} or ${expense.organizationId} is null)`,
         ),
       )
-      .orderBy(desc(expense.createdAt));
+      .orderBy(desc(expenseOrderDate), desc(expense.createdAt));
     return attachPayments(rows);
   },
 

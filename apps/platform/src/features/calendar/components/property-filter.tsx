@@ -10,28 +10,42 @@ import {
 
 import type { BookingProperty as MockProperty } from "@/features/bookings/lib/property";
 
+/**
+ * Which property's rooms the calendar draws.
+ *
+ * There is no "all properties" option: the grid draws a row per room, and
+ * stacking every property's inventory into one timeline scrolls past what
+ * anyone can read. Inside a single property there is nothing to choose, so
+ * the control renders as a plain label rather than a select with one entry.
+ */
 export function PropertyFilter({
   properties,
   value,
   onChange,
+  locked,
 }: {
   properties: MockProperty[];
   value: string;
   onChange: (value: string) => void;
+  /** Scoped to one property, so the choice is not the user's to make. */
+  locked?: boolean;
 }) {
-  const selectedLabel =
-    value === "all"
-      ? "All properties"
-      : (properties.find((property) => property.id === value)?.name ??
-        "All properties");
+  const selected = properties.find((property) => property.id === value);
+
+  if (locked) {
+    return (
+      <span className="flex h-9 items-center border px-2.5 text-xs">
+        {selected?.name ?? "This property"}
+      </span>
+    );
+  }
 
   return (
     <Select value={value} onValueChange={(next) => onChange(next as string)}>
       <SelectTrigger className="w-56">
-        <SelectValue>{selectedLabel}</SelectValue>
+        <SelectValue>{selected?.name ?? "Select property"}</SelectValue>
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="all">All properties</SelectItem>
         <SelectGroup>
           <SelectGroupLabel>Properties</SelectGroupLabel>
           {properties.map((property) => (

@@ -73,6 +73,8 @@ export type Expense = {
   totalAmountPaise: number;
   amountPaidPaise: number;
   status: ExpenseStatus;
+  /** The day the cost was incurred, as YYYY-MM-DD. */
+  expenseDate: string | null;
   dueDate: string | null;
   isOwnerDeductible: boolean;
   taxAmountPaise: number;
@@ -172,6 +174,7 @@ export function vendorExpenses(
     .filter((e) => e.vendorId === vendorId)
     .sort(
       (a, b) =>
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        new Date(b.expenseDate ?? b.createdAt).getTime() -
+        new Date(a.expenseDate ?? a.createdAt).getTime(),
     );
 }

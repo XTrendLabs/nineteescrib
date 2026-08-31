@@ -60,6 +60,12 @@ const expenseFields = {
     (value) => value > 0,
     "Total amount must be greater than zero",
   ),
+  /**
+   * The day the cost was incurred. Optional so an older client that does not
+   * send one still works -- the service falls back to today rather than
+   * writing a row with no date.
+   */
+  expenseDate: optionalDate,
   dueDate: optionalDate,
   isOwnerDeductible: z.boolean().optional(),
   taxAmountPaise: paise.optional(),

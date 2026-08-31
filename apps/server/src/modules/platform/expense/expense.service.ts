@@ -21,6 +21,17 @@ function normalizeVendorId(value: string | null | undefined) {
   return value ? value : null;
 }
 
+/**
+ * Today as an ISO calendar day (YYYY-MM-DD), matching what the `date` columns
+ * and `<input type="date">` both use.
+ */
+function today() {
+  const now = new Date();
+  const month = `${now.getMonth() + 1}`.padStart(2, "0");
+  const day = `${now.getDate()}`.padStart(2, "0");
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
 export const expenseService = {
   listByHqOrganization(hqOrganizationId: string) {
     return expenseRepo.listByHqOrganization(hqOrganizationId);
@@ -51,6 +62,10 @@ export const expenseService = {
 
     return expenseRepo.create({
       ...rest,
+      // An expense always belongs to a day. A client that sends none means
+      // "now", which is today -- storing NULL would leave the row undated and
+      // sort it below everything else.
+      expenseDate: rest.expenseDate ?? today(),
       hqOrganizationId,
       createdByUserId,
       organizationId: normalizePropertyId(organizationId),
