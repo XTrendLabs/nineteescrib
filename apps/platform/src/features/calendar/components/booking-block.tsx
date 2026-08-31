@@ -2,6 +2,26 @@ import { cn } from "@propertyos/ui/lib/utils";
 import { HomeIcon, ZapIcon } from "lucide-react";
 import type { CalendarBooking as Booking } from "../lib/calendar";
 
+/**
+ * Colour by where the stay has got to.
+ *
+ * Green for a completed stay, amber while the guest is in the room, red for a
+ * cancellation. Upcoming stays are deliberately absent: they fall through to
+ * the source shading, so the grid still tells direct from OTA at a glance for
+ * everything that has not happened yet.
+ */
+const STATUS_CLASSES: Partial<Record<Booking["status"], string>> = {
+  checked_out: "border-success/50 bg-success/25 text-foreground",
+  checked_in: "border-warning/60 bg-warning/40 text-foreground",
+  cancelled: "border-destructive/50 bg-destructive/20 text-foreground",
+};
+
+const STATUS_MARK: Partial<Record<Booking["status"], string>> = {
+  checked_out: "✓",
+  checked_in: "●",
+  cancelled: "✕",
+};
+
 /** Channels get a mark; a booking taken by hand or on the site does not. */
 const SOURCE_ICON: Record<Booking["source"], typeof HomeIcon | null> = {
   direct: null,
@@ -55,6 +75,8 @@ export function BookingBlock({
 
   const isDirect = booking.source === "direct";
   const SourceIcon = SOURCE_ICON[booking.source];
+  const isSettled =
+    booking.status === "checked_out" || booking.status === "cancelled";
 
   return (
     <button
@@ -62,30 +84,33 @@ export function BookingBlock({
       style={style}
       onPointerDown={onPointerDownDrag}
       className={cn(
-        "flex h-full items-center gap-1 overflow-hidden px-1.5 text-left text-[10px]",
-        // A departed guest is history: the stay is drawn hollow so it reads as
-        // finished rather than competing with the stays still in the room, and
-        // it is not draggable -- there is nothing left to move.
-        booking.checkedOut
-          ? // Plain foreground, not `success-foreground` -- that token is meant
-            // for text on a solid success fill and is near-white, which is
-            // unreadable on this pale tint.
-            "cursor-default border border-success/50 bg-success/20 text-foreground"
-          : cn(
-              "cursor-grab active:cursor-grabbing",
-              isDirect
-                ? "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
-                : "bg-neutral-600 text-white dark:bg-neutral-500",
-            ),
+        "flex h-full items-center gap-1 overflow-hidden border px-1.5 text-left text-[10px]",
+        STATUS_CLASSES[booking.status] ??
+          // An upcoming stay carries no status colour of its own, so it keeps
+          // the source shading that distinguishes direct from OTA.
+          (isDirect
+            ? "border-transparent bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-900"
+            : "border-transparent bg-neutral-600 text-white dark:bg-neutral-500"),
+        // A finished stay has nothing left to reschedule.
+        isSettled ? "cursor-default" : "cursor-grab active:cursor-grabbing",
         className,
       )}
     >
-      {SourceIcon && !booking.checkedOut && (
+      {SourceIcon && !isSettled && (
         <SourceIcon className="size-2.5 shrink-0 opacity-80" />
       )}
-      <span className="truncate font-medium">{booking.guestName}</span>
-      {booking.checkedOut && (
-        <span className="ml-auto shrink-0 opacity-70">✓</span>
+      <span
+        className={cn(
+          "truncate font-medium",
+          booking.status === "cancelled" && "line-through",
+        )}
+      >
+        {booking.guestName}
+      </span>
+      {STATUS_MARK[booking.status] && (
+        <span className="ml-auto shrink-0 opacity-70">
+          {STATUS_MARK[booking.status]}
+        </span>
       )}
     </button>
   );

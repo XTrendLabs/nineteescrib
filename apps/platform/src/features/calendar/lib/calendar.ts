@@ -29,6 +29,12 @@ export type PropertyInventory = {
 
 export type BookingSource = "direct" | "manual" | "airbnb" | "booking_com";
 export type PaymentStatus = "paid" | "partial" | "unpaid";
+export type BookingStatus =
+  | "pending"
+  | "confirmed"
+  | "checked_in"
+  | "checked_out"
+  | "cancelled";
 export type BookingKind = "reservation" | "checkout_hold" | "blocked";
 export type BlockReason = "maintenance" | "owner_stay";
 
@@ -44,6 +50,13 @@ export type CalendarBooking = {
   guests: number;
   tariffPaise: number;
   paymentStatus: PaymentStatus;
+  /**
+   * Where the stay has got to, which drives its colour on the grid.
+   *
+   * Kept as the status rather than a pair of booleans: the block distinguishes
+   * five states, and two flags cannot express "pending" against "cancelled".
+   */
+  status: BookingStatus;
   checkedIn: boolean;
   /** The guest has left; the room is free again from their departure. */
   checkedOut: boolean;
@@ -141,6 +154,7 @@ export function toCalendarBooking(booking: ApiBooking): CalendarBooking {
     guests: booking.guestCount,
     tariffPaise: booking.totalAmountPaise,
     paymentStatus: booking.paymentStatus,
+    status: booking.status,
     checkedIn: booking.status === "checked_in",
     checkedOut: booking.status === "checked_out",
     blockReason: (booking.blockReason as BlockReason | null) ?? undefined,

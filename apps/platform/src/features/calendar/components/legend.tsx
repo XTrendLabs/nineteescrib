@@ -10,8 +10,16 @@ export function Legend() {
         OTA (Airbnb / Booking.com)
       </span>
       <span className="flex items-center gap-1.5">
-        <span className="size-3 shrink-0 border border-success/50 bg-success/15" />
-        Checked Out
+        <span className="size-3 shrink-0 border border-warning/60 bg-warning/40" />
+        Staying now
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span className="size-3 shrink-0 border border-success/50 bg-success/25" />
+        Completed
+      </span>
+      <span className="flex items-center gap-1.5">
+        <span className="size-3 shrink-0 border border-destructive/50 bg-destructive/20" />
+        Cancelled
       </span>
       <span className="flex items-center gap-1.5">
         <span className="size-3 shrink-0 border-2 border-neutral-400 border-dashed bg-neutral-100 dark:bg-neutral-800" />
