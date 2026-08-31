@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+  type AnyPgColumn,
   bigint,
   date,
   index,
@@ -97,13 +98,21 @@ export const guest = pgTable(
 );
 
 /**
- * Tags a member can put on a guest by hand.
+ * Tags offered by default when a member starts typing.
  *
- * "repeat" is deliberately not among them: it follows from the stay count and
- * is derived on read, so it can never disagree with the bookings behind it.
- * These two are judgements a person makes, which is why they are stored.
+ * Not a constraint: a tag is free text, so an operator can file guests by
+ * whatever vocabulary their business actually uses -- "allergy", "corporate",
+ * "blacklist" -- rather than the two we guessed at. These are only the
+ * suggestions the UI seeds.
+ *
+ * "repeat" is deliberately absent: it follows from the stay count and is
+ * derived on read, so it can never disagree with the bookings behind it, and
+ * storing it would let the two contradict each other.
  */
-export const guestTagValues = ["vip", "needs_care"] as const;
+export const suggestedGuestTags = ["vip", "needs_care"] as const;
+
+/** A stored tag is reserved from colliding with the derived one. */
+export const DERIVED_GUEST_TAGS = ["repeat"] as const;
 
 export const guestTag = pgTable(
   "guest_tag",
@@ -205,6 +214,19 @@ export const booking = pgTable(
      */
     holdExpiresAt: timestamp("hold_expires_at"),
     notes: text("notes"),
+    /**
+     * The booking this one continues, when a stay was extended into a
+     * different room.
+     *
+     * A room move cannot be one row: the two halves occupy different rooms
+     * over different dates, which is exactly what a booking row represents.
+     * Linking them keeps the stay readable as one visit -- the guest's history
+     * and the front desk both need to see it that way.
+     */
+    extendsBookingId: text("extends_booking_id").references(
+      (): AnyPgColumn => booking.id,
+      { onDelete: "set null" },
+    ),
     cancelledAt: timestamp("cancelled_at"),
     cancellationReason: text("cancellation_reason"),
     createdByUserId: text("created_by_user_id").references(() => user.id, {
@@ -236,6 +258,7 @@ export const booking = pgTable(
     ),
     index("booking_organizationId_idx").on(table.organizationId),
     index("booking_guestId_idx").on(table.guestId),
+    index("booking_extendsBookingId_idx").on(table.extendsBookingId),
   ],
 );
 

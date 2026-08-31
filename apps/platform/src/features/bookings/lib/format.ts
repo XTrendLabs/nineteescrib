@@ -1,4 +1,10 @@
-import { differenceInCalendarDays, format, parseISO } from "date-fns";
+import {
+  differenceInCalendarDays,
+  format,
+  isSameMonth,
+  parseISO,
+  subDays,
+} from "date-fns";
 
 export function formatInr(valuePaise: number): string {
   return new Intl.NumberFormat("en-IN", {
@@ -29,4 +35,23 @@ export function formatStayRange(checkIn: string, checkOut: string): string {
 /** An ISO instant from the API, for audit lines. */
 export function formatTimestamp(value: string): string {
   return format(new Date(value), "MMM d, h:mm a");
+}
+
+/**
+ * A stay's dates as a compact range, e.g. "Mar 1-3" or "Mar 30 - Apr 2".
+ *
+ * Check-out is exclusive, so the last *occupied* night is the day before it --
+ * showing the raw check-out would claim a room is taken on a day it is free.
+ */
+export function formatBookedRange(checkIn: string, checkOut: string): string {
+  const start = parseDay(checkIn);
+  const lastNight = subDays(parseDay(checkOut), 1);
+
+  if (format(start, "yyyy-MM-dd") === format(lastNight, "yyyy-MM-dd")) {
+    return format(start, "MMM d");
+  }
+
+  return isSameMonth(start, lastNight)
+    ? `${format(start, "MMM d")}-${format(lastNight, "d")}`
+    : `${format(start, "MMM d")} - ${format(lastNight, "MMM d")}`;
 }

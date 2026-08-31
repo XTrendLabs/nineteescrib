@@ -11,7 +11,7 @@ import {
   DropdownMenuTrigger,
 } from "@propertyos/ui/components/dropdown-menu";
 import { cn } from "@propertyos/ui/lib/utils";
-import { MoreHorizontalIcon } from "lucide-react";
+import { FileTextIcon, MoreHorizontalIcon } from "lucide-react";
 import type { Booking } from "../lib/booking";
 import { formatInr, formatStayRange } from "../lib/format";
 import { SourceBadge } from "./source-badge";
@@ -22,6 +22,8 @@ export type BookingAction =
   | "check_in"
   | "check_out"
   | "collect"
+  | "extend"
+  | "invoice"
   | "timeline"
   | "cancel";
 
@@ -51,10 +53,20 @@ function contextActions(booking: Booking): MenuAction[] {
   if (booking.status === "checked_in") {
     actions.push({ action: "check_out", label: "Check Out" });
   }
+  // A stay can be lengthened right up until the guest leaves; afterwards it is
+  // a new booking rather than an extension.
+  if (
+    booking.status === "pending" ||
+    booking.status === "confirmed" ||
+    booking.status === "checked_in"
+  ) {
+    actions.push({ action: "extend", label: "Extend Stay" });
+  }
   if (booking.balanceDuePaise > 0 && booking.status !== "cancelled") {
     actions.push({ action: "collect", label: "Collect Payment" });
   }
 
+  actions.push({ action: "invoice", label: "Generate Invoice" });
   actions.push({ action: "timeline", label: "View Timeline" });
 
   if (booking.status !== "cancelled" && booking.status !== "checked_out") {
@@ -76,6 +88,7 @@ export function BookingsTable({
   onOpenAudit,
   onOpenSettle,
   onAction,
+  onInvoice,
   isLoading,
 }: {
   bookings: Booking[];
@@ -85,6 +98,7 @@ export function BookingsTable({
   onOpenAudit: (booking: Booking) => void;
   onOpenSettle: (booking: Booking) => void;
   onAction: (action: BookingAction, booking: Booking) => void;
+  onInvoice: (booking: Booking) => void;
   isLoading?: boolean;
 }) {
   const allSelected =
@@ -139,7 +153,10 @@ export function BookingsTable({
               Status
             </th>
             <th className="px-3 py-2.5 font-medium text-muted-foreground">
-              Tariff
+              Price
+            </th>
+            <th className="px-3 py-2.5 font-medium text-muted-foreground">
+              Invoice
             </th>
             <th className="w-10 px-3 py-2.5" />
           </tr>
@@ -206,6 +223,23 @@ export function BookingsTable({
                     <p className="text-[11px] text-warning">
                       {formatInr(due)} Due
                     </p>
+                  )}
+                </td>
+                <td className="px-3 py-2.5">
+                  {/* No booking carries an invoice yet -- there is no invoice
+                      table, so this is always the generate path. Once invoices
+                      are real, `booking.invoiceId` decides which is shown. */}
+                  {booking.kind === "block" ? (
+                    <span className="text-muted-foreground">—</span>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      onClick={() => onInvoice(booking)}
+                    >
+                      <FileTextIcon />
+                      Generate
+                    </Button>
                   )}
                 </td>
                 <td className="px-3 py-2.5">

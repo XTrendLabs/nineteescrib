@@ -19,8 +19,11 @@ import {
   changeStatusSchema,
   createBookingSchema,
   createGuestSchema,
+  extendBookingSchema,
+  extensionOptionsQuerySchema,
   guestNoteSchema,
   guestTagSchema,
+  occupancyQuerySchema,
   recordPaymentSchema,
   updateBookingSchema,
   updateGuestSchema,
@@ -184,10 +187,94 @@ export const bookingRoutes = createRouter()
     const result = await bookingService.listAvailableRooms(parsed.data);
     return c.json(ok(result));
   })
+  /**
+   * Every room in a property with the stays clashing with these dates.
+   *
+   * Separate from "/availability", which returns only free rooms: the create
+   * dialog needs to show booked rooms too, along with why they are booked.
+   */
+  .get(
+    "/room-availability",
+    requirePermissionTo("booking", "read"),
+    async (c) => {
+      const parsed = availabilityQuerySchema.safeParse({
+        propertyId: c.req.query("propertyId"),
+        checkIn: c.req.query("checkIn"),
+        checkOut: c.req.query("checkOut"),
+        excludeBookingId: c.req.query("excludeBookingId"),
+      });
+
+      if (!parsed.success) {
+        throw AppError.validation(
+          "Invalid availability request",
+          parsed.error.issues,
+        );
+      }
+
+      await assertInScope(c, parsed.data.propertyId);
+
+      const result = await bookingService.listRoomsWithConflicts(parsed.data);
+      return c.json(ok(result));
+    },
+  )
+  /**
+   * How full a property is on each night of a window, for the create dialog's
+   * calendar shading.
+   */
+  .get("/occupancy", requirePermissionTo("booking", "read"), async (c) => {
+    const parsed = occupancyQuerySchema.safeParse({
+      propertyId: c.req.query("propertyId"),
+      from: c.req.query("from"),
+      to: c.req.query("to"),
+    });
+
+    if (!parsed.success) {
+      throw AppError.validation(
+        "Invalid occupancy request",
+        parsed.error.issues,
+      );
+    }
+
+    await assertInScope(c, parsed.data.propertyId);
+
+    const result = await bookingService.listNightlyOccupancy(parsed.data);
+    return c.json(ok(result));
+  })
   .get("/guests", requirePermissionTo("booking", "read"), async (c) => {
     assertActiveWorkspace(c);
     const hqOrganizationId = requireHqOrganizationId(c);
     const result = await bookingService.listGuests(hqOrganizationId);
+    return c.json(ok(result));
+  })
+  /**
+   * Guests matching a partial phone number, for the booking form.
+   *
+   * Answers with an empty list rather than a 404 when nobody matches: a
+   * first-time guest is the expected case, not an error. Declared before
+   * "/guests/:id" so "lookup" is not taken for a guest id.
+   */
+  .get("/guests/lookup", requirePermissionTo("booking", "read"), async (c) => {
+    const hqOrganizationId = requireHqOrganizationId(c);
+    const phone = c.req.query("phone")?.trim();
+
+    if (!phone) {
+      throw AppError.validation("A phone number is required");
+    }
+
+    const result = await bookingService.searchGuestsByPhone(
+      hqOrganizationId,
+      phone,
+    );
+
+    return c.json(ok(result));
+  })
+  /**
+   * The tag vocabulary in use. Declared before "/guests/:id" so "tags" is not
+   * taken for a guest id.
+   */
+  .get("/guests/tags", requirePermissionTo("booking", "read"), async (c) => {
+    const hqOrganizationId = requireHqOrganizationId(c);
+    const result = await bookingService.listGuestTagsInUse(hqOrganizationId);
     return c.json(ok(result));
   })
   .get("/guests/:id", requirePermissionTo("booking", "read"), async (c) => {
@@ -369,6 +456,41 @@ export const bookingRoutes = createRouter()
 
       const session = c.get("session");
       const result = await bookingService.changeStatus(
+        id,
+        session.user.id,
+        c.req.valid("json"),
+      );
+
+      return c.json(ok(result));
+    },
+  )
+  /** The rooms free for the nights a stay would extend into. */
+  .get(
+    "/:id/extension-options",
+    requirePermissionTo("booking", "read"),
+    // Declared rather than read straight off the request so the query shape
+    // reaches the client's generated types.
+    zValidator("query", extensionOptionsQuerySchema),
+    async (c) => {
+      const id = c.req.param("id");
+      await assertBookingInScope(c, id);
+
+      const { checkOut } = c.req.valid("query");
+
+      const result = await bookingService.listExtensionOptions(id, checkOut);
+      return c.json(ok(result));
+    },
+  )
+  .post(
+    "/:id/extend",
+    requirePermissionTo("booking", "update"),
+    zValidator("json", extendBookingSchema),
+    async (c) => {
+      const id = c.req.param("id");
+      await assertBookingInScope(c, id);
+
+      const session = c.get("session");
+      const result = await bookingService.extend(
         id,
         session.user.id,
         c.req.valid("json"),

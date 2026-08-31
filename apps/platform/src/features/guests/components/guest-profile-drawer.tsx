@@ -18,18 +18,8 @@ import {
   formatStayRange,
   initials,
 } from "../lib/format";
-import {
-  ASSIGNABLE_TAGS,
-  type Guest,
-  type GuestTag,
-  type StayRecord,
-} from "../lib/guest";
+import type { Guest, GuestTag, StayRecord } from "../lib/guest";
 import { TagPill } from "./tag-pill";
-
-const TAG_LABELS: Record<string, string> = {
-  vip: "VIP",
-  needs_care: "Needs Care",
-};
 
 /** What a stay was worth, and whether it still counts. */
 function stayLine(stay: StayRecord) {
@@ -42,7 +32,6 @@ export function GuestProfileDrawer({
   onOpenChange,
   onAddNote,
   onRemoveNote,
-  onToggleTag,
   onGenerateOffer,
   isSaving,
 }: {
@@ -50,7 +39,6 @@ export function GuestProfileDrawer({
   onOpenChange: (open: boolean) => void;
   onAddNote: (guestId: string, text: string) => void;
   onRemoveNote: (noteId: string) => void;
-  onToggleTag: (guestId: string, tag: GuestTag, hasTag: boolean) => void;
   onGenerateOffer: (guest: Guest) => void;
   isSaving?: boolean;
 }) {
@@ -92,28 +80,12 @@ export function GuestProfileDrawer({
             </div>
           </div>
 
-          {guest && (
+          {/* Read-only here; tags are edited in the Edit Guest dialog. */}
+          {guest && tags.length > 0 && (
             <div className="mt-2 flex flex-wrap items-center gap-1.5">
               {tags.map((tag) => (
                 <TagPill key={tag} tag={tag as GuestTag} />
               ))}
-              {/* "repeat" is derived from the stay count, so only the two
-                  hand-applied tags are offered here. */}
-              {ASSIGNABLE_TAGS.map((tag) => {
-                const hasTag = tags.includes(tag);
-                return (
-                  <Button
-                    key={tag}
-                    variant="outline"
-                    size="sm"
-                    disabled={isSaving}
-                    onClick={() => onToggleTag(guest.id, tag, hasTag)}
-                  >
-                    {hasTag ? <XIcon /> : <PlusIcon />}
-                    {TAG_LABELS[tag] ?? tag}
-                  </Button>
-                );
-              })}
             </div>
           )}
         </SheetHeader>

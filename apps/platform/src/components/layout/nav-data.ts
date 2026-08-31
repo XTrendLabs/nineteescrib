@@ -27,9 +27,8 @@ export const navMainGroups: NavMainGroup[] = [
         title: "Bookings",
         url: "/bookings",
         icon: ClipboardListIcon,
-        soon: true,
       },
-      { title: "Guests", url: "/guests", icon: ContactIcon, soon: true },
+      { title: "Guests", url: "/guests", icon: ContactIcon },
     ],
   },
   {

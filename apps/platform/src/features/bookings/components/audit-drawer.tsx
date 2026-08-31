@@ -66,7 +66,7 @@ export function AuditDrawer({
                 </div>
               </div>
               <div>
-                <p className="text-muted-foreground">Tariff</p>
+                <p className="text-muted-foreground">Price</p>
                 <p className="mt-0.5 font-medium tabular-nums">
                   {formatInr(booking.amountPaidPaise)} paid /{" "}
                   {formatInr(booking.balanceDuePaise)} due

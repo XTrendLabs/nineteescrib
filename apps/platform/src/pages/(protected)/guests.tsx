@@ -16,9 +16,14 @@ import {
   useAddGuestTag,
   useRemoveGuestTag,
 } from "@/features/guests/api/use-guest-tags";
+import {
+  invalidateGuestTagsInUse,
+  useGuestTagsInUse,
+} from "@/features/guests/api/use-guest-tags-in-use";
 import { invalidateGuests, useGuests } from "@/features/guests/api/use-guests";
 import { AddGuestDialog } from "@/features/guests/components/add-guest-dialog";
 import { BulkActionsBar } from "@/features/guests/components/bulk-actions-bar";
+import { EditGuestDialog } from "@/features/guests/components/edit-guest-dialog";
 import {
   DEFAULT_FILTERS,
   FilterToolbar,
@@ -27,11 +32,7 @@ import { GuestProfileDrawer } from "@/features/guests/components/guest-profile-d
 import { GuestsTable } from "@/features/guests/components/guests-table";
 import { OfferLinkDialog } from "@/features/guests/components/offer-link-dialog";
 import { SummaryBand } from "@/features/guests/components/summary-band";
-import {
-  buildGuestsSummary,
-  type Guest,
-  type GuestTag,
-} from "@/features/guests/lib/guest";
+import { buildGuestsSummary, type Guest } from "@/features/guests/lib/guest";
 import { getApiErrorMessage } from "@/shared/lib/api-error";
 
 export const Route = createFileRoute("/(protected)/guests")({
@@ -48,6 +49,12 @@ function RouteComponent() {
     [guestsResponse?.data],
   );
 
+  const { data: tagsResponse } = useGuestTagsInUse(activeScopeId);
+  const tagsInUse = useMemo(
+    () => (tagsResponse?.data ?? []).map((row) => row.tag),
+    [tagsResponse?.data],
+  );
+
   const addTag = useAddGuestTag();
   const removeTag = useRemoveGuestTag();
   const addNote = useAddGuestNote();
@@ -57,6 +64,7 @@ function RouteComponent() {
   const [addGuestOpen, setAddGuestOpen] = useState(false);
   const [profileGuest, setProfileGuest] = useState<Guest | null>(null);
   const [offerGuest, setOfferGuest] = useState<Guest | null>(null);
+  const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -76,6 +84,8 @@ function RouteComponent() {
   function refresh(guestId?: string) {
     invalidateGuests(activeScopeId);
     invalidateGuest(guestId);
+    // A new or removed tag changes the vocabulary the filter offers.
+    invalidateGuestTagsInUse(activeScopeId);
   }
 
   const filteredGuests = useMemo(() => {
@@ -146,25 +156,24 @@ function RouteComponent() {
     );
   }
 
-  function handleToggleTag(guestId: string, tag: GuestTag, hasTag: boolean) {
-    const onError = (error: unknown) => {
-      feedback.error(
-        "Couldn't update tags",
-        getApiErrorMessage(error, "Something went wrong. Try again."),
-      );
-    };
+  function tagError(error: unknown) {
+    feedback.error(
+      "Couldn't update tags",
+      getApiErrorMessage(error, "Something went wrong. Try again."),
+    );
+  }
 
-    if (hasTag) {
-      removeTag.mutate(
-        { param: { id: guestId, tag } },
-        { onSuccess: () => refresh(guestId), onError },
-      );
-      return;
-    }
-
+  function handleAddTag(guestId: string, tag: string) {
     addTag.mutate(
-      { param: { id: guestId }, json: { tag: tag as "vip" | "needs_care" } },
-      { onSuccess: () => refresh(guestId), onError },
+      { param: { id: guestId }, json: { tag } },
+      { onSuccess: () => refresh(guestId), onError: tagError },
+    );
+  }
+
+  function handleRemoveTag(guestId: string, tag: string) {
+    removeTag.mutate(
+      { param: { id: guestId, tag } },
+      { onSuccess: () => refresh(guestId), onError: tagError },
     );
   }
 
@@ -227,7 +236,11 @@ function RouteComponent() {
       <SummaryBand summary={summary} />
 
       <div className="flex flex-col gap-3">
-        <FilterToolbar filters={filters} onChange={handleFiltersChange} />
+        <FilterToolbar
+          filters={filters}
+          tagsInUse={tagsInUse}
+          onChange={handleFiltersChange}
+        />
         <GuestsTable
           guests={pagedGuests}
           selectedIds={selectedIds}
@@ -235,6 +248,7 @@ function RouteComponent() {
           onToggleSelectAll={toggleSelectAll}
           onOpenProfile={setProfileGuest}
           onGenerateOffer={setOfferGuest}
+          onEdit={setEditingGuest}
           isLoading={isLoading}
         />
         <TablePagination
@@ -259,9 +273,18 @@ function RouteComponent() {
         onOpenChange={(open) => !open && setProfileGuest(null)}
         onAddNote={handleAddNote}
         onRemoveNote={handleRemoveNote}
-        onToggleTag={handleToggleTag}
         onGenerateOffer={(guest) => setOfferGuest(guest)}
         isSaving={isSaving}
+      />
+
+      <EditGuestDialog
+        guest={editingGuest}
+        tagsInUse={tagsInUse}
+        onOpenChange={(open) => !open && setEditingGuest(null)}
+        onSaved={(guestId) => refresh(guestId)}
+        onAddTag={handleAddTag}
+        onRemoveTag={handleRemoveTag}
+        isTagSaving={addTag.isPending || removeTag.isPending}
       />
 
       <AddGuestDialog

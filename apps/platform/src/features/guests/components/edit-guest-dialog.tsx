@@ -9,74 +9,75 @@ import {
 import { Input } from "@propertyos/ui/components/input";
 import { PhoneInput } from "@propertyos/ui/components/phone-input";
 import { useFeedback } from "@propertyos/ui/lib/use-feedback";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { getApiErrorMessage } from "@/shared/lib/api-error";
-import { useCreateGuest } from "../api/use-create-guest";
+import { useUpdateGuest } from "../api/use-update-guest";
+import type { Guest } from "../lib/guest";
+import { TagEditor } from "./tag-editor";
 
-const EMPTY_FORM = {
-  name: "",
-  phone: "",
-  email: "",
-  note: "",
-};
-
-export function AddGuestDialog({
-  open,
+export function EditGuestDialog({
+  guest,
+  tagsInUse,
   onOpenChange,
-  onCreated,
+  onSaved,
+  onAddTag,
+  onRemoveTag,
+  isTagSaving,
 }: {
-  open: boolean;
+  guest: Guest | null;
+  tagsInUse: string[];
   onOpenChange: (open: boolean) => void;
-  onCreated: () => void;
+  onSaved: (guestId: string) => void;
+  onAddTag: (guestId: string, tag: string) => void;
+  onRemoveTag: (guestId: string, tag: string) => void;
+  isTagSaving?: boolean;
 }) {
   const feedback = useFeedback();
-  const [form, setForm] = useState(EMPTY_FORM);
-  const createGuest = useCreateGuest();
+  const updateGuest = useUpdateGuest();
+  const [form, setForm] = useState({ name: "", phone: "", email: "" });
 
-  function handleOpenChange(next: boolean) {
-    // The form is only cleared once the dialog is closed for good -- discarding
-    // what someone typed while the request is in flight would lose it if the
-    // server rejects the guest.
-    if (!next) {
-      setForm(EMPTY_FORM);
-    }
-    onOpenChange(next);
-  }
+  // Reloaded whenever a different guest is opened, so the form always shows
+  // the profile being edited rather than whoever was opened first.
+  useEffect(() => {
+    if (!guest) return;
+    setForm({
+      name: guest.name,
+      phone: guest.phone,
+      email: guest.email ?? "",
+    });
+  }, [guest]);
 
   const canSave =
     form.name.trim().length > 0 &&
     form.phone.trim().length > 0 &&
-    !createGuest.isPending;
+    !updateGuest.isPending;
 
   function handleSave() {
-    if (!canSave) return;
+    if (!guest || !canSave) return;
 
-    createGuest.mutate(
+    updateGuest.mutate(
       {
+        param: { id: guest.id },
         json: {
           name: form.name.trim(),
           phone: form.phone.trim(),
           email: form.email.trim(),
-          note: form.note.trim(),
         },
       },
       {
         onSuccess: () => {
-          onCreated();
+          onSaved(guest.id);
           feedback.success(
-            "Guest added",
-            `${form.name.trim()} has been added to your directory.`,
+            "Guest updated",
+            `${form.name.trim()} has been updated.`,
           );
-          handleOpenChange(false);
+          onOpenChange(false);
         },
         onError: (error) => {
           feedback.error(
-            "Couldn't add guest",
-            getApiErrorMessage(
-              error,
-              "Something went wrong. Please try again.",
-            ),
+            "Couldn't update guest",
+            getApiErrorMessage(error, "Something went wrong. Try again."),
           );
         },
       },
@@ -84,10 +85,10 @@ export function AddGuestDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={guest !== null} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add Guest</DialogTitle>
+          <DialogTitle>Edit Guest</DialogTitle>
         </DialogHeader>
 
         <div className="flex flex-col gap-3 px-4 pb-4">
@@ -96,7 +97,6 @@ export function AddGuestDialog({
             <Input
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="e.g. Priya Nair"
             />
           </div>
 
@@ -120,32 +120,38 @@ export function AddGuestDialog({
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <span className="text-muted-foreground text-xs">First Note</span>
-            <Input
-              value={form.note}
-              onChange={(e) => setForm({ ...form, note: e.target.value })}
-              placeholder="Optional"
-            />
+            <span className="text-muted-foreground text-xs">Tags</span>
+            {/* Tags save immediately rather than on Save Changes: each is its
+                own row, and mixing the two would make Cancel ambiguous. */}
+            {guest && (
+              <TagEditor
+                tags={guest.tags}
+                tagsInUse={tagsInUse}
+                onAdd={(tag) => onAddTag(guest.id, tag)}
+                onRemove={(tag) => onRemoveTag(guest.id, tag)}
+                disabled={isTagSaving}
+              />
+            )}
           </div>
 
-          {/* The phone is the guest's identity within an HQ, so the same
-              number cannot be saved twice. */}
+          {/* Notes live in the profile drawer's timeline, one entry each, so
+              they are not editable as a single field here. */}
           <p className="text-[11px] text-muted-foreground">
-            Guests are matched by phone number. Booking someone already listed
-            here will add to their existing profile.
+            Changing the phone number changes how this guest is matched on
+            future bookings. Tags are saved as you add them.
           </p>
         </div>
 
         <DialogFooter>
           <Button
             variant="outline"
-            disabled={createGuest.isPending}
-            onClick={() => handleOpenChange(false)}
+            disabled={updateGuest.isPending}
+            onClick={() => onOpenChange(false)}
           >
             Cancel
           </Button>
           <Button disabled={!canSave} onClick={handleSave}>
-            {createGuest.isPending ? "Adding..." : "Add Guest"}
+            {updateGuest.isPending ? "Saving..." : "Save Changes"}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -24,6 +24,7 @@ export function GuestsTable({
   onToggleSelectAll,
   onOpenProfile,
   onGenerateOffer,
+  onEdit,
   isLoading,
 }: {
   guests: Guest[];
@@ -32,6 +33,7 @@ export function GuestsTable({
   onToggleSelectAll: () => void;
   onOpenProfile: (guest: Guest) => void;
   onGenerateOffer: (guest: Guest) => void;
+  onEdit: (guest: Guest) => void;
   isLoading?: boolean;
 }) {
   const allSelected = guests.length > 0 && selectedIds.size === guests.length;
@@ -119,9 +121,11 @@ export function GuestsTable({
                   </button>
                 </td>
                 <td className="px-3 py-2.5">
-                  <p>{guest.email ?? "—"}</p>
+                  {/* Phone leads: it is required and is how a guest is
+                      identified within an HQ, where email is optional. */}
+                  <p>{guest.phone}</p>
                   <p className="text-[11px] text-muted-foreground">
-                    {guest.phone}
+                    {guest.email ?? "—"}
                   </p>
                 </td>
                 <td className="px-3 py-2.5 tabular-nums">
@@ -154,6 +158,9 @@ export function GuestsTable({
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem onClick={() => onOpenProfile(guest)}>
                         View Profile
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => onEdit(guest)}>
+                        Edit Guest
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onGenerateOffer(guest)}>
                         Generate Offer Link

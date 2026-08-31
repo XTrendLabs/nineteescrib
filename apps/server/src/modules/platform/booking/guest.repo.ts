@@ -179,6 +179,38 @@ export const guestRepo = {
   },
 
   /**
+   * Guests whose phone contains these digits.
+   *
+   * Matched on digits alone: a number stored as "+91 98765 43210" has to be
+   * findable by typing "9876543210", so both sides are stripped of everything
+   * but digits before comparing. Without this a saved number would only be
+   * found by reproducing its exact punctuation.
+   *
+   * Several guests can share a suffix, so this returns a list rather than one
+   * row -- the caller shows them and lets a person choose.
+   */
+  async searchByPhone(hqOrganizationId: string, digits: string, limit = 6) {
+    const rows = await db
+      .select()
+      .from(guest)
+      .where(
+        and(
+          eq(guest.hqOrganizationId, hqOrganizationId),
+          sql`regexp_replace(${guest.phone}, '[^0-9]', '', 'g') like ${`%${digits}%`}`,
+        ),
+      )
+      .orderBy(asc(guest.name))
+      .limit(limit);
+
+    const stats = await attachStats(rows.map((r) => r.id));
+
+    return rows.map((row) => ({
+      ...row,
+      ...(stats.get(row.id) ?? EMPTY_STATS),
+    }));
+  },
+
+  /**
    * Resolves the guest for a booking, creating them on first contact.
    *
    * Phone is the identity within an HQ, so the upsert targets that unique
@@ -264,6 +296,26 @@ export const guestRepo = {
 
     if (rows.length === 0) return undefined;
     return guestRepo.findById(id);
+  },
+
+  /**
+   * Every tag in use across the HQ, with how many guests carry it.
+   *
+   * Tags are free text, so the vocabulary is whatever operators have actually
+   * typed -- this is what the filter dropdown and the editor's suggestions are
+   * built from, rather than a hard-coded list that would drift from reality.
+   */
+  async listTagsInUse(hqOrganizationId: string) {
+    return db
+      .select({
+        tag: guestTag.tag,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(guestTag)
+      .innerJoin(guest, eq(guestTag.guestId, guest.id))
+      .where(eq(guest.hqOrganizationId, hqOrganizationId))
+      .groupBy(guestTag.tag)
+      .orderBy(desc(sql`count(*)`), asc(guestTag.tag));
   },
 
   /**

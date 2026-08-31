@@ -9,7 +9,17 @@ import {
 } from "@propertyos/db/schema/booking";
 import { organization } from "@propertyos/db/schema/organization";
 import { room } from "@propertyos/db/schema/room";
-import { and, asc, desc, eq, inArray, ne, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  inArray,
+  ne,
+  notInArray,
+  or,
+  sql,
+} from "drizzle-orm";
 
 const db = createDb();
 
@@ -76,8 +86,18 @@ function selectBookings() {
 type BookingRow = Awaited<ReturnType<typeof selectBookings>>[number];
 
 /**
- * A booking no longer holds its room once it is cancelled, or -- for a hold --
- * once its timer has elapsed.
+ * The statuses that no longer hold a room.
+ *
+ * A cancelled stay never happened, and a checked-out guest has left -- in both
+ * cases the room is free to sell for those dates again. Keeping a checked-out
+ * booking in the way would make a room unsellable for every past date it was
+ * ever occupied, which grows without bound.
+ */
+const RELEASED_STATUSES: string[] = ["cancelled", "checked_out"];
+
+/**
+ * A booking no longer holds its room once it is cancelled or checked out, or
+ * -- for a hold -- once its timer has elapsed.
  *
  * Hold expiry is evaluated here, at read time, rather than by a sweeper job:
  * every availability query already filters on status, so excluding elapsed
@@ -87,7 +107,7 @@ type BookingRow = Awaited<ReturnType<typeof selectBookings>>[number];
  */
 function occupiesInventory() {
   return and(
-    ne(booking.status, "cancelled"),
+    notInArray(booking.status, RELEASED_STATUSES),
     or(
       ne(booking.kind, "hold"),
       sql`${booking.holdExpiresAt} is null or ${booking.holdExpiresAt} > now()`,
@@ -293,6 +313,8 @@ export const bookingRepo = {
       .where(
         and(
           eq(room.organizationId, input.propertyId),
+          // See `listRoomsWithConflicts`: a draft room is not sellable.
+          eq(room.status, "published"),
           sql`not exists (${db
             .select({ one: sql`1` })
             .from(booking)
@@ -300,6 +322,144 @@ export const bookingRepo = {
         ),
       )
       .orderBy(asc(room.name));
+  },
+
+  /**
+   * How full a property is on each night of a window.
+   *
+   * One row per night: the number of rooms occupied, against the property's
+   * total. Computed in the database with a generated date series rather than
+   * by fetching every booking and bucketing them in JS -- a month of stays
+   * across a large property is a lot of rows to ship just to count them.
+   *
+   * A night is the day a guest sleeps there, so a stay contributes to every
+   * date from check-in up to but excluding check-out: someone leaving on the
+   * 4th does not occupy the room that night.
+   */
+  async listNightlyOccupancy(input: {
+    propertyId: string;
+    from: string;
+    to: string;
+  }) {
+    // Counts only published rooms, so "fully booked" means every *sellable*
+    // room is taken -- a draft room sitting in the total would make a full
+    // night look like it still had space.
+    const [totals] = await db
+      .select({ total: sql<number>`count(*)::int` })
+      .from(room)
+      .where(
+        and(
+          eq(room.organizationId, input.propertyId),
+          eq(room.status, "published"),
+        ),
+      );
+
+    const totalRooms = totals?.total ?? 0;
+
+    const rows = await db.execute<{ night: string; booked: number }>(sql`
+      select
+        to_char(night::date, 'YYYY-MM-DD') as night,
+        count(distinct ${booking.roomId})::int as booked
+      from generate_series(
+        ${input.from}::date,
+        ${input.to}::date - interval '1 day',
+        interval '1 day'
+      ) as night
+      left join ${booking}
+        on ${booking.checkIn} <= night::date
+       and ${booking.checkOut} > night::date
+       and ${booking.status} not in ('cancelled', 'checked_out')
+       and (
+         ${booking.kind} <> 'hold'
+         or ${booking.holdExpiresAt} is null
+         or ${booking.holdExpiresAt} > now()
+       )
+       and ${booking.organizationId} = ${input.propertyId}
+      group by night
+      order by night
+    `);
+
+    return {
+      totalRooms,
+      nights: rows.rows.map((r) => ({
+        night: r.night,
+        booked: Number(r.booked),
+      })),
+    };
+  },
+
+  /**
+   * Every room in a property, each with the stays that clash with these dates.
+   *
+   * Unlike `listAvailableRooms`, booked rooms are returned rather than filtered
+   * out: the create dialog shows the whole inventory and says *why* a room
+   * cannot be used, which is more useful than the room silently disappearing.
+   * A room with an empty `conflicts` array is free.
+   */
+  async listRoomsWithConflicts(input: {
+    propertyId: string;
+    checkIn: string;
+    checkOut: string;
+    excludeBookingId?: string;
+  }) {
+    const conflictConditions = [
+      occupiesInventory(),
+      overlaps(input.checkIn, input.checkOut),
+    ];
+
+    if (input.excludeBookingId) {
+      conflictConditions.push(ne(booking.id, input.excludeBookingId));
+    }
+
+    const [rooms, clashes] = await Promise.all([
+      db
+        .select({
+          id: room.id,
+          name: room.name,
+          roomNumber: room.roomNumber,
+          floor: room.floor,
+          roomType: room.roomType,
+          status: room.status,
+          weekdayPrice: room.weekdayPrice,
+          weekendPrice: room.weekendPrice,
+          maxGuests: room.maxGuests,
+        })
+        .from(room)
+        // Draft rooms are not ready to be sold -- they are still being set up,
+        // so they must not appear as bookable inventory.
+        .where(
+          and(
+            eq(room.organizationId, input.propertyId),
+            eq(room.status, "published"),
+          ),
+        )
+        .orderBy(asc(room.name)),
+      db
+        .select({
+          roomId: booking.roomId,
+          id: booking.id,
+          ref: booking.ref,
+          kind: booking.kind,
+          blockReason: booking.blockReason,
+          guestName: guest.name,
+          checkIn: booking.checkIn,
+          checkOut: booking.checkOut,
+        })
+        .from(booking)
+        .innerJoin(room, eq(booking.roomId, room.id))
+        .leftJoin(guest, eq(booking.guestId, guest.id))
+        .where(
+          and(eq(room.organizationId, input.propertyId), ...conflictConditions),
+        )
+        .orderBy(asc(booking.checkIn)),
+    ]);
+
+    return rooms.map((r) => ({
+      ...r,
+      conflicts: clashes
+        .filter((c) => c.roomId === r.id)
+        .map(({ roomId: _roomId, ...rest }) => rest),
+    }));
   },
 
   /**

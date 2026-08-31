@@ -21,9 +21,10 @@ import {
 } from "@/features/bookings/components/bookings-table";
 import { BulkActionsBar } from "@/features/bookings/components/bulk-actions-bar";
 import {
-  CreateBookingBanner,
+  CreateBookingDialog,
   type NewBookingInput,
-} from "@/features/bookings/components/create-booking-banner";
+} from "@/features/bookings/components/create-booking-dialog";
+import { ExtendStayDialog } from "@/features/bookings/components/extend-stay-dialog";
 import {
   DEFAULT_FILTERS,
   FilterToolbar,
@@ -86,6 +87,7 @@ function RouteComponent() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [auditBooking, setAuditBooking] = useState<Booking | null>(null);
   const [settleBooking, setSettleBooking] = useState<Booking | null>(null);
+  const [extendBooking, setExtendBooking] = useState<Booking | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -183,7 +185,29 @@ function RouteComponent() {
     );
   }
 
+  /**
+   * Invoicing is not built yet: there is no invoice table and nothing links a
+   * booking to one, so every booking is on the "generate" path. Says so
+   * plainly rather than opening a form that cannot save anything.
+   */
+  function handleInvoice(booking: Booking) {
+    feedback.success(
+      "Invoicing is coming soon",
+      `${booking.ref} can't be invoiced yet — this feature is still being built.`,
+    );
+  }
+
   function handleAction(action: BookingAction, booking: Booking) {
+    if (action === "invoice") {
+      handleInvoice(booking);
+      return;
+    }
+
+    if (action === "extend") {
+      setExtendBooking(booking);
+      return;
+    }
+
     if (action === "cancel") {
       cancelBooking.mutate(
         { param: { id: booking.id }, json: {} },
@@ -274,21 +298,13 @@ function RouteComponent() {
             Manage stays, payments, and reservations across your portfolio
           </p>
         </div>
-        <Button onClick={() => setCreateOpen((v) => !v)}>
+        <Button onClick={() => setCreateOpen(true)}>
           <PlusIcon />
           Create Booking
         </Button>
       </motion.div>
 
       <SummaryBand summary={summary} />
-
-      <CreateBookingBanner
-        open={createOpen}
-        properties={properties}
-        onClose={() => setCreateOpen(false)}
-        onCreate={handleCreate}
-        isSaving={createBooking.isPending}
-      />
 
       <div className="flex flex-col gap-3">
         <FilterToolbar
@@ -304,6 +320,7 @@ function RouteComponent() {
           onOpenAudit={setAuditBooking}
           onOpenSettle={setSettleBooking}
           onAction={handleAction}
+          onInvoice={handleInvoice}
           isLoading={isLoading}
         />
         <TablePagination
@@ -323,9 +340,23 @@ function RouteComponent() {
         onClear={() => setSelectedIds(new Set())}
       />
 
+      <CreateBookingDialog
+        open={createOpen}
+        properties={properties}
+        onOpenChange={setCreateOpen}
+        onCreate={handleCreate}
+        isSaving={createBooking.isPending}
+      />
+
       <AuditDrawer
         booking={auditBooking}
         onOpenChange={(open) => !open && setAuditBooking(null)}
+      />
+
+      <ExtendStayDialog
+        booking={extendBooking}
+        onOpenChange={(open) => !open && setExtendBooking(null)}
+        onExtended={refresh}
       />
 
       <SettlePaymentSheet

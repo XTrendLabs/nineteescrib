@@ -81,7 +81,7 @@ export function BookingQuickView({
 
       <div className="flex items-center justify-between text-xs">
         <div>
-          <p className="text-muted-foreground">Tariff</p>
+          <p className="text-muted-foreground">Price</p>
           <p className="font-medium">
             {formatInrFromPaise(booking.tariffPaise)}
           </p>

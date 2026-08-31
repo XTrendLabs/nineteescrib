@@ -5,6 +5,7 @@ import type {
   ChangeStatusInput,
   CreateBookingInput,
   CreateGuestInput,
+  ExtendBookingInput,
   GuestNoteInput,
   GuestTagInput,
   RecordPaymentInput,
@@ -109,6 +110,23 @@ export const bookingService = {
     excludeBookingId?: string;
   }) {
     return bookingRepo.listAvailableRooms(input);
+  },
+
+  listNightlyOccupancy(input: {
+    propertyId: string;
+    from: string;
+    to: string;
+  }) {
+    return bookingRepo.listNightlyOccupancy(input);
+  },
+
+  listRoomsWithConflicts(input: {
+    propertyId: string;
+    checkIn: string;
+    checkOut: string;
+    excludeBookingId?: string;
+  }) {
+    return bookingRepo.listRoomsWithConflicts(input);
   },
 
   listAudit(bookingId: string) {
@@ -337,6 +355,147 @@ export const bookingService = {
   },
 
   /**
+   * The rooms available for the nights a stay would be extended into.
+   *
+   * Only the extra nights are checked, not the whole stay: the guest is
+   * already in their room for the nights they have, so re-testing those would
+   * report the booking as conflicting with itself.
+   */
+  async listExtensionOptions(id: string, checkOut: string) {
+    const existing = await bookingRepo.findById(id);
+    if (!existing) {
+      throw AppError.notFound("Booking not found");
+    }
+
+    if (checkOut <= existing.checkOut) {
+      throw AppError.validation(
+        "An extension has to end after the current check-out",
+      );
+    }
+
+    const rooms = await bookingRepo.listRoomsWithConflicts({
+      propertyId: existing.organizationId,
+      checkIn: existing.checkOut,
+      checkOut,
+      excludeBookingId: id,
+    });
+
+    const currentRoom = rooms.find((r) => r.id === existing.roomId);
+
+    return {
+      from: existing.checkOut,
+      to: checkOut,
+      /** Whether the guest can simply stay put. */
+      canKeepRoom: (currentRoom?.conflicts.length ?? 0) === 0,
+      currentRoomId: existing.roomId,
+      rooms,
+    };
+  },
+
+  /**
+   * Extends a stay to a later check-out.
+   *
+   * Where the room is free the booking itself is stretched, which keeps one
+   * stay as one row. Where it is not, the extension becomes its own booking in
+   * another room, linked back by `extendsBookingId` -- the two halves occupy
+   * different rooms over different dates, which is precisely what two rows
+   * describe. Squeezing that into one would lose which room the guest is in on
+   * any given night.
+   */
+  async extend(id: string, actorUserId: string, input: ExtendBookingInput) {
+    const existing = await bookingRepo.findById(id);
+    if (!existing) {
+      throw AppError.notFound("Booking not found");
+    }
+
+    if (existing.kind === "block") {
+      throw AppError.validation("A block is not a stay and cannot be extended");
+    }
+
+    if (existing.status === "cancelled" || existing.status === "checked_out") {
+      throw AppError.validation(
+        `A ${STATUS_LABELS[existing.status]} booking cannot be extended`,
+      );
+    }
+
+    if (input.checkOut <= existing.checkOut) {
+      throw AppError.validation(
+        "An extension has to end after the current check-out",
+      );
+    }
+
+    const movingTo = input.roomId && input.roomId !== existing.roomId;
+
+    // Same room: stretch the stay, provided nobody else holds those nights.
+    if (!movingTo) {
+      await assertRoomIsFree({
+        roomId: existing.roomId,
+        checkIn: existing.checkOut,
+        checkOut: input.checkOut,
+        excludeBookingId: id,
+      });
+
+      const updated = await bookingRepo.update(id, {
+        checkOut: input.checkOut,
+        totalAmountPaise: input.totalAmountPaise ?? existing.totalAmountPaise,
+      });
+
+      await bookingRepo.addAudit({
+        bookingId: id,
+        action: "extended",
+        description: `Stay extended to ${input.checkOut}.`,
+        actorUserId,
+      });
+
+      return updated;
+    }
+
+    // Different room: the extension is its own booking, linked to this one.
+    await assertRoomIsFree({
+      roomId: input.roomId as string,
+      checkIn: existing.checkOut,
+      checkOut: input.checkOut,
+    });
+
+    const created = await bookingRepo.create({
+      hqOrganizationId: existing.hqOrganizationId,
+      organizationId: existing.organizationId,
+      roomId: input.roomId as string,
+      kind: "reservation",
+      guestId: existing.guestId,
+      status: existing.status === "checked_in" ? "checked_in" : "confirmed",
+      source: existing.source,
+      checkIn: existing.checkOut,
+      checkOut: input.checkOut,
+      guestCount: existing.guestCount,
+      totalAmountPaise: input.totalAmountPaise ?? 0,
+      extendsBookingId: id,
+      createdByUserId: actorUserId,
+    });
+
+    if (!created) {
+      throw new Error("The extension was created but could not be read back");
+    }
+
+    await Promise.all([
+      bookingRepo.addAudit({
+        bookingId: id,
+        action: "extended",
+        description: `Stay extended to ${input.checkOut} in another room (${created.ref}).`,
+        actorUserId,
+      }),
+      bookingRepo.addAudit({
+        bookingId: created.id,
+        action: "created",
+        description: `Room change continuing ${existing.ref}.`,
+        actorUserId,
+      }),
+    ]);
+
+    return created;
+  },
+
+  /**
    * Cancels a booking, freeing the room.
    *
    * The row is kept rather than deleted: cancellations are what the summary
@@ -474,6 +633,30 @@ export const bookingService = {
 
     if (!profile) return undefined;
     return { ...profile, stays, notes };
+  },
+
+  /**
+   * Finds a guest by phone, for the booking form's live lookup.
+   *
+   * Returns undefined rather than erroring when nobody matches: "no such
+   * guest yet" is the normal case for a first-time visitor, not a failure.
+   * The full profile comes back so the form can show that this is a repeat
+   * guest and how many times they have stayed.
+   */
+  /**
+   * Guests matching a partial phone number, for the booking form's live search.
+   *
+   * Returns an empty list rather than erroring when nobody matches: a
+   * first-time visitor is the normal case, not a failure.
+   */
+  searchGuestsByPhone(hqOrganizationId: string, phone: string) {
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length === 0) return [];
+    return guestRepo.searchByPhone(hqOrganizationId, digits);
+  },
+
+  listGuestTagsInUse(hqOrganizationId: string) {
+    return guestRepo.listTagsInUse(hqOrganizationId);
   },
 
   async addGuestTag(id: string, actorUserId: string, input: GuestTagInput) {

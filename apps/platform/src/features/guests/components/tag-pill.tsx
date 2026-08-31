@@ -1,21 +1,25 @@
 import { Badge } from "@propertyos/ui/components/badge";
 
-import type { GuestTag } from "../lib/guest";
+import { type GuestTag, tagLabel } from "../lib/guest";
 
-const TAG_CONFIG: Record<
-  GuestTag,
-  { label: string; variant: React.ComponentProps<typeof Badge>["variant"] }
+/**
+ * Colours for the tags with a settled meaning. Anything an operator invents
+ * falls back to the neutral pill -- a tag does not need a colour to be useful,
+ * and guessing one from arbitrary text would be arbitrary too.
+ */
+const TAG_VARIANTS: Record<
+  string,
+  React.ComponentProps<typeof Badge>["variant"]
 > = {
-  vip: { label: "VIP", variant: "default" },
-  repeat: { label: "Repeat", variant: "success" },
-  needs_care: { label: "Needs Care", variant: "warning" },
+  vip: "default",
+  repeat: "success",
+  needs_care: "warning",
 };
 
 export function TagPill({ tag }: { tag: GuestTag }) {
-  const config = TAG_CONFIG[tag];
   return (
-    <Badge variant={config.variant} className="rounded-full">
-      {config.label}
+    <Badge variant={TAG_VARIANTS[tag] ?? "outline"} className="rounded-full">
+      {tagLabel(tag)}
     </Badge>
   );
 }

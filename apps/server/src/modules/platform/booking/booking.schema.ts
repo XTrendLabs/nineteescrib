@@ -3,7 +3,7 @@ import {
   bookingKindValues,
   bookingPaymentMethodValues,
   bookingSourceValues,
-  guestTagValues,
+  DERIVED_GUEST_TAGS,
 } from "@propertyos/db/schema/booking";
 import z from "zod";
 
@@ -154,6 +154,37 @@ export const createGuestSchema = z.object({
 
 export type CreateGuestInput = z.infer<typeof createGuestSchema>;
 
+/**
+ * Extending a stay to a later check-out.
+ *
+ * `roomId` is optional: left out, the guest keeps their room, which only works
+ * if it is free for the extra nights. Given, the guest moves to that room for
+ * the extension and a second, linked booking is created for it.
+ */
+export const extendBookingSchema = z.object({
+  checkOut: dateString,
+  roomId: z.string().min(1).optional(),
+  totalAmountPaise: z.number().int().nonnegative().optional(),
+});
+
+export type ExtendBookingInput = z.infer<typeof extendBookingSchema>;
+
+export const extensionOptionsQuerySchema = z.object({
+  checkOut: dateString,
+});
+
+/** The window the create dialog's calendar shades, a month or two at a time. */
+export const occupancyQuerySchema = z
+  .object({
+    propertyId: z.string().min(1),
+    from: dateString,
+    to: dateString,
+  })
+  .refine((value) => value.to > value.from, {
+    message: "The window must end after it starts",
+    path: ["to"] as PropertyKey[],
+  });
+
 export const updateGuestSchema = z.object({
   name: z.string().min(1, "Guest name is required"),
   phone: z.string().min(1, "Guest phone is required"),
@@ -163,12 +194,31 @@ export const updateGuestSchema = z.object({
 export type UpdateGuestInput = z.infer<typeof updateGuestSchema>;
 
 /**
- * Only the tags a person applies by hand. "repeat" is absent by design: it is
- * derived from the stay count, so accepting it here would let a stored tag
- * contradict the bookings behind it.
+ * A tag a person applies by hand.
+ *
+ * Free text rather than an enum: every operator files guests by their own
+ * vocabulary, and a fixed list would be wrong for most of them. Validation is
+ * about shape -- trimmed, non-empty, short enough to read as a pill.
+ *
+ * The derived tags are the one exception. "repeat" comes from the stay count
+ * on read, so storing it would let a stored tag contradict the bookings behind
+ * it and there would be no way to tell which was right.
  */
 export const guestTagSchema = z.object({
-  tag: z.enum(guestTagValues),
+  tag: z
+    .string()
+    .trim()
+    .min(1, "Tag cannot be empty")
+    .max(24, "Tags are limited to 24 characters")
+    .refine(
+      (value) =>
+        !DERIVED_GUEST_TAGS.includes(
+          value.toLowerCase() as (typeof DERIVED_GUEST_TAGS)[number],
+        ),
+      {
+        message: '"repeat" is applied automatically and cannot be set by hand',
+      },
+    ),
 });
 
 export type GuestTagInput = z.infer<typeof guestTagSchema>;

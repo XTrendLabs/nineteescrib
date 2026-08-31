@@ -6,14 +6,41 @@
  * arrive as "YYYY-MM-DD" strings; timestamps as ISO instants.
  */
 
-/** "repeat" is derived from the stay count; the other two are applied by hand. */
-export type GuestTag = "vip" | "repeat" | "needs_care";
+/**
+ * A tag is free text: operators file guests by their own vocabulary.
+ *
+ * A few have known styling and labels; anything else renders as a plain pill
+ * with the text as typed.
+ */
+export type GuestTag = string;
 
-/** The tags a member can actually set -- see `guestTagValues` on the server. */
-export const ASSIGNABLE_TAGS: Exclude<GuestTag, "repeat">[] = [
-  "vip",
-  "needs_care",
-];
+/** Applied automatically from the stay count, never stored or set by hand. */
+export const DERIVED_TAGS = ["repeat"];
+
+/** Offered as a starting point before an operator has tags of their own. */
+export const SUGGESTED_TAGS = ["vip", "needs_care"];
+
+/** A tag as typed, normalised for comparison and storage. */
+export function normalizeTag(tag: string): string {
+  return tag.trim().toLowerCase().replace(/\s+/g, "_");
+}
+
+/** "needs_care" -> "Needs Care"; a known tag keeps its own casing. */
+export function tagLabel(tag: string): string {
+  const known: Record<string, string> = {
+    vip: "VIP",
+    repeat: "Repeat",
+    needs_care: "Needs Care",
+  };
+  if (known[tag]) return known[tag];
+
+  return tag
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+export const MAX_TAG_LENGTH = 24;
 
 export type StayRecord = {
   id: string;

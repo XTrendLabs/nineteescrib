@@ -21,12 +21,20 @@ export const DEFAULT_FILTERS: GuestFilters = {
   spend: "all",
 };
 
-const TAG_OPTIONS = [
-  { value: "all", label: "All tags" },
-  { value: "vip", label: "VIP" },
-  { value: "repeat", label: "Repeat" },
-  { value: "needs_care", label: "Needs Care" },
-];
+import { DERIVED_TAGS, tagLabel } from "../lib/guest";
+
+/**
+ * The tag filter's options, built from the tags actually in use plus the
+ * derived ones. Tags are free text, so a hard-coded list would drift from
+ * whatever operators have really typed.
+ */
+function tagOptions(tagsInUse: string[]) {
+  const tags = [...new Set([...DERIVED_TAGS, ...tagsInUse])];
+  return [
+    { value: "all", label: "All tags" },
+    ...tags.map((tag) => ({ value: tag, label: tagLabel(tag) })),
+  ];
+}
 
 const SPEND_OPTIONS = [
   { value: "all", label: "All spend" },
@@ -37,11 +45,15 @@ const SPEND_OPTIONS = [
 
 export function FilterToolbar({
   filters,
+  tagsInUse,
   onChange,
 }: {
   filters: GuestFilters;
+  tagsInUse: string[];
   onChange: (filters: GuestFilters) => void;
 }) {
+  const TAG_OPTIONS = tagOptions(tagsInUse);
+
   const isFiltered =
     filters.search !== "" || filters.tag !== "all" || filters.spend !== "all";
 
