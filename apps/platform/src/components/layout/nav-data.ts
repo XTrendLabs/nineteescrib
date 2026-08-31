@@ -22,7 +22,7 @@ export const navMainGroups: NavMainGroup[] = [
   {
     items: [
       { title: "Overview", url: "/", icon: LayoutGridIcon, soon: true },
-      { title: "Calendar", url: "/calendar", icon: CalendarIcon, soon: true },
+      { title: "Calendar", url: "/calendar", icon: CalendarIcon },
       {
         title: "Bookings",
         url: "/bookings",
