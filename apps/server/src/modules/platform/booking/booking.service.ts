@@ -120,6 +120,14 @@ export const bookingService = {
     return bookingRepo.listNightlyOccupancy(input);
   },
 
+  findNextBookingDate(hqOrganizationId: string, propertyId?: string) {
+    return bookingRepo.findNextBookingDate(hqOrganizationId, propertyId);
+  },
+
+  listInventory(hqOrganizationId: string, propertyId?: string) {
+    return bookingRepo.listInventory(hqOrganizationId, propertyId);
+  },
+
   /** The nights one room is taken, for the arrival calendar. */
   async listRoomOccupancy(
     bookingId: string,

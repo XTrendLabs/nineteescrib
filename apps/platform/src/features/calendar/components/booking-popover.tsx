@@ -4,21 +4,24 @@ import { useFeedback } from "@propertyos/ui/lib/use-feedback";
 import { format } from "date-fns";
 import { HomeIcon, ZapIcon } from "lucide-react";
 import { useState } from "react";
+import type { CalendarBooking as Booking } from "../lib/calendar";
+import { nightsBetween } from "../lib/calendar";
 import { formatInrFromPaise, getInitials } from "../lib/format";
-import type { Booking } from "../lib/mock-data";
-import { nightsBetween } from "../lib/mock-data";
 
 const SOURCE_LABEL: Record<Booking["source"], string> = {
   direct: "Direct",
+  manual: "Manual",
   airbnb: "Airbnb",
   booking_com: "Booking.com",
 };
 
-const SOURCE_ICON = {
+/** Channels get a mark; a booking taken by hand or on the site does not. */
+const SOURCE_ICON: Record<Booking["source"], typeof HomeIcon | null> = {
   direct: null,
+  manual: null,
   airbnb: HomeIcon,
   booking_com: ZapIcon,
-} as const;
+};
 
 const PAYMENT_LABEL: Record<Booking["paymentStatus"], string> = {
   paid: "Paid",
@@ -41,7 +44,7 @@ export function BookingQuickView({
   const nights = nightsBetween(booking.checkIn, booking.checkOut);
 
   return (
-    <div className="flex w-full min-w-80 max-w-80 flex-col gap-3 overflow-y-auto p-4">
+    <div className="flex w-full min-w-80 max-w-full flex-col gap-3 overflow-y-auto p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2">
           <Avatar size="sm">

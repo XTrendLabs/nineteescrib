@@ -405,6 +405,81 @@ export const bookingRepo = {
   },
 
   /**
+   * The first upcoming stay for an HQ, so the calendar can open where the
+   * bookings are.
+   *
+   * Landing on today's month is right when a property is busy and unhelpful
+   * when it is not -- an empty grid reads as a broken page rather than as a
+   * quiet month.
+   */
+  async findNextBookingDate(hqOrganizationId: string, propertyId?: string) {
+    const conditions = [
+      eq(booking.hqOrganizationId, hqOrganizationId),
+      occupiesInventory(),
+    ];
+
+    if (propertyId) {
+      conditions.push(eq(booking.organizationId, propertyId));
+    }
+
+    const [row] = await db
+      .select({ checkIn: booking.checkIn })
+      .from(booking)
+      .where(and(...conditions))
+      .orderBy(asc(booking.checkIn))
+      .limit(1);
+
+    return row?.checkIn;
+  },
+
+  /**
+   * The sellable rooms across an HQ, with the property each belongs to.
+   *
+   * The calendar draws one row per room grouped under its property, so it
+   * needs the inventory itself rather than only the bookings sitting on it --
+   * an empty room still has to appear as an empty row.
+   */
+  async listInventory(hqOrganizationId: string, propertyId?: string) {
+    const scope = propertyId
+      ? eq(organization.id, propertyId)
+      : and(
+          eq(organization.kind, "property"),
+          or(
+            eq(organization.parentOrganizationId, hqOrganizationId),
+            eq(organization.id, hqOrganizationId),
+          ),
+        );
+
+    // Left-joined from the property rather than the room, so a property with
+    // nothing published still comes back -- the calendar says "no published
+    // rooms" against it, where dropping it entirely reads as a missing
+    // property.
+    return db
+      .select({
+        id: room.id,
+        name: room.name,
+        roomNumber: room.roomNumber,
+        floor: room.floor,
+        roomType: room.roomType,
+        maxGuests: room.maxGuests,
+        weekdayPrice: room.weekdayPrice,
+        weekendPrice: room.weekendPrice,
+        propertyId: organization.id,
+        propertyName: organization.name,
+      })
+      .from(organization)
+      .leftJoin(
+        room,
+        and(
+          eq(room.organizationId, organization.id),
+          eq(room.status, "published"),
+        ),
+      )
+      .where(scope)
+      .orderBy(asc(organization.name), asc(room.roomType), asc(room.name));
+  },
+
+  /**
    * The nights one room is occupied over a window.
    *
    * Property-wide occupancy is the wrong question when checking a guest in

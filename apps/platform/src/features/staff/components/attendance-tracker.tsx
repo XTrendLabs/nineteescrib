@@ -308,7 +308,7 @@ export function AttendanceTracker({
         avgAttendance={summary.avgAttendance}
       />
 
-      <div className="flex min-w-0 max-w-content flex-col border [--content-inset:6rem]">
+      <div className="flex min-w-0 max-w-content flex-col border [--content-inset:4rem]">
         <AttendanceMatrix
           staff={filteredStaff}
           days={days}

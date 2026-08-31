@@ -8,7 +8,7 @@ import {
   SelectValue,
 } from "@propertyos/ui/components/select";
 
-import type { MockProperty } from "../lib/mock-data";
+import type { BookingProperty as MockProperty } from "@/features/bookings/lib/property";
 
 export function PropertyFilter({
   properties,

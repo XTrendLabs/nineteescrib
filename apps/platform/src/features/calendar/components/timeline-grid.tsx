@@ -14,16 +14,48 @@ import {
 } from "date-fns";
 import { useMemo, useRef, useState } from "react";
 
-import type { Booking, PropertyInventory, Unit } from "../lib/mock-data";
-import { hasConflict } from "../lib/mock-data";
+import type {
+  CalendarBooking as Booking,
+  PropertyInventory,
+  Unit,
+} from "../lib/calendar";
+import { hasConflict, roomTypeLabel } from "../lib/calendar";
 import { BookingBlock } from "./booking-block";
 import { BookingQuickView } from "./booking-popover";
-import type { DrawerSelection } from "./quick-create-drawer";
+import type { QuickCreateSelection } from "./quick-create-dialog";
 import type { CalendarView } from "./view-toggle";
 
 const CELL_WIDTH = 88;
 const ROW_HEIGHT = 36;
 const LABEL_WIDTH = 208;
+/** Height of one stacked booking bar inside a room's row. */
+const LANE_HEIGHT = 22;
+
+/**
+ * Packs bookings into horizontal lanes so overlapping stays stack.
+ *
+ * A room legitimately holds several bookings over a month, and a cancelled or
+ * checked-out one can sit on the same nights as a live booking. Each is given
+ * the first lane where it does not collide, so a room's row is exactly as tall
+ * as its busiest overlap rather than a fixed height the blocks spill out of.
+ */
+function assignLanes<T extends { checkIn: Date; checkOut: Date }>(
+  bookings: T[],
+): { booking: T; lane: number }[] {
+  const laneEnds: number[] = [];
+
+  return [...bookings]
+    .sort((a, b) => a.checkIn.getTime() - b.checkIn.getTime())
+    .map((booking) => {
+      const start = booking.checkIn.getTime();
+      let lane = laneEnds.findIndex((end) => end <= start);
+      if (lane === -1) {
+        lane = laneEnds.length;
+      }
+      laneEnds[lane] = booking.checkOut.getTime();
+      return { booking, lane };
+    });
+}
 
 type DragSelection = {
   unitId: string;
@@ -50,7 +82,7 @@ export function TimelineGrid({
   onBookingsChange: (next: Booking[]) => void;
   days: Date[];
   view: CalendarView;
-  onRequestCreate: (selection: DrawerSelection) => void;
+  onRequestCreate: (selection: QuickCreateSelection) => void;
 }) {
   const feedback = useFeedback();
 
@@ -128,6 +160,7 @@ export function TimelineGrid({
         const checkOut = addDays(days[hi], 1);
         if (checkIn && checkOut) {
           onRequestCreate({
+            unitId: unit.id,
             unitLabel: unit.label,
             roomType: unit.roomType,
             checkIn,
@@ -193,7 +226,13 @@ export function TimelineGrid({
 
   return (
     <div
-      className="max-h-[70vh] overflow-auto border"
+      /**
+       * Fills whatever height the page leaves it, rather than a fixed slice of
+       * the viewport: 70vh left dead space on a tall screen and still clipped
+       * on a short one. The grid scrolls inside itself once the rooms outgrow
+       * the space, so the page around it never scrolls away from the header.
+       */
+      className="min-h-0 flex-1 overflow-auto border"
       onPointerUp={handleGridPointerUp}
       onPointerLeave={() => {
         dragStartRef.current = null;
@@ -205,7 +244,7 @@ export function TimelineGrid({
         style={{ display: "grid", gridTemplateColumns }}
       >
         {/* Header row: date columns */}
-        <div className="sticky top-0 left-0 z-30 border-r border-b bg-muted/50 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]" />
+        <div className="sticky top-0 left-0 z-30 border-r border-b bg-muted/50 bg-white opacity-100 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)] dark:bg-black" />
         {days.map((day) => (
           <div
             key={day.toISOString()}
@@ -275,7 +314,7 @@ function PropertyRows({
   return (
     <>
       <div
-        className="sticky left-0 z-10 flex items-center border-r border-b bg-background px-2 py-1.5 font-medium text-xs shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]"
+        className="sticky left-0 z-10 flex items-center border-r border-b bg-white px-2 py-1.5 font-medium text-xs opacity-100 shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)] dark:bg-black"
         style={{ gridColumn: "1 / span 1" }}
       >
         {property.propertyName}
@@ -290,11 +329,29 @@ function PropertyRows({
         />
       ))}
 
+      {/* A property with nothing published would otherwise render a heading
+          with a void beneath it, which reads as a loading failure. */}
+      {property.roomTypes.length === 0 && (
+        <>
+          <div
+            className="sticky left-0 z-10 flex items-center border-r border-b bg-white px-2 py-1 text-[11px] text-muted-foreground opacity-100 backdrop-blur-3xl dark:bg-black"
+            style={{ gridColumn: "1 / span 1", height: ROW_HEIGHT }}
+          >
+            No published rooms
+          </div>
+          <div
+            className="border-b"
+            style={{
+              gridColumn: `2 / span ${days.length}`,
+              height: ROW_HEIGHT,
+            }}
+          />
+        </>
+      )}
+
       {property.roomTypes.map((rt) => (
         <RoomTypeRows
           key={rt.roomType}
-          propertyId={property.propertyId}
-          roomType={rt.roomType}
           units={rt.units}
           days={days}
           view={view}
@@ -314,8 +371,6 @@ function PropertyRows({
 }
 
 function RoomTypeRows({
-  propertyId,
-  roomType,
   units,
   days,
   view,
@@ -329,8 +384,6 @@ function RoomTypeRows({
   onStartBookingDrag,
   onHoverBooking,
 }: {
-  propertyId: string;
-  roomType: string;
   units: Unit[];
   days: Date[];
   view: CalendarView;
@@ -345,33 +398,27 @@ function RoomTypeRows({
   onHoverBooking: (id: string | null) => void;
 }) {
   const isCondensed = view === "hq";
-  // In HQ view, condense all units of a room type onto one occupancy line.
-  const rowUnits = isCondensed ? [units[0]] : units;
+
+  // HQ view answers "how full is this room type", so it draws one occupancy
+  // line per type rather than a row per room. The detailed view keeps a row
+  // for every room.
+  if (isCondensed) {
+    return (
+      <OccupancyRow
+        units={units}
+        days={days}
+        bookingsForUnit={bookingsForUnit}
+      />
+    );
+  }
 
   return (
     <>
-      <div
-        className="sticky left-0 z-10 border-r border-b bg-muted/30 px-2 py-1 text-[11px] text-muted-foreground shadow-[2px_0_4px_-2px_rgba(0,0,0,0.15)]"
-        style={{ gridColumn: "1 / span 1" }}
-      >
-        {roomType}
-      </div>
-      {days.map((day) => (
-        <div
-          key={`${propertyId}-${roomType}-hdr-${day.toISOString()}`}
-          className={cn(
-            "border-r border-b bg-muted/30",
-            isWeekend(day) && "bg-neutral-100 dark:bg-neutral-800/40",
-          )}
-        />
-      ))}
-
-      {rowUnits.map((unit) => (
+      {units.map((unit) => (
         <UnitRow
           key={unit.id}
           unit={unit}
           days={days}
-          isCondensed={isCondensed}
           bookings={bookingsForUnit(unit.id)}
           unitById={unitById}
           dragSelection={dragSelection}
@@ -387,10 +434,82 @@ function RoomTypeRows({
   );
 }
 
+/**
+ * One line per room type showing how full it is each night.
+ *
+ * The HQ view is asking a different question from the detailed grid: not
+ * "where is this guest" but "how much of this type is left". Drawing every
+ * room's bookings on one line would just overlap them illegibly, so each night
+ * is summarised as taken-of-total instead.
+ */
+function OccupancyRow({
+  units,
+  days,
+  bookingsForUnit,
+}: {
+  units: Unit[];
+  days: Date[];
+  bookingsForUnit: (unitId: string) => Booking[];
+}) {
+  const total = units.length;
+
+  // A room is taken on a night when a booking covers it. Cancelled and
+  // checked-out stays never reach the calendar, so anything here occupies.
+  const takenPerDay = days.map((day) => {
+    const next = addDays(day, 1);
+    return units.filter((unit) =>
+      bookingsForUnit(unit.id).some(
+        (b) => b.checkIn < next && b.checkOut > day,
+      ),
+    ).length;
+  });
+
+  return (
+    <>
+      <div
+        className="sticky left-0 z-10 flex items-center border-r border-b bg-white px-2 py-1 text-[11px] opacity-100 backdrop-blur-3xl dark:bg-black"
+        style={{ gridColumn: "1 / span 1", height: ROW_HEIGHT }}
+      >
+        <span className="flex w-full items-center justify-between gap-2">
+          <span className="truncate text-foreground">
+            {roomTypeLabel(units[0]?.roomType ?? "other")}
+          </span>
+          <span className="shrink-0 text-[10px] text-muted-foreground">
+            {total} {total === 1 ? "room" : "rooms"}
+          </span>
+        </span>
+      </div>
+
+      {days.map((day, i) => {
+        const taken = takenPerDay[i] ?? 0;
+        const free = total - taken;
+        const full = total > 0 && free === 0;
+
+        return (
+          <div
+            key={`occ-${day.toISOString()}`}
+            className={cn(
+              "flex items-center justify-center border-r border-b text-[11px] tabular-nums",
+              isWeekend(day) && "bg-neutral-50 dark:bg-neutral-900/40",
+              full
+                ? "bg-destructive/70 font-medium text-white"
+                : taken > 0
+                  ? "bg-warning/40 text-foreground"
+                  : "text-muted-foreground",
+            )}
+            style={{ height: ROW_HEIGHT }}
+          >
+            {total === 0 ? "—" : `${taken}/${total}`}
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
 function UnitRow({
   unit,
   days,
-  isCondensed,
   bookings,
   unitById,
   dragSelection,
@@ -403,7 +522,6 @@ function UnitRow({
 }: {
   unit: Unit;
   days: Date[];
-  isCondensed: boolean;
   bookings: Booking[];
   unitById: Map<string, Unit>;
   dragSelection: DragSelection | null;
@@ -420,23 +538,37 @@ function UnitRow({
   const isDropTarget =
     draggingBooking !== null && draggingBooking.currentUnitId === unit.id;
 
+  // Only the bookings actually visible decide the height -- a stay outside the
+  // window would otherwise pad the row for nothing.
+  const visible = bookings.filter(
+    (b) => b.checkOut > monthStart && b.checkIn < monthEndExclusive,
+  );
+  const laned = assignLanes(visible);
+  const laneCount = laned.reduce((max, l) => Math.max(max, l.lane + 1), 0);
+  const rowHeight = Math.max(ROW_HEIGHT, laneCount * LANE_HEIGHT + 8);
+
   return (
     <>
       <div
-        className={cn(
-          "sticky left-0 z-10 flex items-center border-r border-b bg-background px-2 py-1 text-[11px]",
-          isCondensed ? "text-foreground" : "text-muted-foreground",
-        )}
-        style={{ gridColumn: "1 / span 1", height: ROW_HEIGHT }}
+        className="sticky left-0 z-10 flex items-center border-r border-b bg-white px-2 py-1 text-[11px] text-muted-foreground opacity-100 backdrop-blur-3xl dark:bg-black"
+        style={{ gridColumn: "1 / span 1", height: rowHeight }}
       >
-        {isCondensed ? "All units" : `• ${unit.label}`}
+        <span className="flex w-full items-center justify-between gap-2">
+          <span className="truncate text-foreground">{unit.label}</span>
+          {/* The type earns its place next to the room rather than as a banner
+              row: it is an attribute of the room, and a separate heading row
+              cost vertical space on every group. */}
+          <span className="shrink-0 text-[10px] text-muted-foreground">
+            {roomTypeLabel(unit.roomType)}
+          </span>
+        </span>
       </div>
 
       <div
         className="relative border-b"
         style={{
           gridColumn: `2 / span ${days.length}`,
-          height: ROW_HEIGHT,
+          height: rowHeight,
           display: "grid",
           gridTemplateColumns: `repeat(${days.length}, ${CELL_WIDTH}px)`,
         }}
@@ -461,6 +593,7 @@ function UnitRow({
           return (
             <div
               key={day.toISOString()}
+              style={{ gridRow: 1 }}
               className={cn(
                 "border-r",
                 isWeekend(day) && "bg-neutral-50 dark:bg-neutral-900/40",
@@ -474,64 +607,67 @@ function UnitRow({
           );
         })}
 
-        {!isCondensed &&
-          bookings.map((booking) => {
-            const clampedStart =
-              booking.checkIn < monthStart ? monthStart : booking.checkIn;
-            const clampedEnd =
-              booking.checkOut > monthEndExclusive
-                ? monthEndExclusive
-                : booking.checkOut;
-            if (clampedEnd <= monthStart || clampedStart >= monthEndExclusive) {
-              return null;
-            }
-            const startOffset = differenceInCalendarDays(
-              clampedStart,
-              monthStart,
-            );
-            const spanDays = Math.max(
-              1,
-              differenceInCalendarDays(clampedEnd, clampedStart),
-            );
-            const isDraggingThis = draggingBooking?.booking.id === booking.id;
+        {laned.map(({ booking, lane }) => {
+          const clampedStart =
+            booking.checkIn < monthStart ? monthStart : booking.checkIn;
+          const clampedEnd =
+            booking.checkOut > monthEndExclusive
+              ? monthEndExclusive
+              : booking.checkOut;
+          if (clampedEnd <= monthStart || clampedStart >= monthEndExclusive) {
+            return null;
+          }
+          const startOffset = differenceInCalendarDays(
+            clampedStart,
+            monthStart,
+          );
+          const spanDays = Math.max(
+            1,
+            differenceInCalendarDays(clampedEnd, clampedStart),
+          );
+          const isDraggingThis = draggingBooking?.booking.id === booking.id;
 
-            return (
-              <Popover
-                key={booking.id}
-                open={hoveredBookingId === booking.id}
-                onOpenChange={(open) =>
-                  onHoverBooking(open ? booking.id : null)
+          return (
+            <Popover
+              key={booking.id}
+              open={hoveredBookingId === booking.id}
+              onOpenChange={(open) => onHoverBooking(open ? booking.id : null)}
+            >
+              <PopoverTrigger
+                render={
+                  <div
+                    style={{
+                      // Placed in the single explicit row and offset by lane,
+                      // so a stack of bookings never spawns implicit rows the
+                      // row's own height cannot account for.
+                      gridRow: 1,
+                      gridColumn: `${startOffset + 1} / span ${spanDays}`,
+                      top: lane * LANE_HEIGHT + 4,
+                      height: LANE_HEIGHT - 2,
+                      opacity: isDraggingThis ? 0.4 : 1,
+                    }}
+                    className="relative z-10 self-start px-px"
+                  />
                 }
               >
-                <PopoverTrigger
-                  render={
-                    <div
-                      style={{
-                        gridColumn: `${startOffset + 1} / span ${spanDays}`,
-                        opacity: isDraggingThis ? 0.4 : 1,
-                      }}
-                      className="relative z-10 px-px py-0.5"
-                    />
+                <BookingBlock
+                  booking={booking}
+                  onPointerDownDrag={
+                    booking.kind === "reservation" && !booking.checkedOut
+                      ? (e) => onStartBookingDrag(e, booking)
+                      : undefined
                   }
-                >
-                  <BookingBlock
-                    booking={booking}
-                    onPointerDownDrag={
-                      booking.kind === "reservation"
-                        ? (e) => onStartBookingDrag(e, booking)
-                        : undefined
-                    }
-                  />
-                </PopoverTrigger>
-                <PopoverContent align="start" className="p-0">
-                  <BookingQuickView
-                    booking={booking}
-                    unitLabel={unitById.get(booking.unitId)?.label ?? ""}
-                  />
-                </PopoverContent>
-              </Popover>
-            );
-          })}
+                />
+              </PopoverTrigger>
+              <PopoverContent align="start" className="p-0">
+                <BookingQuickView
+                  booking={booking}
+                  unitLabel={unitById.get(booking.unitId)?.label ?? ""}
+                />
+              </PopoverContent>
+            </Popover>
+          );
+        })}
       </div>
     </>
   );

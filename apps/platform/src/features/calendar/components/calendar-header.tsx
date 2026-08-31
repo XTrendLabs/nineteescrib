@@ -1,6 +1,6 @@
 import { Button } from "@propertyos/ui/components/button";
 import { PlusIcon } from "lucide-react";
-import type { MockProperty } from "../lib/mock-data";
+import type { BookingProperty as MockProperty } from "@/features/bookings/lib/property";
 import { MonthNavigator } from "./month-navigator";
 import { PropertyFilter } from "./property-filter";
 import type { RangeMode } from "./range-mode-toggle";
@@ -34,7 +34,7 @@ export function CalendarHeader({
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div>
-        <h1 className="text-display-md">HQ Calendar</h1>
+        <h1 className="text-display-md">Booking Calendar</h1>
         <p className="text-muted-foreground text-sm">
           Multi-property master calendar across your portfolio
         </p>

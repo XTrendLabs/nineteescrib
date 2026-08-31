@@ -168,6 +168,31 @@ export const bookingRoutes = createRouter()
 
     return c.json(ok(result));
   })
+  /** The earliest upcoming stay, so the calendar opens where the data is. */
+  .get("/next-date", requirePermissionTo("booking", "read"), async (c) => {
+    assertActiveWorkspace(c);
+    const hqOrganizationId = requireHqOrganizationId(c);
+    const propertyId = await resolvePropertyFilter(c);
+
+    const checkIn = await bookingService.findNextBookingDate(
+      hqOrganizationId,
+      propertyId,
+    );
+
+    return c.json(ok({ checkIn: checkIn ?? null }));
+  })
+  /** The rooms the calendar draws its rows from. */
+  .get("/inventory", requirePermissionTo("booking", "read"), async (c) => {
+    assertActiveWorkspace(c);
+    const hqOrganizationId = requireHqOrganizationId(c);
+    const propertyId = await resolvePropertyFilter(c);
+
+    const result = await bookingService.listInventory(
+      hqOrganizationId,
+      propertyId,
+    );
+    return c.json(ok(result));
+  })
   .get("/availability", requirePermissionTo("booking", "read"), async (c) => {
     const parsed = availabilityQuerySchema.safeParse({
       propertyId: c.req.query("propertyId"),

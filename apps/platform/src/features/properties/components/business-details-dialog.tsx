@@ -93,7 +93,14 @@ export function BusinessDetailsDialog({
       }),
     );
     resetMutation();
-  }, [open]);
+  }, [
+    open,
+    defaultOwnerName,
+    resetMutation,
+    resetForm,
+    property,
+    defaultContactPhone,
+  ]);
 
   const handleSubmit = form.handleSubmit((values) => {
     updateBusinessDetails.mutate(
