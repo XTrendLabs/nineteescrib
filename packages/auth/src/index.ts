@@ -14,9 +14,23 @@ export function createAuth() {
   // Derive cookie behaviour from the actual deployment URLs rather than
   // NODE_ENV, which is easy to leave unset on a host and would silently
   // downgrade cookies to a config that breaks the OAuth state round trip.
-  const isSecure =
-    new URL(env.BETTER_AUTH_URL).protocol === "https:" &&
-    new URL(env.CORS_ORIGIN).protocol === "https:";
+  const apiUrl = new URL(env.BETTER_AUTH_URL);
+  const appUrl = new URL(env.CORS_ORIGIN);
+
+  // A differing port or host makes the app and API cross-site as far as
+  // cookies are concerned, even on localhost. The browser then drops a
+  // SameSite=Lax cookie from every fetch the app makes, so the user appears
+  // signed out -- Chrome enforces this, Firefox is laxer, which is why it can
+  // look like a browser-specific bug.
+  const isCrossSite =
+    apiUrl.hostname !== appUrl.hostname || apiUrl.port !== appUrl.port;
+
+  // SameSite=None requires Secure. Browsers treat localhost as a trustworthy
+  // origin, so a Secure cookie is accepted there over plain http; anywhere
+  // else it genuinely needs HTTPS.
+  const isLocalhost =
+    apiUrl.hostname === "localhost" || apiUrl.hostname === "127.0.0.1";
+  const canUseSecure = apiUrl.protocol === "https:" || isLocalhost;
 
   return betterAuth({
     database: drizzleAdapter(db, {
@@ -55,15 +69,25 @@ export function createAuth() {
       },
     },
     advanced: {
-      // The app and API are on separate origins, so the session and OAuth
-      // state cookies must be SameSite=None to survive the cross-site
-      // redirect back from Google. That requires Secure, which browsers only
-      // honour over HTTPS -- Safari rejects such cookies outright on
-      // http://localhost -- so fall back to Lax when not on HTTPS.
-      crossSubDomainCookies: { enabled: false },
-      defaultCookieAttributes: isSecure
-        ? { sameSite: "none" as const, secure: true, httpOnly: true }
-        : { sameSite: "lax" as const, secure: false, httpOnly: true },
+      // The app and API sit on separate origins, so the session and OAuth
+      // state cookies must be SameSite=None to be sent on the app's fetches
+      // and to survive the redirect back from Google. Lax is only correct
+      // when both are genuinely same-site.
+      // Without a Domain attribute the session cookie is host-only to the API,
+      // so the browser never sends it on requests from the app's own origin --
+      // sign-in succeeds and the very next request looks signed out. Set
+      // COOKIE_DOMAIN to the shared parent (".myapp.com") in that deployment.
+      crossSubDomainCookies: env.COOKIE_DOMAIN
+        ? { enabled: true, domain: env.COOKIE_DOMAIN }
+        : { enabled: false },
+      defaultCookieAttributes:
+        isCrossSite && canUseSecure
+          ? { sameSite: "none" as const, secure: true, httpOnly: true }
+          : {
+              sameSite: "lax" as const,
+              secure: apiUrl.protocol === "https:",
+              httpOnly: true,
+            },
     },
     plugins: [
       organization({

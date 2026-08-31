@@ -8,6 +8,13 @@ export const env = createEnv({
     BETTER_AUTH_SECRET: z.string().min(32),
     BETTER_AUTH_URL: z.url(),
     CORS_ORIGIN: z.url(),
+    /**
+     * Shared parent domain for the session cookie, e.g. ".myapp.com" when the
+     * app and API live on different subdomains. Leave unset on localhost, or
+     * when the two hosts share no parent domain (a cookie cannot be scoped
+     * across unrelated hosts).
+     */
+    COOKIE_DOMAIN: z.string().optional(),
     GOOGLE_CLIENT_ID: z.string().min(1),
     GOOGLE_CLIENT_SECRET: z.string().min(1),
     CLOUDFLARE_ACCOUNT_ID: z.string().min(1),
