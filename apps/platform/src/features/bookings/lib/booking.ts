@@ -62,6 +62,14 @@ export type Booking = {
   source: BookingSource;
   checkIn: string;
   checkOut: string;
+  /**
+   * When the guest actually arrived and left, where known.
+   *
+   * Availability follows these; the booked dates above stay as agreed, so an
+   * early departure frees the room without hiding the unused nights.
+   */
+  actualCheckIn: string | null;
+  actualCheckOut: string | null;
   guestCount: number;
   totalAmountPaise: number;
   holdExpiresAt: string | null;

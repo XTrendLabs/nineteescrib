@@ -202,6 +202,22 @@ export const booking = pgTable(
     // own check-in time lives on `property_details`.
     checkIn: date("check_in").notNull(),
     checkOut: date("check_out").notNull(),
+    /**
+     * When the guest actually arrived and left, as against what they booked.
+     *
+     * Kept apart from `checkIn`/`checkOut` because the two answer different
+     * questions. The booked dates are what was agreed and what the guest is
+     * billed for; the actual dates are what happened, and are what decides
+     * whether a room is free tonight. Overwriting the booked dates on an early
+     * departure would free the room correctly but lose the fact that three
+     * paid-for nights went unused -- which is exactly what a revenue report
+     * needs to see.
+     *
+     * Null until the guest checks in or out. A stay that ran exactly as booked
+     * still fills these in, so "actual" never has to fall back to a guess.
+     */
+    actualCheckIn: date("actual_check_in"),
+    actualCheckOut: date("actual_check_out"),
     guestCount: integer("guest_count").default(1).notNull(),
     totalAmountPaise: paise("total_amount_paise").default(0).notNull(),
     /**

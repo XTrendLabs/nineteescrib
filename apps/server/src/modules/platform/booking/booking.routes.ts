@@ -25,6 +25,7 @@ import {
   guestTagSchema,
   occupancyQuerySchema,
   recordPaymentSchema,
+  roomOccupancyQuerySchema,
   updateBookingSchema,
   updateGuestSchema,
 } from "./booking.schema";
@@ -461,6 +462,22 @@ export const bookingRoutes = createRouter()
         c.req.valid("json"),
       );
 
+      return c.json(ok(result));
+    },
+  )
+  /** The nights this booking's own room is taken, for the arrival calendar. */
+  .get(
+    "/:id/room-occupancy",
+    requirePermissionTo("booking", "read"),
+    zValidator("query", roomOccupancyQuerySchema),
+    async (c) => {
+      const id = c.req.param("id");
+      await assertBookingInScope(c, id);
+
+      const result = await bookingService.listRoomOccupancy(
+        id,
+        c.req.valid("query"),
+      );
       return c.json(ok(result));
     },
   )

@@ -120,6 +120,24 @@ export const bookingService = {
     return bookingRepo.listNightlyOccupancy(input);
   },
 
+  /** The nights one room is taken, for the arrival calendar. */
+  async listRoomOccupancy(
+    bookingId: string,
+    input: { from: string; to: string },
+  ) {
+    const existing = await bookingRepo.findById(bookingId);
+    if (!existing) {
+      throw AppError.notFound("Booking not found");
+    }
+
+    return bookingRepo.listRoomOccupancy({
+      roomId: existing.roomId,
+      from: input.from,
+      to: input.to,
+      excludeBookingId: bookingId,
+    });
+  },
+
   listRoomsWithConflicts(input: {
     propertyId: string;
     checkIn: string;
@@ -334,20 +352,70 @@ export const bookingService = {
       );
     }
 
+    const effectiveDate = input.effectiveDate ?? today();
+
+    // Checking in or out records *when*, which is what availability reads --
+    // an early departure frees the nights the guest gave up, while the booked
+    // dates stay as they were for billing.
+    const actualDates: {
+      actualCheckIn?: string;
+      actualCheckOut?: string;
+    } = {};
+
+    if (input.status === "checked_in") {
+      // Arriving before the booked date claims nights the room was not held
+      // for, and someone else may hold them. Checked against the same rule as
+      // a new booking, so an early arrival cannot quietly double-book a room
+      // the way simply writing the date would.
+      if (effectiveDate < existing.checkIn) {
+        await assertRoomIsFree({
+          roomId: existing.roomId,
+          checkIn: effectiveDate,
+          checkOut: existing.checkIn,
+          excludeBookingId: id,
+        });
+      }
+
+      actualDates.actualCheckIn = effectiveDate;
+    }
+
+    if (input.status === "checked_out") {
+      actualDates.actualCheckOut = effectiveDate;
+      // A guest can be checked out without ever having been marked in -- a
+      // late correction, say. Their arrival is then taken as booked.
+      if (!existing.actualCheckIn) {
+        actualDates.actualCheckIn = existing.checkIn;
+      }
+
+      if (effectiveDate <= (actualDates.actualCheckIn ?? existing.checkIn)) {
+        throw AppError.validation(
+          "A guest cannot check out before they checked in",
+        );
+      }
+    }
+
     const updated = await bookingRepo.update(id, {
       status: input.status,
       // Confirming a hold is what makes it permanent, so the timer stops
       // applying -- leaving it set would expire a confirmed booking.
       holdExpiresAt: null,
+      ...actualDates,
       ...(input.status === "confirmed" && existing.kind === "hold"
         ? { kind: "reservation" as const }
         : {}),
     });
 
+    const variance =
+      input.status === "checked_in"
+        ? describeVariance(effectiveDate, existing.checkIn, "arrival")
+        : input.status === "checked_out"
+          ? describeVariance(effectiveDate, existing.checkOut, "departure")
+          : "";
+
     await bookingRepo.addAudit({
       bookingId: id,
       action: input.status,
-      description: `Status changed to ${STATUS_LABELS[input.status]}.`,
+      description: `Status changed to ${STATUS_LABELS[input.status]}${variance}.`,
       actorUserId,
     });
 
@@ -735,6 +803,29 @@ export const bookingService = {
     });
   },
 };
+
+/** Today as a calendar day, in the server's local zone. */
+function today() {
+  return new Date().toLocaleDateString("en-CA");
+}
+
+/**
+ * How an actual date compares with what was booked, for the audit line.
+ *
+ * Worth recording in words: "checked out" and "checked out three nights early"
+ * are different events to whoever reads the trail later.
+ */
+function describeVariance(actual: string, booked: string, noun: string) {
+  if (actual === booked) return "";
+  const days = Math.round(
+    (new Date(`${actual}T00:00:00`).getTime() -
+      new Date(`${booked}T00:00:00`).getTime()) /
+      86_400_000,
+  );
+  const magnitude = Math.abs(days);
+  const nights = magnitude === 1 ? "1 day" : `${magnitude} days`;
+  return days < 0 ? ` (${nights} early ${noun})` : ` (${nights} late ${noun})`;
+}
 
 /** Paise to rupees for audit lines and error messages, e.g. "₹1,250". */
 function formatPaise(paise: number) {

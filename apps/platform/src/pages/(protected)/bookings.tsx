@@ -30,6 +30,7 @@ import {
   FilterToolbar,
 } from "@/features/bookings/components/filter-toolbar";
 import { SettlePaymentSheet } from "@/features/bookings/components/settle-payment-sheet";
+import { StayDateDialog } from "@/features/bookings/components/stay-date-dialog";
 import { SummaryBand } from "@/features/bookings/components/summary-band";
 import { TablePagination } from "@/features/bookings/components/table-pagination";
 import {
@@ -88,6 +89,12 @@ function RouteComponent() {
   const [auditBooking, setAuditBooking] = useState<Booking | null>(null);
   const [settleBooking, setSettleBooking] = useState<Booking | null>(null);
   const [extendBooking, setExtendBooking] = useState<Booking | null>(null);
+  // Checking a guest in or out asks for the day it happened, so an early or
+  // late one is recorded rather than assumed to be the booked date.
+  const [stayDate, setStayDate] = useState<{
+    booking: Booking;
+    mode: "checked_in" | "checked_out";
+  } | null>(null);
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -230,6 +237,15 @@ function RouteComponent() {
       return;
     }
 
+    // Arrival and departure carry a date; confirming does not.
+    if (action === "check_in" || action === "check_out") {
+      setStayDate({
+        booking,
+        mode: action === "check_in" ? "checked_in" : "checked_out",
+      });
+      return;
+    }
+
     const status = STATUS_BY_ACTION[action];
     if (!status) return;
 
@@ -352,6 +368,42 @@ function RouteComponent() {
         booking={auditBooking}
         onOpenChange={(open) => !open && setAuditBooking(null)}
       />
+
+      {stayDate && (
+        <StayDateDialog
+          booking={stayDate.booking}
+          mode={stayDate.mode}
+          onOpenChange={(open) => !open && setStayDate(null)}
+          isSaving={changeStatus.isPending}
+          onConfirm={(effectiveDate) => {
+            changeStatus.mutate(
+              {
+                param: { id: stayDate.booking.id },
+                json: { status: stayDate.mode, effectiveDate },
+              },
+              {
+                onSuccess: () => {
+                  refresh();
+                  setStayDate(null);
+                  feedback.success(
+                    "Booking updated",
+                    `${stayDate.booking.ref} is now ${ACTION_PAST_TENSE[stayDate.mode]}.`,
+                  );
+                },
+                onError: (error) => {
+                  feedback.error(
+                    "Couldn't update booking",
+                    getApiErrorMessage(
+                      error,
+                      "Something went wrong. Try again.",
+                    ),
+                  );
+                },
+              },
+            );
+          }}
+        />
+      )}
 
       <ExtendStayDialog
         booking={extendBooking}

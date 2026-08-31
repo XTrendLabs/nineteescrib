@@ -115,6 +115,14 @@ export const bookingTransitionValues = [
 
 export const changeStatusSchema = z.object({
   status: z.enum(bookingTransitionValues),
+  /**
+   * The day the guest actually arrived or left.
+   *
+   * Defaults to today, which is the usual case -- the front desk marks a guest
+   * in or out as it happens. Supplied when recording it after the fact, or
+   * when an early departure is being logged for a day already past.
+   */
+  effectiveDate: dateString.optional(),
 });
 
 export type ChangeStatusInput = z.infer<typeof changeStatusSchema>;
@@ -171,6 +179,11 @@ export type ExtendBookingInput = z.infer<typeof extendBookingSchema>;
 
 export const extensionOptionsQuerySchema = z.object({
   checkOut: dateString,
+});
+
+export const roomOccupancyQuerySchema = z.object({
+  from: dateString,
+  to: dateString,
 });
 
 /** The window the create dialog's calendar shades, a month or two at a time. */

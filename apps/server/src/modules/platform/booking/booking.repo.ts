@@ -61,6 +61,8 @@ const bookingColumns = {
   source: booking.source,
   checkIn: booking.checkIn,
   checkOut: booking.checkOut,
+  actualCheckIn: booking.actualCheckIn,
+  actualCheckOut: booking.actualCheckOut,
   guestCount: booking.guestCount,
   totalAmountPaise: booking.totalAmountPaise,
   holdExpiresAt: booking.holdExpiresAt,
@@ -116,6 +118,20 @@ function occupiesInventory() {
 }
 
 /**
+ * The nights a booking actually holds its room.
+ *
+ * A guest who left early releases the nights they gave up, so availability
+ * follows the actual dates once they exist and the booked dates until then. An
+ * early arrival likewise occupies the room from when they turned up, not from
+ * when they were due.
+ *
+ * The booked dates are never overwritten -- they are what the guest is billed
+ * for, and a revenue report needs to see that paid-for nights went unused.
+ */
+const occupiedFrom = sql`coalesce(${booking.actualCheckIn}, ${booking.checkIn})`;
+const occupiedTo = sql`coalesce(${booking.actualCheckOut}, ${booking.checkOut})`;
+
+/**
  * Two date ranges overlap when each starts before the other ends.
  *
  * Check-out day is exclusive: a guest leaving on the 10th and another arriving
@@ -124,8 +140,8 @@ function occupiesInventory() {
  */
 function overlaps(checkIn: string, checkOut: string) {
   return and(
-    sql`${booking.checkIn} < ${checkOut}`,
-    sql`${booking.checkOut} > ${checkIn}`,
+    sql`${occupiedFrom} < ${checkOut}`,
+    sql`${occupiedTo} > ${checkIn}`,
   );
 }
 
@@ -366,8 +382,8 @@ export const bookingRepo = {
         interval '1 day'
       ) as night
       left join ${booking}
-        on ${booking.checkIn} <= night::date
-       and ${booking.checkOut} > night::date
+        on coalesce(${booking.actualCheckIn}, ${booking.checkIn}) <= night::date
+       and coalesce(${booking.actualCheckOut}, ${booking.checkOut}) > night::date
        and ${booking.status} not in ('cancelled', 'checked_out')
        and (
          ${booking.kind} <> 'hold'
@@ -381,6 +397,60 @@ export const bookingRepo = {
 
     return {
       totalRooms,
+      nights: rows.rows.map((r) => ({
+        night: r.night,
+        booked: Number(r.booked),
+      })),
+    };
+  },
+
+  /**
+   * The nights one room is occupied over a window.
+   *
+   * Property-wide occupancy is the wrong question when checking a guest in
+   * early: what matters is whether *their* room is free on the day they turned
+   * up, not whether the property has space somewhere.
+   *
+   * `excludeBookingId` leaves out the stay being checked in, which would
+   * otherwise report itself as the conflict.
+   */
+  async listRoomOccupancy(input: {
+    roomId: string;
+    from: string;
+    to: string;
+    excludeBookingId?: string;
+  }) {
+    const exclusion = input.excludeBookingId
+      ? sql`and ${booking.id} <> ${input.excludeBookingId}`
+      : sql``;
+
+    const rows = await db.execute<{ night: string; booked: number }>(sql`
+      select
+        to_char(night::date, 'YYYY-MM-DD') as night,
+        count(${booking.id})::int as booked
+      from generate_series(
+        ${input.from}::date,
+        ${input.to}::date - interval '1 day',
+        interval '1 day'
+      ) as night
+      left join ${booking}
+        on coalesce(${booking.actualCheckIn}, ${booking.checkIn}) <= night::date
+       and coalesce(${booking.actualCheckOut}, ${booking.checkOut}) > night::date
+       and ${booking.status} not in ('cancelled', 'checked_out')
+       and (
+         ${booking.kind} <> 'hold'
+         or ${booking.holdExpiresAt} is null
+         or ${booking.holdExpiresAt} > now()
+       )
+       and ${booking.roomId} = ${input.roomId}
+       ${exclusion}
+      group by night
+      order by night
+    `);
+
+    return {
+      // One room, so a night is either taken or it is not.
+      totalRooms: 1,
       nights: rows.rows.map((r) => ({
         night: r.night,
         booked: Number(r.booked),

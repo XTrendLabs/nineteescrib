@@ -120,6 +120,13 @@
       "when": 1788156195781,
       "tag": "0016_known_sandman",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1788178362995,
+      "tag": "0017_curved_radioactive_man",
+      "breakpoints": true
     }
   ]
 }
