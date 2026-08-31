@@ -20,6 +20,7 @@ import {
   BookingsTable,
 } from "@/features/bookings/components/bookings-table";
 import { BulkActionsBar } from "@/features/bookings/components/bulk-actions-bar";
+import { CancelBookingDialog } from "@/features/bookings/components/cancel-booking-dialog";
 import {
   CreateBookingDialog,
   type NewBookingInput,
@@ -89,6 +90,7 @@ function RouteComponent() {
   const [auditBooking, setAuditBooking] = useState<Booking | null>(null);
   const [settleBooking, setSettleBooking] = useState<Booking | null>(null);
   const [extendBooking, setExtendBooking] = useState<Booking | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<Booking | null>(null);
   // Checking a guest in or out asks for the day it happened, so an early or
   // late one is recorded rather than assumed to be the booked date.
   const [stayDate, setStayDate] = useState<{
@@ -215,25 +217,10 @@ function RouteComponent() {
       return;
     }
 
+    // Cancelling frees the room and cannot be undone here, so it is confirmed
+    // in a dialog that also takes the reason down.
     if (action === "cancel") {
-      cancelBooking.mutate(
-        { param: { id: booking.id }, json: {} },
-        {
-          onSuccess: () => {
-            refresh();
-            feedback.success(
-              "Booking cancelled",
-              `${booking.ref} is cancelled.`,
-            );
-          },
-          onError: (error) => {
-            feedback.error(
-              "Couldn't cancel booking",
-              getApiErrorMessage(error, "Something went wrong. Try again."),
-            );
-          },
-        },
-      );
+      setCancelTarget(booking);
       return;
     }
 
@@ -367,6 +354,37 @@ function RouteComponent() {
       <AuditDrawer
         booking={auditBooking}
         onOpenChange={(open) => !open && setAuditBooking(null)}
+      />
+
+      <CancelBookingDialog
+        booking={cancelTarget}
+        onOpenChange={(open) => !open && setCancelTarget(null)}
+        isSaving={cancelBooking.isPending}
+        onConfirm={(reason) => {
+          if (!cancelTarget) return;
+          cancelBooking.mutate(
+            {
+              param: { id: cancelTarget.id },
+              json: reason ? { reason } : {},
+            },
+            {
+              onSuccess: () => {
+                refresh();
+                setCancelTarget(null);
+                feedback.success(
+                  "Booking cancelled",
+                  `${cancelTarget.ref} is cancelled.`,
+                );
+              },
+              onError: (error) => {
+                feedback.error(
+                  "Couldn't cancel booking",
+                  getApiErrorMessage(error, "Something went wrong. Try again."),
+                );
+              },
+            },
+          );
+        }}
       />
 
       {stayDate && (

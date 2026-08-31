@@ -5,10 +5,16 @@ import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 
 import { useActiveHq } from "@/features/auth/api/use-cached-organizations";
+import { useCancelBooking } from "@/features/bookings/api/use-cancel-booking";
+import { useChangeBookingStatus } from "@/features/bookings/api/use-change-booking-status";
 import { useCreateBooking } from "@/features/bookings/api/use-create-booking";
+import { useRecordBookingPayment } from "@/features/bookings/api/use-record-booking-payment";
 import { useUpdateBooking } from "@/features/bookings/api/use-update-booking";
+import { CancelBookingDialog } from "@/features/bookings/components/cancel-booking-dialog";
 import type { NewBookingInput } from "@/features/bookings/components/create-booking-dialog";
 import { CreateBookingDialog } from "@/features/bookings/components/create-booking-dialog";
+import { SettlePaymentSheet } from "@/features/bookings/components/settle-payment-sheet";
+import { StayDateDialog } from "@/features/bookings/components/stay-date-dialog";
 import type { Booking as ApiBooking } from "@/features/bookings/lib/booking";
 import { parseDay } from "@/features/bookings/lib/format";
 import { resolveBookingProperties } from "@/features/bookings/lib/property";
@@ -18,6 +24,7 @@ import {
   useInventory,
   useNextBookingDate,
 } from "@/features/calendar/api/use-calendar";
+import type { BookingQuickAction } from "@/features/calendar/components/booking-popover";
 import { CalendarHeader } from "@/features/calendar/components/calendar-header";
 import { Legend } from "@/features/calendar/components/legend";
 import type { QuickCreateSelection } from "@/features/calendar/components/quick-create-dialog";
@@ -51,9 +58,22 @@ function RouteComponent() {
   // does guest lookup, availability and pricing properly.
   const [bookingOpen, setBookingOpen] = useState(false);
 
+  // The quick view raises actions; the dialogs that serve them live here
+  // because they need the full API booking and the mutations, not the
+  // timeline's flattened shape.
+  const [stayDate, setStayDate] = useState<{
+    booking: ApiBooking;
+    mode: "checked_in" | "checked_out";
+  } | null>(null);
+  const [settleBooking, setSettleBooking] = useState<ApiBooking | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<ApiBooking | null>(null);
+
   const feedback = useFeedback();
   const updateBooking = useUpdateBooking();
   const createBooking = useCreateBooking();
+  const changeStatus = useChangeBookingStatus();
+  const cancelBooking = useCancelBooking();
+  const recordPayment = useRecordBookingPayment();
 
   /**
    * Jump to the month holding the next stay, once, on first load.
@@ -119,11 +139,20 @@ function RouteComponent() {
     // error: bookingsError,
   } = useCalendarBookings(activeScopeId, window, propertyFilter);
 
-  const bookings = useMemo(
-    () =>
-      ((bookingsResponse?.data ?? []) as ApiBooking[]).map(toCalendarBooking),
+  const apiBookings = useMemo(
+    () => (bookingsResponse?.data ?? []) as ApiBooking[],
     [bookingsResponse?.data],
   );
+
+  const bookings = useMemo(
+    () => apiBookings.map(toCalendarBooking),
+    [apiBookings],
+  );
+
+  /** The stored booking behind a block on the grid. */
+  function apiBookingFor(id: string) {
+    return apiBookings.find((b) => b.id === id);
+  }
 
   if (!jumped && nextDate?.data?.checkIn) {
     const target = parseDay(nextDate.data.checkIn);
@@ -199,6 +228,40 @@ function RouteComponent() {
     );
   }
 
+  function handleBookingAction(
+    action: BookingQuickAction,
+    booking: CalendarBooking,
+  ) {
+    const target = apiBookingFor(booking.id);
+    if (!target) return;
+
+    if (action === "check_in" || action === "check_out") {
+      setStayDate({
+        booking: target,
+        mode: action === "check_in" ? "checked_in" : "checked_out",
+      });
+      return;
+    }
+
+    if (action === "settle") {
+      setSettleBooking(target);
+      return;
+    }
+
+    if (action === "cancel") {
+      setCancelTarget(target);
+      return;
+    }
+
+    // Editing a booking's guest, dates and pricing is the bookings table's
+    // job -- there is no edit dialog yet, and a weaker second one here would
+    // drift from it.
+    feedback.success(
+      "Edit from the bookings page",
+      `Open ${target.ref} under Bookings to change its dates, room or guest.`,
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -250,6 +313,7 @@ function RouteComponent() {
           days={days}
           view={view}
           onRequestCreate={setQuickSelection}
+          onBookingAction={handleBookingAction}
         />
         <Legend />
       </div>
@@ -257,6 +321,7 @@ function RouteComponent() {
       <QuickCreateDialog
         selection={quickSelection}
         propertyId={propertyForUnit(quickSelection?.unitId)}
+        properties={allProperties}
         onOpenChange={(open) => !open && setQuickSelection(null)}
         onCreated={() => invalidateCalendar()}
         onRequestBooking={() => setBookingOpen(true)}
@@ -268,6 +333,100 @@ function RouteComponent() {
         onOpenChange={setBookingOpen}
         onCreate={handleCreateBooking}
         isSaving={createBooking.isPending}
+      />
+      {stayDate && (
+        <StayDateDialog
+          booking={stayDate.booking}
+          mode={stayDate.mode}
+          onOpenChange={(open) => !open && setStayDate(null)}
+          isSaving={changeStatus.isPending}
+          onConfirm={(effectiveDate) => {
+            changeStatus.mutate(
+              {
+                param: { id: stayDate.booking.id },
+                json: { status: stayDate.mode, effectiveDate },
+              },
+              {
+                onSuccess: () => {
+                  invalidateCalendar();
+                  setStayDate(null);
+                  feedback.success(
+                    "Booking updated",
+                    `${stayDate.booking.ref} is now ${
+                      stayDate.mode === "checked_in"
+                        ? "checked in"
+                        : "checked out"
+                    }.`,
+                  );
+                },
+                onError: (error) => {
+                  feedback.error(
+                    "Couldn't update booking",
+                    getApiErrorMessage(
+                      error,
+                      "Something went wrong. Try again.",
+                    ),
+                  );
+                },
+              },
+            );
+          }}
+        />
+      )}
+
+      <SettlePaymentSheet
+        booking={settleBooking}
+        onOpenChange={(open) => !open && setSettleBooking(null)}
+        isSaving={recordPayment.isPending}
+        onSettled={({ bookingId, amountPaise, method, paidAt }) => {
+          recordPayment.mutate(
+            {
+              param: { id: bookingId },
+              json: { amountPaise, method, paidAt },
+            },
+            {
+              onSuccess: () => {
+                invalidateCalendar();
+                setSettleBooking(null);
+                feedback.success("Payment recorded", "The balance is updated.");
+              },
+              onError: (error) => {
+                feedback.error(
+                  "Couldn't record payment",
+                  getApiErrorMessage(error, "Something went wrong. Try again."),
+                );
+              },
+            },
+          );
+        }}
+      />
+
+      <CancelBookingDialog
+        booking={cancelTarget}
+        onOpenChange={(open) => !open && setCancelTarget(null)}
+        isSaving={cancelBooking.isPending}
+        onConfirm={(reason) => {
+          if (!cancelTarget) return;
+          cancelBooking.mutate(
+            { param: { id: cancelTarget.id }, json: reason ? { reason } : {} },
+            {
+              onSuccess: () => {
+                invalidateCalendar();
+                setCancelTarget(null);
+                feedback.success(
+                  "Booking cancelled",
+                  `${cancelTarget.ref} is cancelled.`,
+                );
+              },
+              onError: (error) => {
+                feedback.error(
+                  "Couldn't cancel booking",
+                  getApiErrorMessage(error, "Something went wrong. Try again."),
+                );
+              },
+            },
+          );
+        }}
       />
     </motion.div>
   );

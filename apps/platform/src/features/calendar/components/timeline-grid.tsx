@@ -21,6 +21,7 @@ import type {
 } from "../lib/calendar";
 import { hasConflict, roomTypeLabel } from "../lib/calendar";
 import { BookingBlock } from "./booking-block";
+import type { BookingQuickAction } from "./booking-popover";
 import { BookingQuickView } from "./booking-popover";
 import type { QuickCreateSelection } from "./quick-create-dialog";
 import type { CalendarView } from "./view-toggle";
@@ -76,6 +77,7 @@ export function TimelineGrid({
   days,
   view,
   onRequestCreate,
+  onBookingAction,
 }: {
   inventory: PropertyInventory[];
   bookings: Booking[];
@@ -83,6 +85,8 @@ export function TimelineGrid({
   days: Date[];
   view: CalendarView;
   onRequestCreate: (selection: QuickCreateSelection) => void;
+  /** Raised when the quick view asks for check in, settle, edit or cancel. */
+  onBookingAction: (action: BookingQuickAction, booking: Booking) => void;
 }) {
   const feedback = useFeedback();
 
@@ -277,6 +281,7 @@ export function TimelineGrid({
             onCellPointerEnter={handleCellPointerEnter}
             onStartBookingDrag={startBookingDrag}
             onHoverBooking={setHoveredBookingId}
+            onBookingAction={onBookingAction}
           />
         ))}
       </div>
@@ -297,6 +302,7 @@ function PropertyRows({
   onCellPointerEnter,
   onStartBookingDrag,
   onHoverBooking,
+  onBookingAction,
 }: {
   property: PropertyInventory;
   days: Date[];
@@ -310,6 +316,7 @@ function PropertyRows({
   onCellPointerEnter: (unitId: string, dayIndex: number) => void;
   onStartBookingDrag: (e: React.PointerEvent, booking: Booking) => void;
   onHoverBooking: (id: string | null) => void;
+  onBookingAction: (action: BookingQuickAction, booking: Booking) => void;
 }) {
   return (
     <>
@@ -364,6 +371,7 @@ function PropertyRows({
           onCellPointerEnter={onCellPointerEnter}
           onStartBookingDrag={onStartBookingDrag}
           onHoverBooking={onHoverBooking}
+          onBookingAction={onBookingAction}
         />
       ))}
     </>
@@ -383,6 +391,7 @@ function RoomTypeRows({
   onCellPointerEnter,
   onStartBookingDrag,
   onHoverBooking,
+  onBookingAction,
 }: {
   units: Unit[];
   days: Date[];
@@ -396,6 +405,7 @@ function RoomTypeRows({
   onCellPointerEnter: (unitId: string, dayIndex: number) => void;
   onStartBookingDrag: (e: React.PointerEvent, booking: Booking) => void;
   onHoverBooking: (id: string | null) => void;
+  onBookingAction: (action: BookingQuickAction, booking: Booking) => void;
 }) {
   const isCondensed = view === "hq";
 
@@ -428,6 +438,7 @@ function RoomTypeRows({
           onCellPointerEnter={onCellPointerEnter}
           onStartBookingDrag={onStartBookingDrag}
           onHoverBooking={onHoverBooking}
+          onBookingAction={onBookingAction}
         />
       ))}
     </>
@@ -519,6 +530,7 @@ function UnitRow({
   onCellPointerEnter,
   onStartBookingDrag,
   onHoverBooking,
+  onBookingAction,
 }: {
   unit: Unit;
   days: Date[];
@@ -531,6 +543,7 @@ function UnitRow({
   onCellPointerEnter: (unitId: string, dayIndex: number) => void;
   onStartBookingDrag: (e: React.PointerEvent, booking: Booking) => void;
   onHoverBooking: (id: string | null) => void;
+  onBookingAction: (action: BookingQuickAction, booking: Booking) => void;
 }) {
   const monthStart = days[0];
   const monthEndExclusive = addDays(days[days.length - 1], 1);
@@ -663,6 +676,12 @@ function UnitRow({
                 <BookingQuickView
                   booking={booking}
                   unitLabel={unitById.get(booking.unitId)?.label ?? ""}
+                  onAction={(action, target) => {
+                    // The popover is anchored to the block; leaving it open
+                    // behind a modal would trap focus between the two.
+                    onHoverBooking(null);
+                    onBookingAction(action, target);
+                  }}
                 />
               </PopoverContent>
             </Popover>

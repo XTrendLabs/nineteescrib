@@ -368,7 +368,13 @@ export const bookingService = {
     const actualDates: {
       actualCheckIn?: string;
       actualCheckOut?: string;
+      checkedInAt?: Date;
+      checkedOutAt?: Date;
     } = {};
+
+    // When the desk settled it, as against which night it counts as. Recorded
+    // now rather than derived from `updatedAt`, which any later edit moves.
+    const settledAt = new Date();
 
     if (input.status === "checked_in") {
       // Arriving before the booked date claims nights the room was not held
@@ -385,10 +391,12 @@ export const bookingService = {
       }
 
       actualDates.actualCheckIn = effectiveDate;
+      actualDates.checkedInAt = settledAt;
     }
 
     if (input.status === "checked_out") {
       actualDates.actualCheckOut = effectiveDate;
+      actualDates.checkedOutAt = settledAt;
       // A guest can be checked out without ever having been marked in -- a
       // late correction, say. Their arrival is then taken as booked.
       if (!existing.actualCheckIn) {
@@ -423,7 +431,9 @@ export const bookingService = {
     await bookingRepo.addAudit({
       bookingId: id,
       action: input.status,
-      description: `Status changed to ${STATUS_LABELS[input.status]}${variance}.`,
+      description: `Status changed to ${STATUS_LABELS[input.status]}${variance}${
+        input.status === "confirmed" ? "" : ` at ${formatTime(settledAt)}`
+      }.`,
       actorUserId,
     });
 
@@ -815,6 +825,14 @@ export const bookingService = {
 /** Today as a calendar day, in the server's local zone. */
 function today() {
   return new Date().toLocaleDateString("en-CA");
+}
+
+/** The clock time of an instant, for the audit line. */
+function formatTime(at: Date) {
+  return at.toLocaleTimeString("en-IN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 /**

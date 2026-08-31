@@ -63,6 +63,8 @@ const bookingColumns = {
   checkOut: booking.checkOut,
   actualCheckIn: booking.actualCheckIn,
   actualCheckOut: booking.actualCheckOut,
+  checkedInAt: booking.checkedInAt,
+  checkedOutAt: booking.checkedOutAt,
   guestCount: booking.guestCount,
   totalAmountPaise: booking.totalAmountPaise,
   holdExpiresAt: booking.holdExpiresAt,

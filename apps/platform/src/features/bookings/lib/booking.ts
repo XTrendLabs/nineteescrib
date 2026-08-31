@@ -70,6 +70,9 @@ export type Booking = {
    */
   actualCheckIn: string | null;
   actualCheckOut: string | null;
+  /** The instant the desk marked them in or out -- a time, not a day. */
+  checkedInAt: string | null;
+  checkedOutAt: string | null;
   guestCount: number;
   totalAmountPaise: number;
   holdExpiresAt: string | null;

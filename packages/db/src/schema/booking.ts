@@ -218,6 +218,18 @@ export const booking = pgTable(
      */
     actualCheckIn: date("actual_check_in"),
     actualCheckOut: date("actual_check_out"),
+    /**
+     * The instant the front desk marked the guest in or out.
+     *
+     * Separate from the dates above, which are calendar days on purpose --
+     * widening those to timestamps would make a stay shift by a day for
+     * anyone east of UTC, which is the bug the `date` type is there to
+     * prevent. Availability keeps comparing days; these answer the different
+     * question of when the desk actually settled it, which is what a dispute
+     * over a late departure turns on.
+     */
+    checkedInAt: timestamp("checked_in_at"),
+    checkedOutAt: timestamp("checked_out_at"),
     guestCount: integer("guest_count").default(1).notNull(),
     totalAmountPaise: paise("total_amount_paise").default(0).notNull(),
     /**

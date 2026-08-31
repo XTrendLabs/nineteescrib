@@ -1,9 +1,8 @@
 import { Avatar, AvatarFallback } from "@propertyos/ui/components/avatar";
 import { Button } from "@propertyos/ui/components/button";
-import { useFeedback } from "@propertyos/ui/lib/use-feedback";
+import { cn } from "@propertyos/ui/lib/utils";
 import { format } from "date-fns";
 import { HomeIcon, ZapIcon } from "lucide-react";
-import { useState } from "react";
 import type { CalendarBooking as Booking } from "../lib/calendar";
 import { nightsBetween } from "../lib/calendar";
 import { formatInrFromPaise, getInitials } from "../lib/format";
@@ -29,19 +28,85 @@ const PAYMENT_LABEL: Record<Booking["paymentStatus"], string> = {
   unpaid: "Unpaid",
 };
 
+/** What the quick view can ask the page to do. */
+export type BookingQuickAction =
+  | "check_in"
+  | "check_out"
+  | "settle"
+  | "edit"
+  | "cancel";
+
+/**
+ * Which actions a stay is actually open to.
+ *
+ * Driven off the status rather than shown unconditionally: offering "Check In"
+ * on a guest who left a week ago invites a click that can only fail, since the
+ * server refuses the transition anyway. Settling is offered only while money
+ * is outstanding, for the same reason -- there is nothing to settle at zero.
+ */
+function availableActions(booking: Booking): BookingQuickAction[] {
+  if (booking.kind !== "reservation") {
+    return ["cancel"];
+  }
+
+  const actions: BookingQuickAction[] = [];
+
+  if (booking.status === "pending" || booking.status === "confirmed") {
+    actions.push("check_in");
+  }
+
+  if (booking.status === "checked_in") {
+    actions.push("check_out");
+  }
+
+  // A cancelled or departed stay can still owe money, and that balance is
+  // real -- a no-show who never paid is still a debt worth chasing.
+  if (booking.paymentStatus !== "paid") {
+    actions.push("settle");
+  }
+
+  // Editing dates or the room only means anything while the stay is live.
+  if (booking.status !== "checked_out" && booking.status !== "cancelled") {
+    actions.push("edit", "cancel");
+  }
+
+  return actions;
+}
+
+/** Short enough that three or four sit on one row without wrapping. */
+const ACTION_LABEL: Record<BookingQuickAction, string> = {
+  check_in: "Check In",
+  check_out: "Check Out",
+  settle: "Settle",
+  edit: "Edit",
+  cancel: "Cancel",
+};
+
+const STATUS_LABEL: Record<Booking["status"], string> = {
+  pending: "Pending",
+  confirmed: "Confirmed",
+  checked_in: "Checked in",
+  checked_out: "Checked out",
+  cancelled: "Cancelled",
+};
+
 export function BookingQuickView({
   booking,
   unitLabel,
-  onEdit,
+  onAction,
 }: {
   booking: Booking;
   unitLabel: string;
-  onEdit?: () => void;
+  /**
+   * Raised for the page to handle: the dialogs these open need the full API
+   * booking and the mutations, both of which live up there. Keeping them out
+   * of the grid avoids a second copy of each dialog inside the timeline.
+   */
+  onAction?: (action: BookingQuickAction, booking: Booking) => void;
 }) {
-  const feedback = useFeedback();
-  const [checkedIn, setCheckedIn] = useState(booking.checkedIn);
   const SourceIcon = SOURCE_ICON[booking.source];
   const nights = nightsBetween(booking.checkIn, booking.checkOut);
+  const actions = availableActions(booking);
 
   return (
     <div className="flex w-full min-w-80 max-w-full flex-col gap-3 overflow-y-auto p-4">
@@ -53,7 +118,7 @@ export function BookingQuickView({
           <div>
             <p className="font-medium text-sm">{booking.guestName}</p>
             <p className="text-[11px] text-muted-foreground">
-              {booking.bookingRef}
+              {booking.bookingRef} · {STATUS_LABEL[booking.status]}
             </p>
           </div>
         </div>
@@ -94,40 +159,33 @@ export function BookingQuickView({
         </span>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <div className="flex gap-1.5">
-          <Button
-            size="sm"
-            variant="outline"
-            className="flex-1"
-            onClick={() => {
-              setCheckedIn((prev) => !prev);
-              feedback.success(
-                checkedIn ? "Guest checked out" : "Guest checked in",
-                booking.guestName,
-              );
-            }}
-          >
-            {checkedIn ? "Check Out" : "Check In"}
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="flex-1"
-            onClick={() =>
-              feedback.success(
-                "Payment link sent",
-                `A settlement link was sent for ${booking.bookingRef}.`,
-              )
-            }
-          >
-            Settle Balance
-          </Button>
+      {actions.length > 0 && (
+        // One row: these are peers, and stacking them made a short popover
+        // twice as tall for no gain in clarity. Cancel is last and quiet, so
+        // the destructive one is not the easiest thing to hit.
+        <div className="flex flex-wrap gap-1.5">
+          {actions.map((action) => (
+            <Button
+              key={action}
+              size="sm"
+              variant={
+                action === "check_in" || action === "check_out"
+                  ? "default"
+                  : action === "cancel"
+                    ? "ghost"
+                    : "outline"
+              }
+              className={cn(
+                "flex-1 whitespace-nowrap",
+                action === "cancel" && "text-destructive",
+              )}
+              onClick={() => onAction?.(action, booking)}
+            >
+              {ACTION_LABEL[action]}
+            </Button>
+          ))}
         </div>
-        <Button size="sm" variant="secondary" onClick={onEdit}>
-          Edit booking
-        </Button>
-      </div>
+      )}
     </div>
   );
 }

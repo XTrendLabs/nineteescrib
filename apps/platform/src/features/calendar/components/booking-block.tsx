@@ -84,7 +84,7 @@ export function BookingBlock({
       style={style}
       onPointerDown={onPointerDownDrag}
       className={cn(
-        "flex h-full items-center gap-1 overflow-hidden border px-1.5 text-left text-[10px]",
+        "flex h-full w-full items-center gap-1 overflow-hidden border px-1.5 text-left text-[10px]",
         STATUS_CLASSES[booking.status] ??
           // An upcoming stay carries no status colour of its own, so it keeps
           // the source shading that distinguishes direct from OTA.

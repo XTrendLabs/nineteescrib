@@ -127,6 +127,13 @@
       "when": 1788178362995,
       "tag": "0017_curved_radioactive_man",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1788181456162,
+      "tag": "0018_last_bishop",
+      "breakpoints": true
     }
   ]
 }
