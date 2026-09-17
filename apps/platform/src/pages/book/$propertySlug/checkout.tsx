@@ -4,7 +4,7 @@ import { Label } from "@propertyos/ui/components/label";
 import { PhoneInput } from "@propertyos/ui/components/phone-input";
 import { Textarea } from "@propertyos/ui/components/textarea";
 import { useFeedback } from "@propertyos/ui/lib/use-feedback";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { format } from "date-fns";
 import { ShieldCheckIcon } from "lucide-react";
 import { motion } from "motion/react";
@@ -15,7 +15,6 @@ import {
   useCreatePublicBooking,
   usePublicAvailability,
 } from "@/features/booking-engine/api/use-public-booking";
-import { BookingEngineDisabled } from "@/features/booking-engine/components/disabled-notice";
 import { isBookingEngineEnabled } from "@/features/booking-engine/lib/feature-flag";
 import { formatInr } from "@/features/booking-engine/lib/format";
 import { roomTypeLabel } from "@/features/calendar/lib/calendar";
@@ -29,9 +28,14 @@ const searchSchema = z.object({
 });
 
 export const Route = createFileRoute("/book/$propertySlug/checkout")({
-  // Off by default: the engine is still being finished, and a guest
-  // reaching a half-built booking page would be worse than a notice.
-  component: isBookingEngineEnabled ? RouteComponent : BookingEngineDisabled,
+  // Off by default. A 404 rather than a notice: a page saying "not taking
+  // bookings yet" tells a stranger the property exists and is not ready,
+  // which is the operator's business, not theirs. While the engine is off
+  // the route simply is not there.
+  beforeLoad: () => {
+    if (!isBookingEngineEnabled) throw notFound();
+  },
+  component: RouteComponent,
   validateSearch: searchSchema,
 });
 
