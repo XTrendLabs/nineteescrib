@@ -17,6 +17,7 @@ export const env = createEnv({
     COOKIE_DOMAIN: z.string().optional(),
     GOOGLE_CLIENT_ID: z.string().min(1),
     GOOGLE_CLIENT_SECRET: z.string().min(1),
+    GOOGLE_REDIRECT_URL: z.url(),
     CLOUDFLARE_ACCOUNT_ID: z.string().min(1),
     CLOUDFLARE_ACCESS_KEY_ID: z.string().min(1),
     CLOUDFLARE_SECRET_ACCESS_KEY: z.string().min(1),
