@@ -19,12 +19,15 @@ import { Route as protectedGuestsRouteImport } from './pages/(protected)/guests'
 import { Route as protectedCalendarRouteImport } from './pages/(protected)/calendar'
 import { Route as protectedBookingsRouteImport } from './pages/(protected)/bookings'
 import { Route as protectedSettingsLayoutRouteImport } from './pages/(protected)/settings/_layout'
+import { Route as BookPropertySlugIndexRouteImport } from './pages/book/$propertySlug/index'
 import { Route as protectedStaffIndexRouteImport } from './pages/(protected)/staff/index'
 import { Route as protectedSettingsIndexRouteImport } from './pages/(protected)/settings/index'
 import { Route as protectedReportsIndexRouteImport } from './pages/(protected)/reports/index'
 import { Route as protectedPropertiesIndexRouteImport } from './pages/(protected)/properties/index'
 import { Route as protectedInvoicesIndexRouteImport } from './pages/(protected)/invoices/index'
 import { Route as protectedExpensesIndexRouteImport } from './pages/(protected)/expenses/index'
+import { Route as BookPropertySlugConfirmedRouteImport } from './pages/book/$propertySlug/confirmed'
+import { Route as BookPropertySlugCheckoutRouteImport } from './pages/book/$propertySlug/checkout'
 import { Route as protectedStaffStaffIdRouteImport } from './pages/(protected)/staff/$staffId'
 import { Route as protectedSettingsSecurityRouteImport } from './pages/(protected)/settings/security'
 import { Route as protectedSettingsPlanRouteImport } from './pages/(protected)/settings/plan'
@@ -38,9 +41,6 @@ import { Route as protectedSettingsCompanyRouteImport } from './pages/(protected
 import { Route as protectedSettingsAuditRouteImport } from './pages/(protected)/settings/audit'
 import { Route as protectedReportsBuilderRouteImport } from './pages/(protected)/reports/builder'
 import { Route as protectedPropertiesPropertySlugRouteImport } from './pages/(protected)/properties/$propertySlug'
-import { Route as BookSlugPropertySlugIndexRouteImport } from './pages/book/$slug/$propertySlug/index'
-import { Route as BookSlugPropertySlugConfirmedRouteImport } from './pages/book/$slug/$propertySlug/confirmed'
-import { Route as BookSlugPropertySlugCheckoutRouteImport } from './pages/book/$slug/$propertySlug/checkout'
 import { Route as protectedExpensesVendorsVendorIdRouteImport } from './pages/(protected)/expenses/vendors/$vendorId'
 
 const protectedLayoutRoute = protectedLayoutRouteImport.update({
@@ -92,6 +92,11 @@ const protectedSettingsLayoutRoute = protectedSettingsLayoutRouteImport.update({
   path: '/settings',
   getParentRoute: () => protectedLayoutRoute,
 } as any)
+const BookPropertySlugIndexRoute = BookPropertySlugIndexRouteImport.update({
+  id: '/book/$propertySlug/',
+  path: '/book/$propertySlug/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const protectedStaffIndexRoute = protectedStaffIndexRouteImport.update({
   id: '/staff/',
   path: '/staff/',
@@ -123,6 +128,18 @@ const protectedExpensesIndexRoute = protectedExpensesIndexRouteImport.update({
   path: '/expenses/',
   getParentRoute: () => protectedLayoutRoute,
 } as any)
+const BookPropertySlugConfirmedRoute =
+  BookPropertySlugConfirmedRouteImport.update({
+    id: '/book/$propertySlug/confirmed',
+    path: '/book/$propertySlug/confirmed',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const BookPropertySlugCheckoutRoute =
+  BookPropertySlugCheckoutRouteImport.update({
+    id: '/book/$propertySlug/checkout',
+    path: '/book/$propertySlug/checkout',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const protectedStaffStaffIdRoute = protectedStaffStaffIdRouteImport.update({
   id: '/staff/$staffId',
   path: '/staff/$staffId',
@@ -195,24 +212,6 @@ const protectedPropertiesPropertySlugRoute =
     path: '/properties/$propertySlug',
     getParentRoute: () => protectedLayoutRoute,
   } as any)
-const BookSlugPropertySlugIndexRoute =
-  BookSlugPropertySlugIndexRouteImport.update({
-    id: '/book/$slug/$propertySlug/',
-    path: '/book/$slug/$propertySlug/',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const BookSlugPropertySlugConfirmedRoute =
-  BookSlugPropertySlugConfirmedRouteImport.update({
-    id: '/book/$slug/$propertySlug/confirmed',
-    path: '/book/$slug/$propertySlug/confirmed',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const BookSlugPropertySlugCheckoutRoute =
-  BookSlugPropertySlugCheckoutRouteImport.update({
-    id: '/book/$slug/$propertySlug/checkout',
-    path: '/book/$slug/$propertySlug/checkout',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 const protectedExpensesVendorsVendorIdRoute =
   protectedExpensesVendorsVendorIdRouteImport.update({
     id: '/expenses/vendors/$vendorId',
@@ -243,16 +242,16 @@ export interface FileRoutesByFullPath {
   '/settings/plan': typeof protectedSettingsPlanRoute
   '/settings/security': typeof protectedSettingsSecurityRoute
   '/staff/$staffId': typeof protectedStaffStaffIdRoute
+  '/book/$propertySlug/checkout': typeof BookPropertySlugCheckoutRoute
+  '/book/$propertySlug/confirmed': typeof BookPropertySlugConfirmedRoute
   '/expenses/': typeof protectedExpensesIndexRoute
   '/invoices/': typeof protectedInvoicesIndexRoute
   '/properties/': typeof protectedPropertiesIndexRoute
   '/reports/': typeof protectedReportsIndexRoute
   '/settings/': typeof protectedSettingsIndexRoute
   '/staff/': typeof protectedStaffIndexRoute
+  '/book/$propertySlug/': typeof BookPropertySlugIndexRoute
   '/expenses/vendors/$vendorId': typeof protectedExpensesVendorsVendorIdRoute
-  '/book/$slug/$propertySlug/checkout': typeof BookSlugPropertySlugCheckoutRoute
-  '/book/$slug/$propertySlug/confirmed': typeof BookSlugPropertySlugConfirmedRoute
-  '/book/$slug/$propertySlug/': typeof BookSlugPropertySlugIndexRoute
 }
 export interface FileRoutesByTo {
   '/bookings': typeof protectedBookingsRoute
@@ -276,16 +275,16 @@ export interface FileRoutesByTo {
   '/settings/plan': typeof protectedSettingsPlanRoute
   '/settings/security': typeof protectedSettingsSecurityRoute
   '/staff/$staffId': typeof protectedStaffStaffIdRoute
+  '/book/$propertySlug/checkout': typeof BookPropertySlugCheckoutRoute
+  '/book/$propertySlug/confirmed': typeof BookPropertySlugConfirmedRoute
   '/expenses': typeof protectedExpensesIndexRoute
   '/invoices': typeof protectedInvoicesIndexRoute
   '/properties': typeof protectedPropertiesIndexRoute
   '/reports': typeof protectedReportsIndexRoute
   '/settings': typeof protectedSettingsIndexRoute
   '/staff': typeof protectedStaffIndexRoute
+  '/book/$propertySlug': typeof BookPropertySlugIndexRoute
   '/expenses/vendors/$vendorId': typeof protectedExpensesVendorsVendorIdRoute
-  '/book/$slug/$propertySlug/checkout': typeof BookSlugPropertySlugCheckoutRoute
-  '/book/$slug/$propertySlug/confirmed': typeof BookSlugPropertySlugConfirmedRoute
-  '/book/$slug/$propertySlug': typeof BookSlugPropertySlugIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -312,16 +311,16 @@ export interface FileRoutesById {
   '/(protected)/settings/plan': typeof protectedSettingsPlanRoute
   '/(protected)/settings/security': typeof protectedSettingsSecurityRoute
   '/(protected)/staff/$staffId': typeof protectedStaffStaffIdRoute
+  '/book/$propertySlug/checkout': typeof BookPropertySlugCheckoutRoute
+  '/book/$propertySlug/confirmed': typeof BookPropertySlugConfirmedRoute
   '/(protected)/expenses/': typeof protectedExpensesIndexRoute
   '/(protected)/invoices/': typeof protectedInvoicesIndexRoute
   '/(protected)/properties/': typeof protectedPropertiesIndexRoute
   '/(protected)/reports/': typeof protectedReportsIndexRoute
   '/(protected)/settings/': typeof protectedSettingsIndexRoute
   '/(protected)/staff/': typeof protectedStaffIndexRoute
+  '/book/$propertySlug/': typeof BookPropertySlugIndexRoute
   '/(protected)/expenses/vendors/$vendorId': typeof protectedExpensesVendorsVendorIdRoute
-  '/book/$slug/$propertySlug/checkout': typeof BookSlugPropertySlugCheckoutRoute
-  '/book/$slug/$propertySlug/confirmed': typeof BookSlugPropertySlugConfirmedRoute
-  '/book/$slug/$propertySlug/': typeof BookSlugPropertySlugIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -348,16 +347,16 @@ export interface FileRouteTypes {
     | '/settings/plan'
     | '/settings/security'
     | '/staff/$staffId'
+    | '/book/$propertySlug/checkout'
+    | '/book/$propertySlug/confirmed'
     | '/expenses/'
     | '/invoices/'
     | '/properties/'
     | '/reports/'
     | '/settings/'
     | '/staff/'
+    | '/book/$propertySlug/'
     | '/expenses/vendors/$vendorId'
-    | '/book/$slug/$propertySlug/checkout'
-    | '/book/$slug/$propertySlug/confirmed'
-    | '/book/$slug/$propertySlug/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/bookings'
@@ -381,16 +380,16 @@ export interface FileRouteTypes {
     | '/settings/plan'
     | '/settings/security'
     | '/staff/$staffId'
+    | '/book/$propertySlug/checkout'
+    | '/book/$propertySlug/confirmed'
     | '/expenses'
     | '/invoices'
     | '/properties'
     | '/reports'
     | '/settings'
     | '/staff'
+    | '/book/$propertySlug'
     | '/expenses/vendors/$vendorId'
-    | '/book/$slug/$propertySlug/checkout'
-    | '/book/$slug/$propertySlug/confirmed'
-    | '/book/$slug/$propertySlug'
   id:
     | '__root__'
     | '/(protected)'
@@ -416,16 +415,16 @@ export interface FileRouteTypes {
     | '/(protected)/settings/plan'
     | '/(protected)/settings/security'
     | '/(protected)/staff/$staffId'
+    | '/book/$propertySlug/checkout'
+    | '/book/$propertySlug/confirmed'
     | '/(protected)/expenses/'
     | '/(protected)/invoices/'
     | '/(protected)/properties/'
     | '/(protected)/reports/'
     | '/(protected)/settings/'
     | '/(protected)/staff/'
+    | '/book/$propertySlug/'
     | '/(protected)/expenses/vendors/$vendorId'
-    | '/book/$slug/$propertySlug/checkout'
-    | '/book/$slug/$propertySlug/confirmed'
-    | '/book/$slug/$propertySlug/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -434,9 +433,9 @@ export interface RootRouteChildren {
   AuthRegisterRoute: typeof AuthRegisterRoute
   PayPublicTokenRoute: typeof PayPublicTokenRoute
   OnboardingIndexRoute: typeof OnboardingIndexRoute
-  BookSlugPropertySlugCheckoutRoute: typeof BookSlugPropertySlugCheckoutRoute
-  BookSlugPropertySlugConfirmedRoute: typeof BookSlugPropertySlugConfirmedRoute
-  BookSlugPropertySlugIndexRoute: typeof BookSlugPropertySlugIndexRoute
+  BookPropertySlugCheckoutRoute: typeof BookPropertySlugCheckoutRoute
+  BookPropertySlugConfirmedRoute: typeof BookPropertySlugConfirmedRoute
+  BookPropertySlugIndexRoute: typeof BookPropertySlugIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -511,6 +510,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof protectedSettingsLayoutRouteImport
       parentRoute: typeof protectedLayoutRoute
     }
+    '/book/$propertySlug/': {
+      id: '/book/$propertySlug/'
+      path: '/book/$propertySlug'
+      fullPath: '/book/$propertySlug/'
+      preLoaderRoute: typeof BookPropertySlugIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/(protected)/staff/': {
       id: '/(protected)/staff/'
       path: '/staff'
@@ -552,6 +558,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/expenses/'
       preLoaderRoute: typeof protectedExpensesIndexRouteImport
       parentRoute: typeof protectedLayoutRoute
+    }
+    '/book/$propertySlug/confirmed': {
+      id: '/book/$propertySlug/confirmed'
+      path: '/book/$propertySlug/confirmed'
+      fullPath: '/book/$propertySlug/confirmed'
+      preLoaderRoute: typeof BookPropertySlugConfirmedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/book/$propertySlug/checkout': {
+      id: '/book/$propertySlug/checkout'
+      path: '/book/$propertySlug/checkout'
+      fullPath: '/book/$propertySlug/checkout'
+      preLoaderRoute: typeof BookPropertySlugCheckoutRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/(protected)/staff/$staffId': {
       id: '/(protected)/staff/$staffId'
@@ -644,27 +664,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof protectedPropertiesPropertySlugRouteImport
       parentRoute: typeof protectedLayoutRoute
     }
-    '/book/$slug/$propertySlug/': {
-      id: '/book/$slug/$propertySlug/'
-      path: '/book/$slug/$propertySlug'
-      fullPath: '/book/$slug/$propertySlug/'
-      preLoaderRoute: typeof BookSlugPropertySlugIndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/book/$slug/$propertySlug/confirmed': {
-      id: '/book/$slug/$propertySlug/confirmed'
-      path: '/book/$slug/$propertySlug/confirmed'
-      fullPath: '/book/$slug/$propertySlug/confirmed'
-      preLoaderRoute: typeof BookSlugPropertySlugConfirmedRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/book/$slug/$propertySlug/checkout': {
-      id: '/book/$slug/$propertySlug/checkout'
-      path: '/book/$slug/$propertySlug/checkout'
-      fullPath: '/book/$slug/$propertySlug/checkout'
-      preLoaderRoute: typeof BookSlugPropertySlugCheckoutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/(protected)/expenses/vendors/$vendorId': {
       id: '/(protected)/expenses/vendors/$vendorId'
       path: '/expenses/vendors/$vendorId'
@@ -753,9 +752,9 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRegisterRoute: AuthRegisterRoute,
   PayPublicTokenRoute: PayPublicTokenRoute,
   OnboardingIndexRoute: OnboardingIndexRoute,
-  BookSlugPropertySlugCheckoutRoute: BookSlugPropertySlugCheckoutRoute,
-  BookSlugPropertySlugConfirmedRoute: BookSlugPropertySlugConfirmedRoute,
-  BookSlugPropertySlugIndexRoute: BookSlugPropertySlugIndexRoute,
+  BookPropertySlugCheckoutRoute: BookPropertySlugCheckoutRoute,
+  BookPropertySlugConfirmedRoute: BookPropertySlugConfirmedRoute,
+  BookPropertySlugIndexRoute: BookPropertySlugIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

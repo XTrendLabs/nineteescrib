@@ -54,11 +54,8 @@ export function PropertyCard({
               <ArrowRightIcon className="size-3.5" />
             </Link>
             <Link
-              to="/book/$slug/$propertySlug"
-              params={{
-                slug: "sunrise-retreats",
-                propertySlug: property.slug,
-              }}
+              to="/book/$propertySlug"
+              params={{ propertySlug: property.slug }}
               target="_blank"
               className="inline-flex items-center gap-1 text-muted-foreground text-xs hover:text-foreground hover:underline"
             >

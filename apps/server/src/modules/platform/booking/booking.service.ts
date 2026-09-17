@@ -169,7 +169,12 @@ export const bookingService = {
    */
   async create(
     hqOrganizationId: string,
-    createdByUserId: string,
+    /**
+     * The member making the booking, or null when a guest books themselves
+     * from the public site. Both the booking row and the audit trail allow
+     * no actor, which is the truthful record of an unattended booking.
+     */
+    createdByUserId: string | null,
     input: CreateBookingInput,
   ) {
     const kind = input.kind ?? "reservation";

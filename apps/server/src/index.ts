@@ -7,6 +7,7 @@ import { logger } from "hono/logger";
 import { createApp } from "./core";
 import { adminRoutes } from "./modules/admin/admin.routes";
 import { platformRoutes } from "./modules/platform/platform.routes";
+import { publicRoutes } from "./modules/public/public.routes";
 
 const app = createApp();
 
@@ -27,7 +28,9 @@ app.on(["POST", "GET", "PUT", "PATCH", "DELETE"], "/api/auth/*", (c) =>
 
 const routes = app
   .route("/api/platform", platformRoutes)
-  .route("/api/admin", adminRoutes);
+  .route("/api/admin", adminRoutes)
+  // Unauthenticated: the public booking engine. See public.routes.
+  .route("/api/public", publicRoutes);
 
 app.get("/", (c) => {
   return c.text("OK");

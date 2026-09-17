@@ -59,6 +59,7 @@ export function StayRangeCalendar({
   disabled,
   minDate,
   placeholder,
+  inline,
 }: {
   value: DateRange | undefined;
   onChange: (range: DateRange | undefined) => void;
@@ -75,6 +76,15 @@ export function StayRangeCalendar({
    */
   minDate?: Date;
   placeholder?: string;
+  /**
+   * Render the calendar in place instead of behind a button.
+   *
+   * The public booking page leads with the dates -- they are the reason the
+   * visitor is there -- so making them cost a click first is a step for
+   * nothing. Internal forms keep the popover, where dates are one field among
+   * many and the vertical space matters more.
+   */
+  inline?: boolean;
 }) {
   const byNight = new Map(nights.map((n) => [n.night, n.booked]));
 
@@ -92,6 +102,69 @@ export function StayRangeCalendar({
     busy: (date: Date) => levelOf(date) === "busy",
     full: (date: Date) => levelOf(date) === "full",
   };
+
+  // One calendar, two framings: the shading, the disabled nights and the key
+  // are identical either way, so they are defined once here.
+  const calendar = (
+    <>
+      <Calendar
+        mode="range"
+        numberOfMonths={2}
+        month={month}
+        onMonthChange={onMonthChange}
+        selected={value}
+        onSelect={onChange}
+        disabled={isDisabled}
+        modifiers={modifiers}
+        modifiersClassNames={{
+          light: LEVEL_CLASSES.light,
+          busy: LEVEL_CLASSES.busy,
+          full: LEVEL_CLASSES.full,
+        }}
+        classNames={{
+          months: "flex flex-col gap-4 sm:flex-row sm:gap-6",
+          month_caption:
+            "flex h-8 w-full items-center justify-center font-medium text-foreground text-sm",
+          weekday:
+            "font-medium text-[11px] text-foreground/70 uppercase tracking-wide",
+          outside: "text-foreground/30",
+        }}
+        className={cn(
+          "p-3 [--cell-size:--spacing(8)]",
+          isLoading && "opacity-60",
+        )}
+      />
+
+      <div className="flex flex-wrap items-center gap-3 border-t px-3 py-2 text-[11px] text-foreground/80">
+        <span className="flex items-center gap-1.5">
+          <span className="inline-block size-2.5 border" />
+          Free
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span
+            className={cn("inline-block size-2.5 border", "bg-warning/30")}
+          />
+          Filling up
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span
+            className={cn("inline-block size-2.5 border", "bg-warning/60")}
+          />
+          Nearly full
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span
+            className={cn("inline-block size-2.5 border", "bg-destructive/70")}
+          />
+          Fully booked
+        </span>
+      </div>
+    </>
+  );
+
+  if (inline) {
+    return <div className="w-fit w-full border">{calendar}</div>;
+  }
 
   return (
     <Popover>
@@ -113,61 +186,7 @@ export function StayRangeCalendar({
         }
       />
       <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          mode="range"
-          numberOfMonths={2}
-          month={month}
-          onMonthChange={onMonthChange}
-          selected={value}
-          onSelect={onChange}
-          disabled={isDisabled}
-          modifiers={modifiers}
-          modifiersClassNames={{
-            light: LEVEL_CLASSES.light,
-            busy: LEVEL_CLASSES.busy,
-            full: LEVEL_CLASSES.full,
-          }}
-          classNames={{
-            months: "flex flex-col gap-4 sm:flex-row sm:gap-6",
-            month_caption:
-              "flex h-8 w-full items-center justify-center font-medium text-foreground text-sm",
-            weekday:
-              "font-medium text-[11px] text-foreground/70 uppercase tracking-wide",
-            outside: "text-foreground/30",
-          }}
-          className={cn(
-            "p-3 [--cell-size:--spacing(8)]",
-            isLoading && "opacity-60",
-          )}
-        />
-
-        <div className="flex flex-wrap items-center gap-3 border-t px-3 py-2 text-[11px] text-foreground/80">
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block size-2.5 border" />
-            Free
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span
-              className={cn("inline-block size-2.5 border", "bg-warning/30")}
-            />
-            Filling up
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span
-              className={cn("inline-block size-2.5 border", "bg-warning/60")}
-            />
-            Nearly full
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span
-              className={cn(
-                "inline-block size-2.5 border",
-                "bg-destructive/70",
-              )}
-            />
-            Fully booked
-          </span>
-        </div>
+        {calendar}
       </PopoverContent>
     </Popover>
   );

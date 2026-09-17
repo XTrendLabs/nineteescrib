@@ -180,7 +180,7 @@ function RouteComponent() {
           <PoliciesTab property={property} />
         </TabsPanel>
         <TabsPanel value="booking-links">
-          <BookingLinksTab />
+          <BookingLinksTab propertySlug={property.slug} />
         </TabsPanel>
         <TabsPanel value="taxes">
           <TaxesBillingTab property={property} />
