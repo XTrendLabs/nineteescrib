@@ -36,7 +36,13 @@ async function attachStats(guestIds: string[]) {
     .select({
       guestId: booking.guestId,
       totalStays: sql<number>`count(*)::int`,
-      totalSpentPaise: sql<number>`coalesce(sum(${booking.totalAmountPaise}), 0)`,
+      // Cast to a float, not bigint: sum() over a bigint returns numeric, and
+      // node-postgres hands both numeric and bigint back as strings to avoid
+      // precision loss. A string flows through `sql<number>` unchecked and
+      // turns every later addition into concatenation. Paise are already
+      // carried as JS numbers throughout (see the `paise` column helper), so
+      // this matches, and stays exact well past any real portfolio total.
+      totalSpentPaise: sql<number>`coalesce(sum(${booking.totalAmountPaise}), 0)::double precision`,
       lastStayDate: sql<string | null>`max(${booking.checkIn})`,
     })
     .from(booking)
