@@ -12,7 +12,6 @@ import { Route as rootRouteImport } from './pages/__root'
 import { Route as protectedLayoutRouteImport } from './pages/(protected)/_layout'
 import { Route as OnboardingIndexRouteImport } from './pages/onboarding/index'
 import { Route as protectedIndexRouteImport } from './pages/(protected)/index'
-import { Route as QuoteTokenRouteImport } from './pages/quote/$token'
 import { Route as PayPublicTokenRouteImport } from './pages/pay/$publicToken'
 import { Route as AuthRegisterRouteImport } from './pages/auth/register'
 import { Route as AuthLoginRouteImport } from './pages/auth/login'
@@ -57,11 +56,6 @@ const protectedIndexRoute = protectedIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => protectedLayoutRoute,
-} as any)
-const QuoteTokenRoute = QuoteTokenRouteImport.update({
-  id: '/quote/$token',
-  path: '/quote/$token',
-  getParentRoute: () => rootRouteImport,
 } as any)
 const PayPublicTokenRoute = PayPublicTokenRouteImport.update({
   id: '/pay/$publicToken',
@@ -234,7 +228,6 @@ export interface FileRoutesByFullPath {
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/pay/$publicToken': typeof PayPublicTokenRoute
-  '/quote/$token': typeof QuoteTokenRoute
   '/': typeof protectedIndexRoute
   '/onboarding/': typeof OnboardingIndexRoute
   '/properties/$propertySlug': typeof protectedPropertiesPropertySlugRoute
@@ -268,7 +261,6 @@ export interface FileRoutesByTo {
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/pay/$publicToken': typeof PayPublicTokenRoute
-  '/quote/$token': typeof QuoteTokenRoute
   '/': typeof protectedIndexRoute
   '/onboarding': typeof OnboardingIndexRoute
   '/properties/$propertySlug': typeof protectedPropertiesPropertySlugRoute
@@ -305,7 +297,6 @@ export interface FileRoutesById {
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
   '/pay/$publicToken': typeof PayPublicTokenRoute
-  '/quote/$token': typeof QuoteTokenRoute
   '/(protected)/': typeof protectedIndexRoute
   '/onboarding/': typeof OnboardingIndexRoute
   '/(protected)/properties/$propertySlug': typeof protectedPropertiesPropertySlugRoute
@@ -342,7 +333,6 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/auth/register'
     | '/pay/$publicToken'
-    | '/quote/$token'
     | '/'
     | '/onboarding/'
     | '/properties/$propertySlug'
@@ -376,7 +366,6 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/auth/register'
     | '/pay/$publicToken'
-    | '/quote/$token'
     | '/'
     | '/onboarding'
     | '/properties/$propertySlug'
@@ -412,7 +401,6 @@ export interface FileRouteTypes {
     | '/auth/login'
     | '/auth/register'
     | '/pay/$publicToken'
-    | '/quote/$token'
     | '/(protected)/'
     | '/onboarding/'
     | '/(protected)/properties/$propertySlug'
@@ -445,7 +433,6 @@ export interface RootRouteChildren {
   AuthLoginRoute: typeof AuthLoginRoute
   AuthRegisterRoute: typeof AuthRegisterRoute
   PayPublicTokenRoute: typeof PayPublicTokenRoute
-  QuoteTokenRoute: typeof QuoteTokenRoute
   OnboardingIndexRoute: typeof OnboardingIndexRoute
   BookSlugPropertySlugCheckoutRoute: typeof BookSlugPropertySlugCheckoutRoute
   BookSlugPropertySlugConfirmedRoute: typeof BookSlugPropertySlugConfirmedRoute
@@ -474,13 +461,6 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof protectedIndexRouteImport
       parentRoute: typeof protectedLayoutRoute
-    }
-    '/quote/$token': {
-      id: '/quote/$token'
-      path: '/quote/$token'
-      fullPath: '/quote/$token'
-      preLoaderRoute: typeof QuoteTokenRouteImport
-      parentRoute: typeof rootRouteImport
     }
     '/pay/$publicToken': {
       id: '/pay/$publicToken'
@@ -772,7 +752,6 @@ const rootRouteChildren: RootRouteChildren = {
   AuthLoginRoute: AuthLoginRoute,
   AuthRegisterRoute: AuthRegisterRoute,
   PayPublicTokenRoute: PayPublicTokenRoute,
-  QuoteTokenRoute: QuoteTokenRoute,
   OnboardingIndexRoute: OnboardingIndexRoute,
   BookSlugPropertySlugCheckoutRoute: BookSlugPropertySlugCheckoutRoute,
   BookSlugPropertySlugConfirmedRoute: BookSlugPropertySlugConfirmedRoute,

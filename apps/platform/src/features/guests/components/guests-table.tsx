@@ -23,7 +23,6 @@ export function GuestsTable({
   onToggleSelect,
   onToggleSelectAll,
   onOpenProfile,
-  onGenerateOffer,
   onEdit,
   isLoading,
 }: {
@@ -32,7 +31,6 @@ export function GuestsTable({
   onToggleSelect: (id: string) => void;
   onToggleSelectAll: () => void;
   onOpenProfile: (guest: Guest) => void;
-  onGenerateOffer: (guest: Guest) => void;
   onEdit: (guest: Guest) => void;
   isLoading?: boolean;
 }) {
@@ -161,9 +159,6 @@ export function GuestsTable({
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onEdit(guest)}>
                         Edit Guest
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => onGenerateOffer(guest)}>
-                        Generate Offer Link
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

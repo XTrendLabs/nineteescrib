@@ -170,49 +170,6 @@ export const ARRIVAL_TIME_OPTIONS = [
   "4:00 PM - 6:00 PM",
   "After 6:00 PM",
 ];
-
-export type QuoteOffer = {
-  token: string;
-  guestName: string;
-  guestPhone: string;
-  guestEmail: string;
-  discountPercent: number;
-  checkIn: Date;
-  checkOut: Date;
-  guests: number;
-  propertySlugPath: string;
-  roomTypeId: string;
-};
-
-export function resolveQuoteOffer(token: string): QuoteOffer | undefined {
-  if (token !== "sec_abc123xyz") return undefined;
-  const properties = resolveProperties(undefined).map((p) =>
-    buildPropertyDetail(p),
-  );
-  const property = properties[0];
-  const roomType = property?.roomTypes[0];
-  if (!property || !roomType) return undefined;
-
-  const today = new Date();
-  const checkIn = new Date(today);
-  checkIn.setDate(checkIn.getDate() + 14);
-  const checkOut = new Date(checkIn);
-  checkOut.setDate(checkOut.getDate() + 3);
-
-  return {
-    token,
-    guestName: "Arjun Sen",
-    guestPhone: "+91 98765 43210",
-    guestEmail: "arjun@email.com",
-    discountPercent: 20,
-    checkIn,
-    checkOut,
-    guests: 2,
-    propertySlugPath: property.bookingLink.slug,
-    roomTypeId: roomType.id,
-  };
-}
-
 export function generateReservationReference(): string {
   return `POS-${10_000 + Math.floor(Math.random() * 9000)}`;
 }

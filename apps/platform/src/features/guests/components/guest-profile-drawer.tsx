@@ -4,11 +4,10 @@ import {
   Sheet,
   SheetContent,
   SheetDescription,
-  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from "@propertyos/ui/components/sheet";
-import { LinkIcon, PlusIcon, XIcon } from "lucide-react";
+import { PlusIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 
 import { useGuest } from "../api/use-guest";
@@ -32,14 +31,12 @@ export function GuestProfileDrawer({
   onOpenChange,
   onAddNote,
   onRemoveNote,
-  onGenerateOffer,
   isSaving,
 }: {
   guest: Guest | null;
   onOpenChange: (open: boolean) => void;
   onAddNote: (guestId: string, text: string) => void;
   onRemoveNote: (noteId: string) => void;
-  onGenerateOffer: (guest: Guest) => void;
   isSaving?: boolean;
 }) {
   const [noteText, setNoteText] = useState("");
@@ -187,16 +184,6 @@ export function GuestProfileDrawer({
             </div>
           </div>
         )}
-
-        <SheetFooter>
-          <Button
-            disabled={!guest}
-            onClick={() => guest && onGenerateOffer(guest)}
-          >
-            <LinkIcon />
-            Generate Private Custom Offer Link
-          </Button>
-        </SheetFooter>
       </SheetContent>
     </Sheet>
   );

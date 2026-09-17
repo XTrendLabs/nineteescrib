@@ -110,17 +110,3 @@ export function buildGuestsSummary(guests: Guest[]): GuestsSummary {
     vipCount,
   };
 }
-
-/**
- * A WhatsApp deep link carrying a personalised offer.
- *
- * Built client-side rather than stored: the message is composed fresh each
- * time the dialog is opened, and nothing about it needs to outlive the send.
- */
-export function buildOfferLink(guest: Guest, price: string, dates: string) {
-  const message = `Hi ${guest.name}, here's a special direct-booking offer for you: ${dates}${
-    price ? ` at ₹${price}` : ""
-  }. Reply to confirm!`;
-  const phoneDigits = guest.phone.replace(/[^0-9]/g, "");
-  return `https://wa.me/${phoneDigits}?text=${encodeURIComponent(message)}`;
-}

@@ -30,7 +30,6 @@ import {
 } from "@/features/guests/components/filter-toolbar";
 import { GuestProfileDrawer } from "@/features/guests/components/guest-profile-drawer";
 import { GuestsTable } from "@/features/guests/components/guests-table";
-import { OfferLinkDialog } from "@/features/guests/components/offer-link-dialog";
 import { SummaryBand } from "@/features/guests/components/summary-band";
 import { buildGuestsSummary, type Guest } from "@/features/guests/lib/guest";
 import { getApiErrorMessage } from "@/shared/lib/api-error";
@@ -63,7 +62,6 @@ function RouteComponent() {
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [addGuestOpen, setAddGuestOpen] = useState(false);
   const [profileGuest, setProfileGuest] = useState<Guest | null>(null);
-  const [offerGuest, setOfferGuest] = useState<Guest | null>(null);
   const [editingGuest, setEditingGuest] = useState<Guest | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
@@ -247,7 +245,6 @@ function RouteComponent() {
           onToggleSelect={toggleSelect}
           onToggleSelectAll={toggleSelectAll}
           onOpenProfile={setProfileGuest}
-          onGenerateOffer={setOfferGuest}
           onEdit={setEditingGuest}
           isLoading={isLoading}
         />
@@ -273,7 +270,6 @@ function RouteComponent() {
         onOpenChange={(open) => !open && setProfileGuest(null)}
         onAddNote={handleAddNote}
         onRemoveNote={handleRemoveNote}
-        onGenerateOffer={(guest) => setOfferGuest(guest)}
         isSaving={isSaving}
       />
 
@@ -291,11 +287,6 @@ function RouteComponent() {
         open={addGuestOpen}
         onOpenChange={setAddGuestOpen}
         onCreated={() => refresh()}
-      />
-
-      <OfferLinkDialog
-        guest={offerGuest}
-        onOpenChange={(open) => !open && setOfferGuest(null)}
       />
     </div>
   );
