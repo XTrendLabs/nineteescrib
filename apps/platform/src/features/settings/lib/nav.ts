@@ -79,7 +79,6 @@ export const settingsNavGroups: SettingsNavGroup[] = [
         title: "Audit Log",
         url: "/settings/audit",
         icon: FileTextIcon,
-        soon: true,
       },
     ],
   },
