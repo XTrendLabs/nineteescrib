@@ -6,18 +6,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@propertyos/ui/components/select";
+import { cn } from "@propertyos/ui/lib/utils";
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { addMonths, endOfMonth, format, startOfMonth } from "date-fns";
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 import type { DateRange } from "react-day-picker";
 import { z } from "zod";
-
+import { ModeToggle } from "@/components/mode-toggle";
 import {
   usePublicAvailability,
   usePublicOccupancy,
   usePublicProperty,
 } from "@/features/booking-engine/api/use-public-booking";
+import { BookingStepper } from "@/features/booking-engine/components/booking-stepper";
+import { BOOKING_EXTRAS } from "@/features/booking-engine/lib/booking-options";
 import { isBookingEngineEnabled } from "@/features/booking-engine/lib/feature-flag";
 import { formatInr } from "@/features/booking-engine/lib/format";
 import { StayRangeCalendar } from "@/features/bookings/components/stay-range-calendar";
@@ -29,13 +32,10 @@ const searchSchema = z.object({
   checkIn: z.string().optional(),
   checkOut: z.string().optional(),
   guests: z.number().optional(),
+  extras: z.array(z.string()).optional(),
 });
 
 export const Route = createFileRoute("/book/$propertySlug/")({
-  // Off by default. A 404 rather than a notice: a page saying "not taking
-  // bookings yet" tells a stranger the property exists and is not ready,
-  // which is the operator's business, not theirs. While the engine is off
-  // the route simply is not there.
   beforeLoad: () => {
     if (!isBookingEngineEnabled) throw notFound();
   },
@@ -55,15 +55,6 @@ function RouteComponent() {
   const { data: propertyResponse, isLoading: loadingProperty } =
     usePublicProperty(propertySlug);
 
-  /**
-   * Nothing is pre-selected.
-   *
-   * A guessed range -- "a week out, for three nights" -- is as likely to land
-   * inside an existing booking as not, and the page then opens showing no
-   * rooms, which reads as "this property is full" rather than "pick again".
-   * The calendar is on screen with the taken nights already shaded, so the
-   * guest picks from what is actually free.
-   */
   const [dateRange, setDateRange] = useState<DateRange | undefined>(() =>
     search.checkIn && search.checkOut
       ? {
@@ -73,6 +64,9 @@ function RouteComponent() {
       : undefined,
   );
   const [guests, setGuests] = useState(search.guests ?? 2);
+  const [selectedExtras, setSelectedExtras] = useState<string[]>(
+    search.extras ?? [],
+  );
 
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
 
@@ -126,15 +120,18 @@ function RouteComponent() {
     navigate({
       to: "/book/$propertySlug/checkout",
       params: { propertySlug },
-      search: { roomId, checkIn, checkOut, guests },
+      search: { roomId, checkIn, checkOut, guests, extras: selectedExtras },
     });
   }
 
   return (
     <div className="flex min-h-svh flex-col bg-background">
-      <header className="border-b px-4 py-4 sm:px-8">
-        <p className="font-medium text-sm">{property.name}</p>
-        <p className="text-muted-foreground text-xs">Direct booking</p>
+      <header className="flex items-center justify-between border-b px-4 py-4 sm:px-8">
+        <div>
+          <p className="font-medium text-sm">{property.name}</p>
+          <p className="text-muted-foreground text-xs">Direct booking</p>
+        </div>
+        <ModeToggle />
       </header>
 
       <motion.div
@@ -143,6 +140,8 @@ function RouteComponent() {
         transition={{ type: "spring", stiffness: 220, damping: 26 }}
         className="flex flex-col gap-4 px-4 py-6 sm:px-8"
       >
+        <BookingStepper activeStep={1} />
+
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="font-medium text-sm">
             Check Availability
@@ -194,7 +193,7 @@ function RouteComponent() {
             />
           </div>
 
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             <p className="font-medium text-muted-foreground text-xs">
               Available Rooms
             </p>
@@ -240,6 +239,52 @@ function RouteComponent() {
                 </div>
               ))
             )}
+
+            <div className="flex flex-col gap-2 border p-4">
+              <div>
+                <p className="font-medium text-sm">Enhance your stay</p>
+                <p className="text-muted-foreground text-xs">
+                  Select services you would like the property to arrange.
+                </p>
+              </div>
+              <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+                {BOOKING_EXTRAS.map((extra) => {
+                  const checked = selectedExtras.includes(extra.id);
+                  return (
+                    <label
+                      key={extra.id}
+                      className={cn(
+                        "flex min-h-24 w-52 shrink-0 cursor-pointer flex-col justify-between gap-3 border p-3",
+                        checked && "border-foreground bg-muted/40",
+                      )}
+                    >
+                      <span className="flex flex-col gap-1">
+                        <span className="font-medium text-xs">
+                          {extra.label}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground">
+                          {extra.description}
+                        </span>
+                      </span>
+                      <span className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() =>
+                            setSelectedExtras((current) =>
+                              checked
+                                ? current.filter((id) => id !== extra.id)
+                                : [...current, extra.id],
+                            )
+                          }
+                        />
+                        Add request
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
       </motion.div>

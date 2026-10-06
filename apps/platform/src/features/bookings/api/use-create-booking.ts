@@ -1,5 +1,10 @@
 import { api } from "@/shared/lib/api-client";
+import { queryClient } from "@/shared/lib/query-client";
 
 export function useCreateBooking() {
-  return api.api.platform.bookings.$post.useMutation();
+  return api.api.platform.bookings.$post.useMutation({
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+    },
+  });
 }

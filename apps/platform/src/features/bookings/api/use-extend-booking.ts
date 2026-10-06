@@ -1,4 +1,5 @@
 import { api } from "@/shared/lib/api-client";
+import { queryClient } from "@/shared/lib/query-client";
 
 /**
  * The rooms free for the nights a stay would extend into.
@@ -18,5 +19,9 @@ export function useExtensionOptions(
 }
 
 export function useExtendBooking() {
-  return api.api.platform.bookings[":id"].extend.$post.useMutation();
+  return api.api.platform.bookings[":id"].extend.$post.useMutation({
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+    },
+  });
 }

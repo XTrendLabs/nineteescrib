@@ -1,4 +1,5 @@
 import { api } from "@/shared/lib/api-client";
+import { queryClient } from "@/shared/lib/query-client";
 
 /**
  * Cancels a booking, freeing the room.
@@ -7,5 +8,9 @@ import { api } from "@/shared/lib/api-client";
  * history and in the cancellation rate.
  */
 export function useCancelBooking() {
-  return api.api.platform.bookings[":id"].cancel.$post.useMutation();
+  return api.api.platform.bookings[":id"].cancel.$post.useMutation({
+    onSuccess: () => {
+      queryClient.invalidateQueries();
+    },
+  });
 }

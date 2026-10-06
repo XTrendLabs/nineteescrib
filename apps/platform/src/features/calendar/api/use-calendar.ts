@@ -1,4 +1,5 @@
 import { api } from "@/shared/lib/api-client";
+import { queryClient } from "@/shared/lib/query-client";
 
 /**
  * The rooms the calendar draws rows for.
@@ -38,6 +39,7 @@ export function useCalendarBookings(
 }
 
 export function invalidateCalendar() {
+  queryClient.invalidateQueries();
   return api.api.platform.bookings.calendar.$get.invalidate();
 }
 

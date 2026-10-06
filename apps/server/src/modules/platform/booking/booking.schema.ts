@@ -1,5 +1,6 @@
 import {
   blockReasonValues,
+  bookingIdProofTypeValues,
   bookingKindValues,
   bookingPaymentMethodValues,
   bookingSourceValues,
@@ -59,6 +60,8 @@ export const createBookingSchema = z
     guestCount: z.number().int().positive().optional(),
     totalAmountPaise: z.number().int().nonnegative().optional(),
     notes: z.string().optional(),
+    idProofType: z.enum(bookingIdProofTypeValues).optional(),
+    idProofUrl: z.string().url().optional(),
     /** Minutes to hold inventory; only meaningful when `kind` is "hold". */
     holdMinutes: z.number().int().positive().max(1440).optional(),
     initialPayment: paymentInput.optional(),

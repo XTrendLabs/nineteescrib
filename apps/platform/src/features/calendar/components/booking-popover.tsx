@@ -159,6 +159,42 @@ export function BookingQuickView({
         </span>
       </div>
 
+      {(booking.idProofType || booking.idProofUrl || booking.notes) && (
+        <div className="flex flex-col gap-2 border-t pt-2 text-xs">
+          <p className="font-medium">Guest documents & requests</p>
+          {booking.idProofType && (
+            <div className="flex justify-between gap-3">
+              <span className="text-muted-foreground">ID proof</span>
+              <span className="capitalize">
+                {booking.idProofType.replaceAll("_", " ")}
+              </span>
+            </div>
+          )}
+          {booking.idProofUrl && (
+            <a
+              href={booking.idProofUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="flex flex-col gap-1.5 underline-offset-2 hover:underline"
+            >
+              <span className="text-muted-foreground">Uploaded ID proof</span>
+              <img
+                src={booking.idProofUrl}
+                alt="Uploaded guest ID proof"
+                className="h-24 w-full border object-contain"
+              />
+              <span className="text-[11px]">Open full image</span>
+            </a>
+          )}
+          {booking.notes && (
+            <div className="flex flex-col gap-1 border-t pt-2">
+              <span className="text-muted-foreground">Booking details</span>
+              <p className="whitespace-pre-wrap text-[11px]">{booking.notes}</p>
+            </div>
+          )}
+        </div>
+      )}
+
       {actions.length > 0 && (
         // One row: these are peers, and stacking them made a short popover
         // twice as tall for no gain in clarity. Cancel is last and quiet, so

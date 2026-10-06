@@ -76,6 +76,8 @@ export type Booking = {
   guestCount: number;
   totalAmountPaise: number;
   holdExpiresAt: string | null;
+  idProofType: string | null;
+  idProofUrl: string | null;
   notes: string | null;
   cancelledAt: string | null;
   cancellationReason: string | null;

@@ -22,6 +22,17 @@ import { publicService } from "./public.service";
  * to, so a crafted request cannot reach another property's inventory.
  */
 export const publicRoutes = createRouter()
+  .post("/properties/:slug/id-proof", async (c) => {
+    const body = await c.req.parseBody();
+    const file = body.file;
+
+    if (!(file instanceof File)) {
+      throw AppError.validation("An ID proof image is required");
+    }
+
+    const result = await publicService.uploadIdProof(c.req.param("slug"), file);
+    return c.json(ok({ url: result.url }));
+  })
   .get("/properties/:slug", async (c) => {
     const property = await publicService.getProperty(c.req.param("slug"));
     return c.json(ok(property));

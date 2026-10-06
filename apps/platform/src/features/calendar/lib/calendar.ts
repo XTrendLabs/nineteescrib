@@ -50,6 +50,9 @@ export type CalendarBooking = {
   guests: number;
   tariffPaise: number;
   paymentStatus: PaymentStatus;
+  idProofType: string | null;
+  idProofUrl: string | null;
+  notes: string | null;
   /**
    * Where the stay has got to, which drives its colour on the grid.
    *
@@ -154,6 +157,9 @@ export function toCalendarBooking(booking: ApiBooking): CalendarBooking {
     guests: booking.guestCount,
     tariffPaise: booking.totalAmountPaise,
     paymentStatus: booking.paymentStatus,
+    idProofType: booking.idProofType,
+    idProofUrl: booking.idProofUrl,
+    notes: booking.notes,
     status: booking.status,
     checkedIn: booking.status === "checked_in",
     checkedOut: booking.status === "checked_out",

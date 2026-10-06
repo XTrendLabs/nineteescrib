@@ -52,6 +52,14 @@ export const bookingPaymentMethodValues = [
   "online",
 ] as const;
 
+export const bookingIdProofTypeValues = [
+  "aadhaar",
+  "voter_id",
+  "driving_license",
+  "passport",
+  "overseas_id",
+] as const;
+
 /**
  * Money is stored in paise as whole numbers, matching `expense`. Integer paise
  * keeps every addition and comparison exact, where a floating rupee value
@@ -241,6 +249,8 @@ export const booking = pgTable(
      * that missed a run would.
      */
     holdExpiresAt: timestamp("hold_expires_at"),
+    idProofType: text("id_proof_type"),
+    idProofUrl: text("id_proof_url"),
     notes: text("notes"),
     /**
      * The booking this one continues, when a stay was extended into a

@@ -68,6 +68,8 @@ const bookingColumns = {
   guestCount: booking.guestCount,
   totalAmountPaise: booking.totalAmountPaise,
   holdExpiresAt: booking.holdExpiresAt,
+  idProofType: booking.idProofType,
+  idProofUrl: booking.idProofUrl,
   notes: booking.notes,
   cancelledAt: booking.cancelledAt,
   cancellationReason: booking.cancellationReason,

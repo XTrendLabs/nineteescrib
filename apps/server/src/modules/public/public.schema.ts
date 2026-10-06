@@ -54,9 +54,36 @@ export const publicBookingSchema = z
         .optional()
         .or(z.literal("")),
     }),
+    idProofType: z.enum([
+      "aadhaar",
+      "voter_id",
+      "driving_license",
+      "passport",
+      "overseas_id",
+    ]),
+    idProofUrl: z.string().url(),
+    extras: z.array(z.string().trim().min(1).max(80)).max(10).optional(),
+    bookingPurpose: z.enum([
+      "leisure",
+      "business",
+      "medical",
+      "event",
+      "other",
+      "custom",
+    ]),
+    bookingPurposeCustom: z.string().trim().max(120).optional(),
     arrivalTime: z.string().max(60).optional(),
     specialRequests: z.string().max(2000).optional(),
   })
+  .refine(
+    (value) =>
+      value.bookingPurpose !== "custom" ||
+      Boolean(value.bookingPurposeCustom?.trim()),
+    {
+      message: "Enter a booking purpose",
+      path: ["bookingPurposeCustom"],
+    },
+  )
   .refine(hasPositiveDuration, DURATION_ERROR);
 
 export type PublicBookingInput = z.infer<typeof publicBookingSchema>;

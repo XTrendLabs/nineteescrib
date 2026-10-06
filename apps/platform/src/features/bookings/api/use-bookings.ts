@@ -1,4 +1,5 @@
 import { api } from "@/shared/lib/api-client";
+import { queryClient } from "@/shared/lib/query-client";
 
 /**
  * The bookings the caller can see.
@@ -15,8 +16,9 @@ export function useBookings(activeOrganizationId: string | undefined) {
   });
 }
 
-/** Refetches the bookings list. Every mutation on this page calls it. */
+/** Refetches the bookings list and related queries across the application. */
 export function invalidateBookings(activeOrganizationId: string | undefined) {
+  queryClient.invalidateQueries();
   return api.api.platform.bookings.$get.invalidate({
     query: { activeOrganizationId: activeOrganizationId ?? "" },
   });

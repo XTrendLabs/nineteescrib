@@ -17,7 +17,7 @@ import { Input } from "@propertyos/ui/components/input";
 import { LoadingButton } from "@propertyos/ui/components/loading-button";
 import { TimePicker } from "@propertyos/ui/components/time-picker";
 import { useEffect } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { Controller, type Resolver, useForm } from "react-hook-form";
 
 import { api } from "@/shared/lib/api-client";
 import { useUpdatePolicies } from "../api/use-update-policies";
@@ -59,7 +59,9 @@ export function PoliciesDialog({
   const updatePolicies = useUpdatePolicies();
 
   const form = useForm<PoliciesValues>({
-    resolver: zodResolver(policiesSchema),
+    resolver: zodResolver(
+      policiesSchema,
+    ) as unknown as Resolver<PoliciesValues>,
     defaultValues: toDefaultValues(property),
   });
 

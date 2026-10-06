@@ -1,5 +1,6 @@
 import { AppError } from "../../core";
 import { bookingService } from "../platform/booking/booking.service";
+import { storageService } from "../platform/storage/storage.service";
 import { publicRepo } from "./public.repo";
 import type { PublicBookingInput } from "./public.schema";
 
@@ -60,6 +61,27 @@ async function resolveProperty(slug: string) {
 }
 
 export const publicService = {
+  async uploadIdProof(slug: string, file: File) {
+    const property = await resolveProperty(slug);
+
+    if (file.size > 10 * 1024 * 1024) {
+      throw AppError.validation("ID proof must be 10 MB or smaller");
+    }
+
+    try {
+      return await storageService.uploadImage(file, [
+        "public",
+        "properties",
+        property.id,
+        "id-proofs",
+      ]);
+    } catch (error) {
+      throw AppError.validation(
+        error instanceof Error ? error.message : "Unsupported ID proof image",
+      );
+    }
+  },
+
   async getProperty(slug: string) {
     const property = await resolveProperty(slug);
     return {
@@ -158,6 +180,15 @@ export const publicService = {
     });
 
     const notes = [
+      `ID proof: ${input.idProofType}`,
+      `Booking purpose: ${
+        input.bookingPurpose === "custom"
+          ? input.bookingPurposeCustom?.trim()
+          : input.bookingPurpose
+      }`,
+      input.extras?.length
+        ? `Requested extras: ${input.extras.join(", ")}`
+        : "",
       input.arrivalTime ? `Arriving ${input.arrivalTime}` : "",
       input.specialRequests?.trim(),
     ]
@@ -177,6 +208,8 @@ export const publicService = {
         checkOut: input.checkOut,
         guestCount: input.guestCount,
         totalAmountPaise: quote.totalPaise,
+        idProofType: input.idProofType,
+        idProofUrl: input.idProofUrl,
         notes,
         guest: {
           name: input.guest.name,
