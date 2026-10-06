@@ -51,14 +51,19 @@ export const staffService = {
       throw AppError.validation("A password is required for platform access");
     }
 
-    const existing = await staffRepo.findUserByEmail(staffInput.email);
+    if (!staffInput.email) {
+      throw AppError.validation("An email is required for platform access");
+    }
+
+    const email = staffInput.email;
+    const existing = await staffRepo.findUserByEmail(email);
     if (existing) {
       throw AppError.conflict("An account with this email already exists");
     }
 
     const signUp = await auth.api.signUpEmail({
       body: {
-        email: staffInput.email,
+        email,
         password,
         name: staffInput.fullName,
       },
@@ -97,7 +102,63 @@ export const staffService = {
    * membership reconcile.
    */
   async update(id: string, input: UpdateStaffInput) {
-    const updated = await staffRepo.update(id, input);
+    const { platformAccess, password, ...detailInput } = input;
+    const existingStaff = await staffRepo.findForAssignment(id);
+    if (!existingStaff) {
+      throw AppError.notFound("Staff member not found");
+    }
+
+    let userId = existingStaff.userId;
+
+    if (platformAccess && !userId) {
+      if (!password) {
+        throw AppError.validation("A password is required for platform access");
+      }
+      if (!detailInput.email) {
+        throw AppError.validation("An email is required for platform access");
+      }
+
+      const email = detailInput.email;
+      const existingUser = await staffRepo.findUserByEmail(email);
+      if (existingUser) {
+        throw AppError.conflict("An account with this email already exists");
+      }
+
+      const signUp = await auth.api.signUpEmail({
+        body: {
+          email,
+          password,
+          name: detailInput.fullName,
+        },
+      });
+
+      if (!signUp?.user) {
+        throw AppError.validation("Could not create the login account");
+      }
+
+      userId = signUp.user.id;
+
+      const role: AppRole =
+        ORGANIZATION_ROLE[detailInput.role as keyof typeof ORGANIZATION_ROLE] ??
+        "staff";
+
+      const fullStaff = await staffRepo.findById(id);
+      const assignedProperties = fullStaff?.properties.map((p) => p.id) ?? [];
+
+      await Promise.all([
+        staffRepo.markEmailVerified(userId),
+        ...assignedProperties.map((organizationId) =>
+          auth.api.addMember({
+            body: { userId: userId!, organizationId, role },
+          }),
+        ),
+      ]);
+    }
+
+    const updated = await staffRepo.update(id, {
+      ...detailInput,
+      ...(userId ? { userId } : {}),
+    });
     return updated?.staff;
   },
 

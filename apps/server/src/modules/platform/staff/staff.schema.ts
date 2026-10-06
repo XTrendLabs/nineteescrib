@@ -14,7 +14,7 @@ export const MIN_PASSWORD = 8;
 const detailFields = {
   fullName: z.string().min(1, "Full name is required"),
   phone: z.string().min(1, "Phone number is required"),
-  email: z.string().min(1, "Email is required").email("Enter a valid email"),
+  email: z.string().email("Enter a valid email").optional().or(z.literal("")),
   role: z.enum(staffRoleValues),
   status: z.enum(staffStatusValues).optional(),
   dateOfBirth: optionalText,
@@ -49,6 +49,14 @@ export const createStaffSchema = z
       path: ["password"],
       message: `Password must be at least ${MIN_PASSWORD} characters`,
     },
+  )
+  .refine(
+    (data) =>
+      !data.platformAccess || Boolean(data.email && data.email.length > 0),
+    {
+      path: ["email"],
+      message: "Email is required for platform access",
+    },
   );
 
 export type CreateStaffInput = z.infer<typeof createStaffSchema>;
@@ -58,7 +66,28 @@ export type CreateStaffInput = z.infer<typeof createStaffSchema>;
  * they cost a membership reconcile that a name or phone change should not pay
  * for.
  */
-export const updateStaffSchema = z.object(detailFields);
+export const updateStaffSchema = z
+  .object({
+    ...detailFields,
+    platformAccess: z.boolean().optional(),
+    password: z.string().optional(),
+  })
+  .refine(
+    (data) =>
+      !data.platformAccess || (data.password?.length ?? 0) >= MIN_PASSWORD,
+    {
+      path: ["password"],
+      message: `Password must be at least ${MIN_PASSWORD} characters`,
+    },
+  )
+  .refine(
+    (data) =>
+      !data.platformAccess || Boolean(data.email && data.email.length > 0),
+    {
+      path: ["email"],
+      message: "Email is required for platform access",
+    },
+  );
 
 export type UpdateStaffInput = z.infer<typeof updateStaffSchema>;
 

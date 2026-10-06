@@ -93,9 +93,7 @@ function toDefaultValues(staff: Staff | undefined): StaffFormValues {
     emergencyName: staff?.emergencyName ?? "",
     emergencyPhone: staff?.emergencyPhone ?? "",
     propertyIds: staff?.properties.map((p) => p.id) ?? [],
-    // Access is granted at creation; an existing member's login is managed
-    // separately rather than re-set from this form.
-    platformAccess: false,
+    platformAccess: Boolean(staff?.hasPlatformAccess),
     password: "",
   };
 }
@@ -199,15 +197,20 @@ export function StaffDialog({
         // Account fields belong to creation only, and assignments have their
         // own endpoint -- the details endpoint accepts neither.
         const {
-          platformAccess: _a,
-          password: _p,
+          platformAccess: pAccess,
+          password: pWord,
           propertyIds,
           ...staffValues
         } = values;
 
         await updateStaff.mutateAsync({
           param: { id: staff.id },
-          json: staffValues,
+          json: {
+            ...staffValues,
+            platformAccess:
+              pAccess && !staff.hasPlatformAccess ? true : undefined,
+            password: pAccess && !staff.hasPlatformAccess ? pWord : undefined,
+          },
         });
 
         // Reconciling membership costs several queries, so it only runs when
@@ -312,7 +315,9 @@ export function StaffDialog({
                   name="email"
                   render={({ field, fieldState }) => (
                     <Field>
-                      <FieldLabel htmlFor="staff-email">Email *</FieldLabel>
+                      <FieldLabel htmlFor="staff-email">
+                        Email {platformAccess ? "*" : "(Optional)"}
+                      </FieldLabel>
                       <Input
                         id="staff-email"
                         type="email"
@@ -509,7 +514,17 @@ export function StaffDialog({
 
               {/* Access is granted at creation. Editing an existing member's login
               is a separate concern from editing their staff record. */}
-              {!isEditing && (
+              {staff?.hasPlatformAccess ? (
+                <div className="rounded-md border bg-muted/40 p-3 text-xs">
+                  <p className="font-medium text-foreground">
+                    Platform Access: Enabled
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-muted-foreground">
+                    This staff member has an active login account to sign in and
+                    manage assigned properties.
+                  </p>
+                </div>
+              ) : (
                 <>
                   <Controller
                     control={form.control}
@@ -528,8 +543,8 @@ export function StaffDialog({
                               Provide platform access
                             </span>
                             <span className="block text-[11px] text-muted-foreground">
-                              Creates a login so they can sign in to the
-                              properties assigned above.
+                              Creates a login account so they can sign in to
+                              assigned properties.
                             </span>
                           </span>
                         </Label>
@@ -580,8 +595,6 @@ export function StaffDialog({
                               size="sm"
                               onClick={() => {
                                 field.onChange(generatePassword());
-                                // Reveal it, since a generated password the user
-                                // cannot read is of no use to them.
                                 setShowPassword(true);
                               }}
                             >

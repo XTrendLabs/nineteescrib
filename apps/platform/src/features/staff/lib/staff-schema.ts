@@ -10,7 +10,7 @@ export const staffFormSchema = z
       .string()
       .min(1, "Phone number is required")
       .refine(isValidPhoneNumber, "Enter a valid phone number"),
-    email: z.string().min(1, "Email is required").email("Enter a valid email"),
+    email: z.string().email("Enter a valid email").optional().or(z.literal("")),
     role: z.enum(staffRoleValues),
     status: z.enum(staffStatusValues),
     dateOfBirth: z.string(),
@@ -30,7 +30,16 @@ export const staffFormSchema = z
   .refine((data) => !data.platformAccess || data.password.length >= 8, {
     path: ["password"],
     message: "Password must be at least 8 characters",
-  });
+  })
+  .refine(
+    (data) =>
+      !data.platformAccess ||
+      Boolean(data.email && data.email.trim().length > 0),
+    {
+      path: ["email"],
+      message: "Email is required when platform access is enabled",
+    },
+  );
 
 /** What lives in form state. */
 export type StaffFormValues = z.input<typeof staffFormSchema>;
